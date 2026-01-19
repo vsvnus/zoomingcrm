@@ -1,0 +1,394 @@
+[
+  {
+    "id": "TC001",
+    "title": "User Signup with Valid Data and Initial Capital",
+    "description": "Verify that a user can successfully sign up with valid email, password, name, optional WhatsApp, and initial capital amount, and is redirected to the dashboard.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to signup page"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid email, password (min 6 chars), name, optional WhatsApp, and valid initial capital (non-negative)"
+      },
+      {
+        "type": "action",
+        "description": "Submit signup form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is successfully created and redirected automatically to the dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an initial capital transaction is created and organization balance updated accordingly"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "User Signup with Invalid Email Format",
+    "description": "Verify that signup fails when the user provides an invalid email format.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to signup page"
+      },
+      {
+        "type": "action",
+        "description": "Enter invalid email format, valid password, name, and other details"
+      },
+      {
+        "type": "action",
+        "description": "Submit signup form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify signup is rejected with a validation error about invalid email format"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "User Signup Duplicate Email Prevention",
+    "description": "Verify that signup is prevented if the email already exists in the system.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to signup with an email that already exists"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify signup is rejected with error indicating user already exists"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "User Signin with Correct Credentials",
+    "description": "Validate successful login using existing user email and password, redirecting to dashboard.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to signin page"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid registered email and correct password"
+      },
+      {
+        "type": "action",
+        "description": "Submit login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify successful login and redirection to dashboard"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "User Signin with Incorrect Credentials",
+    "description": "Verify login failure when user enters incorrect password or non-registered email.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to signin page"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid email with incorrect password"
+      },
+      {
+        "type": "action",
+        "description": "Submit login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify login is failed with invalid credentials error"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Password Visibility Toggle Functionality",
+    "description": "Verify the eye icon toggles password input between masked and visible states and changes icon accordingly in signup and login forms.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to signup page"
+      },
+      {
+        "type": "action",
+        "description": "Enter any password"
+      },
+      {
+        "type": "assertion",
+        "description": "Password input type is 'password' and eye icon is 'EyeOff'"
+      },
+      {
+        "type": "action",
+        "description": "Click eye icon to toggle visibility"
+      },
+      {
+        "type": "assertion",
+        "description": "Password input type changes to 'text' and eye icon switches to 'Eye'"
+      },
+      {
+        "type": "action",
+        "description": "Click eye icon again to toggle back"
+      },
+      {
+        "type": "assertion",
+        "description": "Password input type changes back to 'password' and icon switches to 'EyeOff'"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Initial Capital Registration Restriction",
+    "description": "Verify that initial capital can only be registered once per organization and rejects duplicate attempts.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform signup for organization with initial capital registration"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to register initial capital again via API or UI for same organization"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify operation is rejected with error indicating capital already registered"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Add Expense with Valid Data",
+    "description": "Verify ability to add a new expense with all required fields valid, including category, non-negative amount, description, and correct status.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to add expense dialog or API endpoint"
+      },
+      {
+        "type": "action",
+        "description": "Input expense details with valid organization id, type 'EXPENSE', valid category, description, amount >= 0, valid status, due date, and optional notes"
+      },
+      {
+        "type": "action",
+        "description": "Submit the expense"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the expense is successfully created and saved with correct details"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify dashboard updates automatically to reflect new expense"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Add Expense with Missing Required Fields",
+    "description": "Verify validation errors occur when required fields like category, description, or amount are missing when adding expenses.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to add expense missing required fields such as category or amount"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify submission is rejected with validation errors for missing fields"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Add Expense with Negative Amount",
+    "description": "Verify that adding an expense with a negative amount value is rejected.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to add expense with negative amount value"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify submission is rejected with an error indicating amount must be non-negative"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Dashboard Financial Data Real-Time Display",
+    "description": "Verify that the dashboard correctly displays the up-to-date current balance, active projects, new clients, and upcoming shoots based on the latest database state.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as user and navigate to dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify current balance matches the calculated value from initial capital, expenses, and receipts"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify active projects count and details are correct and up-to-date"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify new clients count is accurate"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify upcoming shoots list matches scheduled data"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Equipment Reservation Conflict Prevention",
+    "description": "Verify the system prevents double booking of the same equipment on overlapping dates with appropriate user feedback.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Reserve equipment item A for a given date range successfully"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to reserve the same equipment item A for overlapping date range"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify reservation is blocked with message indicating equipment is already booked for the selected date(s)"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Kanban Board Stage Validations and Notifications",
+    "description": "Verify that moving a project stage on the Kanban board enforces required data validation for that stage and triggers email notifications upon successful stage changes.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to move project to next stage without completing required fields"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify move is blocked with validation error indicating missing required information"
+      },
+      {
+        "type": "action",
+        "description": "Complete required fields and move project stage on Kanban"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify stage change is successful and automated email notification is sent to relevant stakeholders"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Interactive Proposal Video Embedding and Real-Time Pricing",
+    "description": "Verify that interactive proposal pages correctly embed audiovisual portfolio videos and update pricing in real time based on client feature selections.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Access proposal landing page with unique token"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify embedded portfolio videos load and play correctly"
+      },
+      {
+        "type": "action",
+        "description": "Select or deselect optional features on the proposal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify pricing updates correctly and in real time as features are changed"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Client Media Review Approvals and Version History",
+    "description": "Verify that clients can approve or request changes on video review pages, version histories update automatically, and project stages progress accordingly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Client accesses media review link"
+      },
+      {
+        "type": "action",
+        "description": "Client submits approval"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify project stage automatically progresses to next appropriate stage"
+      },
+      {
+        "type": "action",
+        "description": "Client requests changes to the media"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify new version history entry is recorded and project stage remains unchanged"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "User Signout Flow",
+    "description": "Verify that a logged-in user can successfully sign out and is redirected or logged out appropriately.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Sign in with valid credentials"
+      },
+      {
+        "type": "action",
+        "description": "Trigger signout action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user session ends and user is redirected to login page or public landing"
+      }
+    ]
+  }
+]

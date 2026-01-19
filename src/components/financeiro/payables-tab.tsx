@@ -1,0 +1,288 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Badge } from '@/components/ui/badge'
+import {
+  Plus,
+  ExternalLink,
+  AlertCircle,
+  MoreHorizontal,
+  CheckCircle,
+  XCircle,
+  Clock,
+  FileWarning,
+} from 'lucide-react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { AddExpenseDialog } from './add-expense-dialog'
+import { markAsPaid, cancelTransaction, updateTransaction } from '@/actions/financeiro'
+
+interface PayablesTabProps {
+  data: any[]
+  onUpdate: (data: any) => void
+  organizationId: string
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value)
+}
+
+function getStatusBadge(status: string, isOverdue: boolean) {
+  if (isOverdue) {
+    return (
+      <Badge variant="error" className="gap-1">
+        <AlertCircle className="h-3 w-3" />
+        Vencida
+      </Badge>
+    )
+  }
+
+  switch (status) {
+    case 'PENDING':
+      return <Badge variant="outline">Pendente</Badge>
+    case 'SCHEDULED':
+      return <Badge variant="warning">Agendado</Badge>
+    case 'PAID':
+      return <Badge variant="success" className="bg-green-600">Pago</Badge>
+    case 'CANCELLED':
+      return <Badge variant="default">Cancelado</Badge>
+    default:
+      return <Badge>{status}</Badge>
+  }
+}
+
+function getCategoryLabel(category: string) {
+  const labels: Record<string, string> = {
+    CREW_TALENT: 'Equipe/Talento',
+    EQUIPMENT_RENTAL: 'Aluguel Equip.',
+    LOCATION: 'Locação',
+    LOGISTICS: 'Logística',
+    POST_PRODUCTION: 'Pós-produção',
+    PRODUCTION: 'Produção',
+    OFFICE_RENT: 'Aluguel Escritório',
+    UTILITIES: 'Utilidades',
+    SOFTWARE: 'Software',
+    SALARY: 'Salário',
+    INSURANCE: 'Seguro',
+    MARKETING: 'Marketing',
+    MAINTENANCE: 'Manutenção',
+    OTHER_EXPENSE: 'Outros',
+  }
+  return labels[category] || category
+}
+
+export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps) {
+  const [payables, setPayables] = useState(data)
+  const [isLoading, setIsLoading] = useState<string | null>(null)
+
+  const handleMarkAsPaid = async (id: string) => {
+    if (!confirm('Confirmar pagamento desta despesa?')) return
+
+    setIsLoading(id)
+    try {
+      await markAsPaid(id)
+      setPayables(payables.map((p) => (p.id === id ? { ...p, status: 'PAID' } : p)))
+      onUpdate?.(payables)
+    } catch (error: any) {
+      alert(error.message || 'Erro ao marcar como pago')
+    } finally {
+      setIsLoading(null)
+    }
+  }
+
+  const handleSchedule = async (id: string) => {
+    setIsLoading(id)
+    try {
+      await updateTransaction(id, { status: 'SCHEDULED' })
+      setPayables(payables.map((p) => (p.id === id ? { ...p, status: 'SCHEDULED' } : p)))
+      onUpdate?.(payables)
+    } catch (error: any) {
+      alert(error.message || 'Erro ao agendar pagamento')
+    } finally {
+      setIsLoading(null)
+    }
+  }
+
+  const handleCancel = async (id: string) => {
+    if (!confirm('Cancelar esta despesa? Esta ação não pode ser desfeita.')) return
+
+    setIsLoading(id)
+    try {
+      await cancelTransaction(id)
+      setPayables(payables.map((p) => (p.id === id ? { ...p, status: 'CANCELLED' } : p)))
+      onUpdate?.(payables)
+    } catch (error: any) {
+      alert(error.message || 'Erro ao cancelar despesa')
+    } finally {
+      setIsLoading(null)
+    }
+  }
+
+  if (payables.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="rounded-full bg-muted p-3 mb-4">
+          <AlertCircle className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">Nenhuma conta a pagar</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Comece adicionando suas despesas e custos de projetos
+        </p>
+        <AddExpenseDialog organizationId={organizationId} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">Contas a Pagar</h3>
+          <p className="text-sm text-muted-foreground">
+            {payables.length} despesa{payables.length !== 1 ? 's' : ''} pendente{payables.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+        <AddExpenseDialog organizationId={organizationId} />
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Descrição</TableHead>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Origem</TableHead>
+              <TableHead>Beneficiário</TableHead>
+              <TableHead>Vencimento</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {payables.map((payable) => {
+              const isOverdue = payable.is_overdue || false
+              const isFixed = !payable.project_id
+              const isPending = payable.status === 'PENDING' || payable.status === 'SCHEDULED'
+              const hasValidProject = payable.project_id && payable.projects?.title
+
+              return (
+                <TableRow key={payable.id}>
+                  <TableCell className="font-medium">
+                    {payable.description}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {getCategoryLabel(payable.category)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {isFixed ? (
+                      <span className="text-sm text-muted-foreground">
+                        Custo Fixo
+                      </span>
+                    ) : hasValidProject ? (
+                      <Link
+                        href={`/projects/${payable.project_id}`}
+                        className="flex items-center gap-1 text-blue-600 hover:underline"
+                      >
+                        {payable.projects.title}
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    ) : (
+                      <span className="flex items-center gap-1 text-sm text-amber-600">
+                        <FileWarning className="h-3 w-3" />
+                        Projeto removido
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {payable.freelancers?.name || (
+                      <span className="text-sm text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {payable.due_date ? (
+                      <span className={isOverdue ? 'text-red-600 font-medium' : ''}>
+                        {format(new Date(payable.due_date), 'dd/MM/yyyy', {
+                          locale: ptBR,
+                        })}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-semibold">
+                    {formatCurrency(payable.amount)}
+                  </TableCell>
+                  <TableCell>
+                    {getStatusBadge(payable.status, isOverdue)}
+                  </TableCell>
+                  <TableCell>
+                    {isPending && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            disabled={isLoading === payable.id}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => handleMarkAsPaid(payable.id)}
+                            className="text-green-600"
+                          >
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Marcar como Pago
+                          </DropdownMenuItem>
+                          {payable.status === 'PENDING' && (
+                            <DropdownMenuItem onClick={() => handleSchedule(payable.id)}>
+                              <Clock className="mr-2 h-4 w-4" />
+                              Agendar Pagamento
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleCancel(payable.id)}
+                            className="text-red-600"
+                          >
+                            <XCircle className="mr-2 h-4 w-4" />
+                            Cancelar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}

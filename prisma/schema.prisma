@@ -1,0 +1,704 @@
+// Zooming CRM - Database Schema
+// Compatible with Supabase (PostgreSQL) + Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// CORE ENTITIES
+// ============================================
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique // Para URLs customizadas
+  logo      String?
+  email     String
+  phone     String?
+  website   String?
+
+  // Configurações
+  maxDiscount Decimal @default(15) // Desconto máximo em propostas (%)
+  maxRevisions Int    @default(2)  // Rodadas de revisão inclusas
+
+  // Financeiro - SPRINT 0
+  initialCapital       Decimal?  @db.Decimal(12, 2) // Capital inicial informado no cadastro
+  initialCapitalSetAt  DateTime? // Data em que o capital foi definido
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  users            User[]
+  clients          Client[]
+  projects         Project[]
+  proposals        Proposal[]
+  equipments       Equipment[]
+  kits             EquipmentKit[]
+  freelancers      Freelancer[]
+  maintenanceLogs  MaintenanceLog[]
+  financialTransactions FinancialTransaction[]
+  calendarEvents   CalendarEvent[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String  @id @default(cuid())
+  email          String  @unique
+  name           String
+  avatar         String?
+  role           UserRole @default(PRODUCER)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  assignedProjects Project[] @relation("ProjectAssignee")
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN          // Dono da produtora
+  PRODUCER       // Produtor executivo
+  COORDINATOR    // Coordenador de produção
+  EDITOR         // Editor (acesso limitado)
+}
+
+// ============================================
+// CLIENTS & PROPOSALS
+// ============================================
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  company   String?
+  notes     String?  // Observações internas
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  projects  Project[]
+  proposals Proposal[]
+  financialTransactions FinancialTransaction[]
+
+  @@map("clients")
+}
+
+model Proposal {
+  id          String   @id @default(cuid())
+  token       String   @unique // URL pública: /p/{token}
+  title       String
+  description String?
+
+  // Valores
+  baseValue   Decimal
+  discount    Decimal  @default(0) // Em percentual
+  totalValue  Decimal  // Calculado: baseValue + opcionais - desconto
+
+  // Status
+  status      ProposalStatus @default(DRAFT)
+  validUntil  DateTime?
+  acceptedAt  DateTime?
+
+  // Metadata
+  version     Int      @default(1) // Para versionamento
+
+  clientId       String
+  client         Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  items       ProposalItem[]
+  optionals   ProposalOptional[]
+  portfolioVideos ProposalVideo[]
+  financialTransactions FinancialTransaction[]
+  paymentSchedule PaymentSchedule[] // SPRINT 3: Cronograma de recebimento
+
+  @@map("proposals")
+}
+
+enum ProposalStatus {
+  DRAFT      // Em construção
+  SENT       // Enviada ao cliente
+  VIEWED     // Cliente visualizou
+  ACCEPTED   // Cliente aceitou
+  REJECTED   // Cliente rejeitou
+  EXPIRED    // Prazo de validade vencido
+}
+
+model ProposalItem {
+  id          String  @id @default(cuid())
+  description String
+  quantity    Int     @default(1)
+  unitPrice   Decimal
+  total       Decimal // quantity * unitPrice
+  order       Int     // Para ordenação na proposta
+
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@map("proposal_items")
+}
+
+model ProposalOptional {
+  id          String  @id @default(cuid())
+  title       String  // Ex: "Filmagem com Drone"
+  description String?
+  price       Decimal
+  isSelected  Boolean @default(false) // Cliente marcou?
+  dependency  String? // ID de outro opcional (se houver)
+
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@map("proposal_optionals")
+}
+
+model ProposalVideo {
+  id       String @id @default(cuid())
+  title    String
+  videoUrl String // Vimeo/YouTube embed URL
+  order    Int
+
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@map("proposal_videos")
+}
+
+// SPRINT 3: Cronograma de recebimento
+model PaymentSchedule {
+  id          String   @id @default(cuid())
+  description String   // Ex: "Entrada (50%)", "30 dias (25%)", "60 dias (25%)"
+  dueDate     DateTime // Data prevista de recebimento
+  amount      Decimal  @db.Decimal(10, 2)
+  percentage  Decimal? @db.Decimal(5, 2) // Percentual do total (ex: 50.00 = 50%)
+  order       Int      // Para ordenação (1 = primeiro pagamento)
+  paid        Boolean  @default(false) // Foi recebido?
+  paidAt      DateTime? // Data do recebimento real
+
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("payment_schedule")
+}
+
+// ============================================
+// PROJECTS & PIPELINE
+// ============================================
+
+model Project {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+
+  // Pipeline Status
+  stage       ProjectStage @default(LEAD)
+
+  // Datas críticas
+  deadline    DateTime?
+  shootingDate DateTime?
+  shootingTime String?    // HH:MM (mantido para compatibilidade)
+  location    String?     // Endereço da gravação
+
+  // SPRINT 2: Resumo de entregáveis
+  deliverablesDescription String? @db.Text // Descrição dos entregáveis (vídeos, banners, etc)
+
+  // Relacionamentos
+  clientId       String
+  client         Client @relation(fields: [clientId], references: [id])
+
+  assignedToId   String?
+  assignedTo     User?  @relation("ProjectAssignee", fields: [assignedToId], references: [id])
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  bookings   EquipmentBooking[]
+  allocations FreelancerAllocation[]
+  reviews    ReviewVersion[]
+  financialTransactions FinancialTransaction[]
+  shootingDates ShootingDate[] // SPRINT 2: Múltiplas datas de gravação
+  deliveryDates DeliveryDate[] // SPRINT 2: Múltiplas datas de entrega
+
+  @@map("projects")
+}
+
+enum ProjectStage {
+  LEAD           // Primeiro contato
+  BRIEFING       // Levantamento de requisitos
+  PRE_PRODUCTION // Planejamento (roteiro, locação, etc)
+  SHOOTING       // Dia da gravação
+  POST_PRODUCTION // Edição
+  REVIEW         // Cliente revisando
+  DELIVERED      // Entregue e aprovado
+  ARCHIVED       // Finalizado/Arquivado
+}
+
+// SPRINT 2: Múltiplas datas de gravação
+model ShootingDate {
+  id       String   @id @default(cuid())
+  date     DateTime
+  time     String?  // HH:MM
+  location String?  // Local específico desta gravação
+  notes    String?  @db.Text // Observações (ex: "Gravação externa", "Entrevista")
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("shooting_dates")
+}
+
+// SPRINT 2: Múltiplas datas de entrega
+model DeliveryDate {
+  id          String   @id @default(cuid())
+  date        DateTime
+  description String   // Ex: "Vídeo 30s Instagram", "Banner 1920x1080"
+  completed   Boolean  @default(false)
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("delivery_dates")
+}
+
+// ============================================
+// EQUIPMENT INVENTORY
+// ============================================
+
+model Equipment {
+  id           String  @id @default(cuid())
+  name         String  // Ex: "Sony FX3"
+  brand        String? // Ex: "Sony", "Canon", "Blackmagic"
+  model        String? // Ex: "ILME-FX3", "R5", "Pocket 6K"
+  category     EquipmentCategory
+  serialNumber String? @unique
+  status       EquipmentStatus @default(AVAILABLE)
+  notes        String? // Observações (ex: "Sensor com risco")
+
+  // Financeiro e Rastreamento
+  purchaseDate  DateTime? // Data de aquisição
+  purchasePrice Decimal?  @db.Decimal(10, 2) // Valor de compra (para ROI)
+  dailyRate     Decimal?  @db.Decimal(10, 2) // Valor de aluguel interno/dia
+  qrCodeHash    String?   @unique // Hash único para QR Code
+  photoUrl      String?   // URL da foto do equipamento
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  bookings         EquipmentBooking[]
+  kitItems         EquipmentKitItem[]
+  maintenanceLogs  MaintenanceLog[]
+
+  @@map("equipments")
+}
+
+enum EquipmentCategory {
+  CAMERA
+  LENS
+  AUDIO
+  LIGHTING
+  GRIP         // Tripés, sliders, etc
+  DRONE
+  ACCESSORY
+  OTHER
+}
+
+enum EquipmentStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  RETIRED      // Fora de circulação
+  LOST         // Equipamento perdido/roubado
+}
+
+model EquipmentKit {
+  id          String @id @default(cuid())
+  name        String // Ex: "Kit Mirrorless Completo"
+  description String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  items    EquipmentKitItem[]
+  bookings EquipmentBooking[]
+
+  @@map("equipment_kits")
+}
+
+model EquipmentKitItem {
+  id       String @id @default(cuid())
+  quantity Int    @default(1)
+
+  kitId      String
+  kit        EquipmentKit @relation(fields: [kitId], references: [id], onDelete: Cascade)
+
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([kitId, equipmentId])
+  @@map("equipment_kit_items")
+}
+
+model EquipmentBooking {
+  id          String   @id @default(cuid())
+  startDate   DateTime
+  endDate     DateTime
+  returnDate  DateTime? // Data real de devolução
+
+  notes       String?
+
+  projectId   String
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Pode ser equipamento individual OU kit completo
+  equipmentId String?
+  equipment   Equipment? @relation(fields: [equipmentId], references: [id])
+
+  kitId       String?
+  kit         EquipmentKit? @relation(fields: [kitId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([equipmentId, startDate, endDate]) // Para queries de conflito
+  @@index([kitId, startDate, endDate])
+  @@map("equipment_bookings")
+}
+
+// ============================================
+// FREELANCERS & TALENT POOL
+// ============================================
+
+model Freelancer {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  portfolio   String?  // URL
+  avatar      String?
+
+  // Financeiro
+  dailyRate   Decimal? // Valor da diária
+
+  // Avaliação interna
+  rating      Int?     @default(0) // 1-5 estrelas
+  notes       String?  // Notas privadas da produtora
+
+  status      FreelancerStatus @default(ACTIVE)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  tags        FreelancerTag[]
+  allocations FreelancerAllocation[]
+  availability FreelancerAvailability[]
+
+  @@map("freelancers")
+}
+
+enum FreelancerStatus {
+  ACTIVE
+  INACTIVE
+  BLACKLISTED
+}
+
+model FreelancerTag {
+  id   String @id @default(cuid())
+  name String // Ex: "Câmera", "Drone", "Editor"
+
+  freelancerId String
+  freelancer   Freelancer @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+
+  @@map("freelancer_tags")
+}
+
+model FreelancerAllocation {
+  id        String   @id @default(cuid())
+  date      DateTime
+  confirmed Boolean  @default(false) // Freelancer confirmou presença?
+
+  // SPRINT 2: Valor customizado para este projeto
+  customRate Decimal? @db.Decimal(10, 2) // Se null, usa freelancer.dailyRate
+
+  projectId    String
+  project      Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  freelancerId String
+  freelancer   Freelancer @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([freelancerId, date]) // Não pode estar em 2 lugares no mesmo dia
+  @@map("freelancer_allocations")
+}
+
+model FreelancerAvailability {
+  id          String   @id @default(cuid())
+  date        DateTime @unique
+  isAvailable Boolean  @default(true)
+
+  freelancerId String
+  freelancer   Freelancer @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+
+  @@map("freelancer_availability")
+}
+
+// ============================================
+// REVIEW & APPROVAL SYSTEM
+// ============================================
+
+model ReviewVersion {
+  id          String   @id @default(cuid())
+  token       String   @unique // URL pública: /review/{token}
+  version     Int      // V1, V2, V3...
+  videoUrl    String   // Vimeo/YouTube link
+
+  status      ReviewStatus @default(PENDING)
+
+  // Feedback do cliente
+  clientFeedback String?
+  approvedAt     DateTime?
+  rejectedAt     DateTime?
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("review_versions")
+}
+
+enum ReviewStatus {
+  PENDING    // Aguardando feedback
+  APPROVED   // Cliente aprovou
+  REJECTED   // Cliente pediu alterações
+}
+
+// ============================================
+// MAINTENANCE LOGS (Histórico de Manutenção)
+// ============================================
+
+model MaintenanceLog {
+  id String @id @default(cuid())
+
+  equipmentId    String
+  equipment      Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Detalhes da manutenção
+  description String
+  cost        Decimal? @db.Decimal(10, 2)
+
+  // Período
+  dateStart DateTime
+  dateEnd   DateTime?
+
+  // Status
+  status MaintenanceStatus @default(IN_PROGRESS)
+
+  // Responsável
+  technicianName  String?
+  externalService Boolean @default(false) // TRUE = assistência externa
+
+  // Metadata
+  notes         String?
+  invoiceNumber String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([equipmentId])
+  @@index([organizationId])
+  @@index([dateStart, dateEnd])
+  @@index([status])
+  @@map("maintenance_logs")
+}
+
+enum MaintenanceStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================
+// AUDIT LOG (Opcional mas recomendado)
+// ============================================
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String   // Ex: "PROPOSAL_ACCEPTED", "EQUIPMENT_BOOKED"
+  entityType String  // Ex: "Proposal", "Project"
+  entityId  String
+
+  metadata  Json?    // Dados adicionais
+
+  userId    String?  // Quem fez a ação
+  ipAddress String?
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+// ============================================
+// FINANCIAL SYSTEM - SPRINT 0
+// ============================================
+
+model FinancialTransaction {
+  id String @id @default(cuid())
+
+  // Relacionamentos
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  proposalId  String?
+  proposal    Proposal? @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+
+  clientId    String?
+  client      Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  // Tipo e classificação
+  type   TransactionType   // capital_inicial | receita | despesa | transferencia
+  origin TransactionOrigin // cadastro | projeto | manual | proposta | sistema
+  status TransactionStatus @default(CONFIRMADO) // confirmado | pendente | agendado | cancelado
+
+  // Valores
+  valor Decimal @db.Decimal(12, 2) // Valor da transação
+
+  // Descrição e categoria
+  description String
+  category    String? // Categorização livre (ex: "Equipamento", "Freelancer")
+
+  // Datas
+  transactionDate DateTime @default(now()) // Data da transação
+  dueDate         DateTime? // Data de vencimento (para receitas/despesas futuras)
+
+  // Metadados
+  notes    String?
+  metadata Json? // Dados adicionais flexíveis
+
+  // Auditoria
+  createdBy String? // ID do usuário que criou
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([status])
+  @@index([transactionDate])
+  @@index([projectId])
+  @@index([clientId])
+  @@map("financial_transactions")
+}
+
+enum TransactionType {
+  CAPITAL_INICIAL  // Capital inicial informado no cadastro
+  RECEITA          // Receita de projeto/venda
+  DESPESA          // Despesa operacional
+  TRANSFERENCIA    // Movimentação entre contas (futuro)
+}
+
+enum TransactionOrigin {
+  CADASTRO  // Criado no cadastro (capital inicial)
+  PROJETO   // Vinculado a um projeto
+  MANUAL    // Lançamento manual
+  PROPOSTA  // Vinculado a uma proposta aceita
+  SISTEMA   // Criado automaticamente pelo sistema
+}
+
+enum TransactionStatus {
+  CONFIRMADO  // Transação realizada/confirmada
+  PENDENTE    // Aguardando confirmação
+  AGENDADO    // Agendado para data futura
+  CANCELADO   // Transação cancelada
+}
+
+// ============================================
+// CALENDAR EVENTS - Compromissos Manuais
+// ============================================
+
+model CalendarEvent {
+  id String @id @default(cuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?  @db.Text
+  startDate   DateTime
+  endDate     DateTime?
+  allDay      Boolean  @default(false)
+  type        CalendarEventType @default(OTHER)
+  location    String?
+
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([startDate])
+  @@map("calendar_events")
+}
+
+enum CalendarEventType {
+  SHOOTING
+  DELIVERY
+  MEETING
+  OTHER
+}

@@ -1,0 +1,64 @@
+{
+  "tech_stack": [
+    "TypeScript 5.9.3",
+    "Next.js 16.1.1",
+    "React 19.2.3",
+    "Prisma 5.22.0",
+    "PostgreSQL",
+    "Supabase",
+    "Tailwind CSS 3.4.1",
+    "shadcn/ui",
+    "Framer Motion 12.25.0",
+    "Zustand 5.0.9",
+    "React Query 5.90.16",
+    "React Hook Form 7.70.0",
+    "Zod 4.3.5"
+  ],
+  "features": [
+    {
+      "name": "Authentication",
+      "description": "Complete authentication system with email/password login, user registration with initial capital setup, and role-based access",
+      "files": ["src/actions/auth.ts", "src/app/login/page.tsx"]
+    },
+    {
+      "name": "Clients Management",
+      "description": "Full CRUD for clients with contact info, company details, and notes",
+      "files": ["src/actions/clients.ts", "src/app/(dashboard)/clients/page.tsx", "src/components/clients/clients-grid.tsx"]
+    },
+    {
+      "name": "Projects Management",
+      "description": "Complete project lifecycle with Kanban board, team allocation, equipment booking, freelancers, multiple shooting/delivery dates (Sprint 2)",
+      "files": ["src/actions/projects.ts", "src/app/(dashboard)/projects/page.tsx", "src/components/projects/projects-kanban.tsx", "src/components/projects/dates-manager.tsx", "src/components/projects/equipment-selector.tsx", "src/components/projects/freelancer-selector.tsx"]
+    },
+    {
+      "name": "Proposals & Budgets",
+      "description": "Proposal builder with items, optionals, payment schedules (Sprint 3), public sharing, automatic financial integration",
+      "files": ["src/actions/proposals.ts", "src/app/(dashboard)/proposals/page.tsx", "src/components/proposals/proposal-builder.tsx", "src/types/proposal.ts"]
+    },
+    {
+      "name": "Freelancers Management",
+      "description": "Freelancer database with ratings, allocation, custom rates, automatic payable integration (Sprint 2)",
+      "files": ["src/actions/freelancers.ts", "src/app/(dashboard)/freelancers/page.tsx", "src/components/freelancers/freelancers-grid.tsx"]
+    },
+    {
+      "name": "Equipment Inventory",
+      "description": "Equipment management with booking system, maintenance tracking, ROI analysis, conflict detection",
+      "files": ["src/actions/equipments.ts", "src/app/(dashboard)/inventory/page.tsx", "src/components/inventory/equipment-inventory.tsx"]
+    },
+    {
+      "name": "Financial System",
+      "description": "Complete financial system with transactions, accounts receivable/payable, cash flow, automatic integrations with proposals (Sprint 3) and freelancers (Sprint 2)",
+      "files": ["src/actions/financeiro.ts", "src/app/(dashboard)/financeiro/page.tsx", "src/components/financeiro/financial-tabs.tsx", "src/lib/financial.ts"]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Dashboard with KPIs, recent projects, upcoming shoots, financial metrics",
+      "files": ["src/app/(dashboard)/dashboard/page.tsx", "src/actions/dashboard.ts"]
+    },
+    {
+      "name": "Global Search",
+      "description": "Unified search across all modules with quick navigation",
+      "files": ["src/app/api/search/route.ts", "src/components/global-search.tsx"]
+    }
+  ]
+}

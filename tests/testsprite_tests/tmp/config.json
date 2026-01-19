@@ -1,0 +1,17 @@
+{
+  "status": "commited",
+  "type": "backend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000",
+  "backendAuthType": "public",
+  "executionArgs": {
+    "projectName": "zooming-crm",
+    "projectPath": "/Users/viniciuspimentel/ProjetosDev/CRM ZOOMER/zooming-crm",
+    "testIds": [],
+    "additionalInstruction": "",
+    "envs": {
+      "API_KEY": "sk-user-bwneVJWgouyzhaSrC_p9R6TC4sOSmntyp7MxkgCdJQzHwRpMcoGG1rbE__0xfz7Y8XJLKU-U94OgjVo41WvZOkFm4BeRaBXgWPn7kY8kFAWO8t1p9HileCTQb6LZNluK-p8"
+    }
+  },
+  "proxy": "http://333ec151-2984-45ff-8b4c-5a400bfd044b:p2HW7XjwMQVwCBKU3DYBXIa3mz1jMW8D@tun.testsprite.com:8080"
+}

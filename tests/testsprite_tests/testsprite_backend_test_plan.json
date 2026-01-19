@@ -1,0 +1,47 @@
+[
+  {
+    "id": "TC001",
+    "title": "test user authentication login and registration",
+    "description": "Verify the complete user authentication system including email/password login, user registration with initial capital setup, and role-based access control to ensure secure and proper user access."
+  },
+  {
+    "id": "TC002",
+    "title": "test clients management crud operations",
+    "description": "Validate full CRUD operations for clients including creation, retrieval, update, and deletion of client records with contact info, company details, and notes, ensuring multi-tenancy and role-based permissions."
+  },
+  {
+    "id": "TC003",
+    "title": "test projects management lifecycle and kanban board",
+    "description": "Test the complete project lifecycle management including multiple shooting and delivery dates, Kanban board visualization, team allocation, equipment booking, and freelancer assignment with proper validations and notifications."
+  },
+  {
+    "id": "TC004",
+    "title": "test proposals builder and financial integration",
+    "description": "Verify the proposal builder functionality including adding items, optionals, payment schedules, embedded portfolio videos, public sharing links, and automatic financial transaction creation upon proposal acceptance."
+  },
+  {
+    "id": "TC005",
+    "title": "test freelancers management and payable integration",
+    "description": "Validate freelancer database management including ratings, custom rates, availability calendars, allocation to projects, and automatic integration with payable financial transactions."
+  },
+  {
+    "id": "TC006",
+    "title": "test equipment inventory booking and conflict detection",
+    "description": "Test equipment management including booking system with conflict detection to prevent double bookings, maintenance tracking, and ROI analysis with calendar availability visualization."
+  },
+  {
+    "id": "TC007",
+    "title": "test financial system transactions and dashboard",
+    "description": "Verify the financial system including transaction tracking, accounts receivable/payable management, cash flow dashboard, and automatic integration triggered by proposals and freelancer allocations."
+  },
+  {
+    "id": "TC008",
+    "title": "test dashboard kpis and project financial metrics",
+    "description": "Validate the dashboard displays key performance indicators, recent projects, shooting schedules, and financial metrics accurately reflecting the current system state."
+  },
+  {
+    "id": "TC009",
+    "title": "test global search functionality across modules",
+    "description": "Test the unified global search feature to ensure it covers all modules and provides quick navigation results relevant to the search queries."
+  }
+]
