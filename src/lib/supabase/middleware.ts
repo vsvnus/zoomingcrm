@@ -38,8 +38,8 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // Se não há usuário autenticado e não está na página de login
-  if (!user && pathname !== '/login') {
+  // Se não há usuário autenticado e não está na página de login ou na raiz
+  if (!user && pathname !== '/login' && pathname !== '/') {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
