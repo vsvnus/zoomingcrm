@@ -52,12 +52,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Se há usuário e está na raiz, redireciona para dashboard
-  if (user && pathname === '/') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
+  // Se há usuário e está na raiz, NÃO redireciona mais. Deixa ele ver a LP.
+  // if (user && pathname === '/') {
+  //   const url = request.nextUrl.clone()
+  //   url.pathname = '/dashboard'
+  //   return NextResponse.redirect(url)
+  // }
 
   return supabaseResponse
 }
