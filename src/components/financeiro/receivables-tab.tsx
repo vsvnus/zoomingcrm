@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
@@ -86,6 +86,11 @@ function getCategoryLabel(category: string) {
 
 export function ReceivablesTab({ data, onUpdate }: ReceivablesTabProps) {
   const [receivables, setReceivables] = useState(data)
+
+  // Sync local state with props when data changes
+  useEffect(() => {
+    setReceivables(data)
+  }, [data])
   const [isLoading, setIsLoading] = useState<string | null>(null)
 
   const handleMarkAsReceived = async (id: string) => {
@@ -94,8 +99,13 @@ export function ReceivablesTab({ data, onUpdate }: ReceivablesTabProps) {
     setIsLoading(id)
     try {
       await markAsPaid(id)
-      setReceivables(receivables.map((r) => (r.id === id ? { ...r, status: 'PAID' } : r)))
-      onUpdate?.(receivables)
+      // Remover da lista de pendentes após recebimento
+      const updatedReceivables = receivables.filter((r) => r.id !== id)
+      setReceivables(updatedReceivables)
+      onUpdate?.((prev: any) => ({
+        ...prev,
+        receivables: updatedReceivables,
+      }))
     } catch (error: any) {
       alert(error.message || 'Erro ao marcar como recebido')
     } finally {
@@ -107,8 +117,12 @@ export function ReceivablesTab({ data, onUpdate }: ReceivablesTabProps) {
     setIsLoading(id)
     try {
       await updateTransaction(id, { status: 'SCHEDULED' })
-      setReceivables(receivables.map((r) => (r.id === id ? { ...r, status: 'SCHEDULED' } : r)))
-      onUpdate?.(receivables)
+      const updatedReceivables = receivables.map((r) => (r.id === id ? { ...r, status: 'SCHEDULED' } : r))
+      setReceivables(updatedReceivables)
+      onUpdate?.((prev: any) => ({
+        ...prev,
+        receivables: updatedReceivables,
+      }))
     } catch (error: any) {
       alert(error.message || 'Erro ao agendar recebimento')
     } finally {
@@ -122,8 +136,13 @@ export function ReceivablesTab({ data, onUpdate }: ReceivablesTabProps) {
     setIsLoading(id)
     try {
       await cancelTransaction(id)
-      setReceivables(receivables.map((r) => (r.id === id ? { ...r, status: 'CANCELLED' } : r)))
-      onUpdate?.(receivables)
+      // Remover da lista após cancelar
+      const updatedReceivables = receivables.filter((r) => r.id !== id)
+      setReceivables(updatedReceivables)
+      onUpdate?.((prev: any) => ({
+        ...prev,
+        receivables: updatedReceivables,
+      }))
     } catch (error: any) {
       alert(error.message || 'Erro ao cancelar receita')
     } finally {

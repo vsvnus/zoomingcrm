@@ -77,6 +77,12 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
         return
       }
 
+      if (!formData.category) {
+        alert('Selecione uma categoria')
+        setIsLoading(false)
+        return
+      }
+
       await addTransaction({
         organization_id: organizationId,
         type: 'EXPENSE',

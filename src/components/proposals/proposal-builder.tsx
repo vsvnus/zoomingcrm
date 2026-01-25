@@ -31,6 +31,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
     unitPrice: 0,
     total: 0,
     order: 1,
+    date: null, // SPRINT 2: Data opcional do item
   })
 
   // Cronograma de pagamento
@@ -79,7 +80,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
   const addItem = () => {
     if (newItem.description && newItem.unitPrice > 0) {
       setItems([...items, { ...newItem, order: items.length + 1 }])
-      setNewItem({ description: '', quantity: 1, unitPrice: 0, total: 0, order: 1 })
+      setNewItem({ description: '', quantity: 1, unitPrice: 0, total: 0, order: 1, date: null })
       setShowItemForm(false)
     }
   }
@@ -266,7 +267,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                       className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-zinc-500"
                     />
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-4 gap-3">
                     <div>
                       <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                         Quantidade
@@ -307,6 +308,20 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                         className="w-full rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-400"
                       />
                     </div>
+                    <div>
+                      <label className="mb-1.5 flex items-center gap-1 text-xs font-medium text-zinc-400">
+                        <Calendar className="h-3 w-3" />
+                        Data
+                      </label>
+                      <input
+                        type="date"
+                        value={newItem.date ? String(newItem.date).split('T')[0] : ''}
+                        onChange={(e) =>
+                          setNewItem({ ...newItem, date: e.target.value || null })
+                        }
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                      />
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -338,10 +353,18 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                   >
                     <div className="flex-1">
                       <p className="font-medium text-white">{item.description}</p>
-                      <p className="mt-1 text-sm text-zinc-400">
-                        {item.quantity}x R$ {item.unitPrice.toFixed(2)} = R${' '}
-                        {item.total.toFixed(2)}
-                      </p>
+                      <div className="mt-1 flex items-center gap-3 text-sm text-zinc-400">
+                        <span>
+                          {item.quantity}x R$ {item.unitPrice.toFixed(2)} = R${' '}
+                          {item.total.toFixed(2)}
+                        </span>
+                        {item.date && (
+                          <span className="flex items-center gap-1 text-purple-400">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(item.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => removeItem(index)}

@@ -2,7 +2,7 @@
 
 import { Modal } from '@/components/ui/modal'
 import { useState, useEffect } from 'react'
-import { updateProject, addShootingDate, addDeliveryDate, deleteShootingDate, deleteDeliveryDate } from '@/actions/projects'
+import { updateProject, addShootingDate, addDeliveryDate, deleteShootingDate, deleteDeliveryDate, getOrganizationUsers } from '@/actions/projects'
 import { getClients } from '@/actions/clients'
 import { motion } from 'framer-motion'
 import type { ProjectWithRelations, VideoFormat, VideoResolution, ShootingDate, DeliveryDate } from '@/types/projects'
@@ -19,6 +19,12 @@ type Client = {
   id: string
   name: string
   company?: string | null
+}
+
+type User = {
+  id: string
+  name: string
+  email: string
 }
 
 interface LocalShootingDate {
@@ -42,6 +48,7 @@ export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalP
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [activeSection, setActiveSection] = useState<'basic' | 'dates'>('basic')
 
   // Datas de gravação e entrega
@@ -54,6 +61,7 @@ export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalP
     title: project.title,
     description: project.description || '',
     client_id: project.client_id,
+    assigned_to_id: project.assigned_to_id || '',
     location: project.location || '',
     shooting_date: project.shooting_date
       ? new Date(project.shooting_date).toISOString().split('T')[0]
@@ -111,6 +119,7 @@ export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalP
   useEffect(() => {
     if (isOpen) {
       getClients().then(setClients)
+      getOrganizationUsers().then(setUsers)
     }
   }, [isOpen])
 
@@ -148,6 +157,7 @@ export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalP
         title: formData.title,
         description: formData.description || undefined,
         client_id: formData.client_id,
+        assigned_to_id: formData.assigned_to_id || undefined,
         location: formData.location || undefined,
         shooting_date: formData.shooting_date || undefined,
         shooting_end_date: formData.shooting_end_date || undefined,
@@ -209,22 +219,20 @@ export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalP
           <button
             type="button"
             onClick={() => setActiveSection('basic')}
-            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${
-              activeSection === 'basic'
-                ? 'bg-white text-black'
-                : 'text-zinc-400 hover:text-white'
-            }`}
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${activeSection === 'basic'
+              ? 'bg-white text-black'
+              : 'text-zinc-400 hover:text-white'
+              }`}
           >
             Informações Básicas
           </button>
           <button
             type="button"
             onClick={() => setActiveSection('dates')}
-            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${
-              activeSection === 'dates'
-                ? 'bg-white text-black'
-                : 'text-zinc-400 hover:text-white'
-            }`}
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${activeSection === 'dates'
+              ? 'bg-white text-black'
+              : 'text-zinc-400 hover:text-white'
+              }`}
           >
             Cronograma
           </button>
@@ -262,6 +270,25 @@ export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalP
                 {clients.map((client) => (
                   <option key={client.id} value={client.id} className="bg-zinc-900">
                     {client.name} {client.company && `- ${client.company}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Responsável */}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-zinc-300">
+                Responsável
+              </label>
+              <select
+                value={formData.assigned_to_id}
+                onChange={(e) => setFormData({ ...formData, assigned_to_id: e.target.value })}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+              >
+                <option value="">Selecione um responsável</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id} className="bg-zinc-900">
+                    {user.name} ({user.email})
                   </option>
                 ))}
               </select>

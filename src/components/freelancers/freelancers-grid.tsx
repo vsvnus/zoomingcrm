@@ -1,8 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Camera, Mic, Video, Edit, Music, Star } from 'lucide-react'
-import { useState } from 'react'
+import { Camera, Mic, Video, Edit, Music, Star, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
+import { useState, useCallback } from 'react'
 import { AddFreelancerDialog } from './add-freelancer-dialog'
 
 type Freelancer = {
@@ -37,8 +38,13 @@ interface FreelancersGridProps {
 }
 
 export function FreelancersGrid({ initialFreelancers }: FreelancersGridProps) {
-  const [freelancers] = useState(initialFreelancers)
+  const [freelancers, setFreelancers] = useState(initialFreelancers)
   const [searchTerm, setSearchTerm] = useState('')
+
+  // Callback para atualizar lista quando novo freelancer é criado
+  const handleFreelancerCreated = useCallback((newFreelancer: Freelancer) => {
+    setFreelancers((prev) => [newFreelancer, ...prev])
+  }, [])
 
   const filteredFreelancers = freelancers.filter((freelancer) =>
     freelancer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,7 +98,7 @@ export function FreelancersGrid({ initialFreelancers }: FreelancersGridProps) {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
         >
-          <AddFreelancerDialog />
+          <AddFreelancerDialog onSuccess={handleFreelancerCreated} />
         </motion.div>
       </div>
 
@@ -118,74 +124,74 @@ export function FreelancersGrid({ initialFreelancers }: FreelancersGridProps) {
             const Icon = roleIcons[freelancer.role] || Camera
 
             return (
-              <motion.div
-                key={freelancer.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="group relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card p-6 transition-all hover:shadow-3 hover-lift"
-              >
-                {/* Status Badge */}
-                <div className="absolute right-4 top-4">
-                  <span
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
-                      freelancer.status === 'AVAILABLE'
+              <Link href={`/freelancers/${freelancer.id}` as any} key={freelancer.id}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="group relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card p-6 transition-all hover:shadow-3 hover-lift cursor-pointer"
+                >
+                  {/* Status Badge */}
+                  <div className="absolute right-4 top-4 flex items-center gap-2">
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${freelancer.status === 'AVAILABLE'
                         ? 'bg-success/10 text-success'
                         : 'bg-secondary text-text-tertiary'
-                    }`}
-                  >
-                    {freelancer.status === 'AVAILABLE' ? 'Disponível' : 'Ocupado'}
-                  </span>
-                </div>
-
-                {/* Avatar */}
-                <div className="flex items-start gap-4">
-                  <div
-                    className={`flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${getAvatarColor(
-                      freelancer.id
-                    )} text-xl font-bold text-white shadow-lg`}
-                  >
-                    {getInitials(freelancer.name)}
+                        }`}
+                    >
+                      {freelancer.status === 'AVAILABLE' ? 'Disponível' : 'Ocupado'}
+                    </span>
+                    <ExternalLink className="h-4 w-4 text-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
 
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-text-primary">
-                      {freelancer.name}
-                    </h3>
-                    <p className="mt-1 text-sm text-text-tertiary">{freelancer.role}</p>
+                  {/* Avatar */}
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={`flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${getAvatarColor(
+                        freelancer.id
+                      )} text-xl font-bold text-white shadow-lg`}
+                    >
+                      {getInitials(freelancer.name)}
+                    </div>
 
-                    {/* Rating */}
-                    <div className="mt-2 flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-warning text-warning" />
-                      <span className="text-sm font-medium text-warning">
-                        {freelancer.rating?.toFixed(1) ?? '0.0'}
-                      </span>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-text-primary group-hover:text-accent-400 transition-colors">
+                        {freelancer.name}
+                      </h3>
+                      <p className="mt-1 text-sm text-text-tertiary">{freelancer.role}</p>
+
+                      {/* Rating */}
+                      <div className="mt-2 flex items-center gap-1">
+                        <Star className="h-4 w-4 fill-warning text-warning" />
+                        <span className="text-sm font-medium text-warning">
+                          {freelancer.rating?.toFixed(1) ?? '0.0'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Specialties */}
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {freelancer.specialty.map((spec) => (
-                    <span
-                      key={spec}
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                        specialtyColors[spec] || 'bg-secondary text-text-tertiary'
-                      }`}
-                    >
-                      {spec}
+                  {/* Specialties */}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {freelancer.specialty.map((spec) => (
+                      <span
+                        key={spec}
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${specialtyColors[spec] || 'bg-secondary text-text-tertiary'
+                          }`}
+                      >
+                        {spec}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Daily Rate */}
+                  <div className="mt-4 flex items-center justify-between border-t border-[rgb(var(--border))] pt-4">
+                    <span className="text-sm text-text-tertiary">Diária</span>
+                    <span className="text-lg font-bold text-text-primary">
+                      R$ {freelancer.daily_rate?.toLocaleString('pt-BR') ?? '0'}
                     </span>
-                  ))}
-                </div>
-
-                {/* Daily Rate */}
-                <div className="mt-4 flex items-center justify-between border-t border-[rgb(var(--border))] pt-4">
-                  <span className="text-sm text-text-tertiary">Diária</span>
-                  <span className="text-lg font-bold text-text-primary">
-                    R$ {freelancer.daily_rate?.toLocaleString('pt-BR') ?? '0'}
-                  </span>
-                </div>
-              </motion.div>
+                  </div>
+                </motion.div>
+              </Link>
             )
           })}
         </div>

@@ -20,11 +20,17 @@ interface OverviewTabProps {
   }
 }
 
-function formatCurrency(value: number) {
+const safeNumber = (val: any) => {
+  if (val === null || val === undefined) return 0
+  const n = Number(val)
+  return isNaN(n) ? 0 : n
+}
+
+function formatCurrency(value: any) {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-  }).format(value)
+  }).format(safeNumber(value))
 }
 
 export function OverviewTab({ data }: OverviewTabProps) {
@@ -81,7 +87,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
             {formatCurrency(data.net_profit)}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Margem: {data.profit_margin_percent ? data.profit_margin_percent.toFixed(1) : '0.0'}%
+            Margem: {safeNumber(data.profit_margin_percent).toFixed(1)}%
           </p>
         </CardContent>
       </Card>

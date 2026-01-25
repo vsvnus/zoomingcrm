@@ -7,6 +7,7 @@ export interface ProposalItem {
   unitPrice: number
   total: number
   order: number
+  date?: Date | string | null // SPRINT 2: Data opcional do item (para sync com calendário)
 }
 
 export interface ProposalOptional {

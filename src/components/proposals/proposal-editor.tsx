@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   Plus,
@@ -15,7 +15,12 @@ import {
   Edit,
   Calendar,
   FileText,
+  CheckCircle2,
+  ArrowLeft,
+  Palette,
+  Image,
 } from 'lucide-react'
+import { ImageUpload } from '@/components/ui/image-upload'
 import { formatCurrency } from '@/lib/utils'
 import { AddItemModal } from './add-item-modal'
 import { AddOptionalModal } from './add-optional-modal'
@@ -27,6 +32,8 @@ import {
   sendProposal,
   duplicateProposal,
   updateProposal,
+  acceptProposalManual,
+  deleteProposal,
 } from '@/actions/proposals'
 import { useRouter } from 'next/navigation'
 
@@ -38,6 +45,8 @@ type ProposalData = {
   discount: number
   valid_until: string | null
   status: string
+  primary_color?: string | null
+  cover_image?: string | null
   clients?: {
     id: string
     name: string
@@ -50,6 +59,7 @@ type ProposalData = {
     unit_price: number
     total: number
     order: number
+    date?: string | null // SPRINT 2: Data opcional do item
   }>
   optionals: Array<{
     id: string
@@ -86,6 +96,16 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
       ? new Date(proposal.valid_until).toISOString().split('T')[0]
       : '',
   })
+  const [origin, setOrigin] = useState('')
+
+  useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
+
+  // Sync local state with server data when it changes (e.g. after router.refresh())
+  useEffect(() => {
+    setProposal(initialProposal)
+  }, [initialProposal])
 
   // Calculations
   const baseValue = proposal.items.reduce((sum, item) => sum + Number(item.total), 0)
@@ -180,11 +200,72 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
     }
   }
 
-  const publicUrl = `${window.location.origin}/p/${proposal.token}`
+  // SPRINT 2: Aceite Manual - cria projeto, eventos no calendário e transações financeiras
+  const handleAcceptProposal = async () => {
+    if (proposal.status === 'ACCEPTED') {
+      alert('Esta proposta já foi aceita.')
+      return
+    }
+
+    const confirmMessage = `Deseja aceitar esta proposta?\n\nIsso irá:\n• Mudar o status para "Aceita"\n• Criar um novo projeto\n• Criar eventos no calendário (itens com data)\n• Gerar lançamentos financeiros`
+
+    if (!confirm(confirmMessage)) return
+
+    try {
+      const result = await acceptProposalManual(proposal.id)
+
+      setProposal({
+        ...proposal,
+        status: 'ACCEPTED',
+      })
+
+      let message = 'Proposta aceita com sucesso!'
+      if (result.projectId) {
+        message += `\n\nProjeto criado.`
+      }
+      if (result.calendarEventsCreated > 0) {
+        message += `\n${result.calendarEventsCreated} evento(s) criado(s) no calendário.`
+      }
+      if (result.financialTransactionsCreated > 0) {
+        message += `\n${result.financialTransactionsCreated} transação(ões) financeira(s) criada(s).`
+      }
+
+      alert(message)
+
+      // Redirecionar para o projeto criado se existir
+      if (result.projectId) {
+        router.push(`/projects/${result.projectId}`)
+      }
+    } catch (error: any) {
+      alert(error?.message || 'Erro ao aceitar proposta')
+    }
+  }
+
+  const handleDeleteProposal = async () => {
+    if (!confirm('Tem certeza que deseja excluir esta proposta? Esta ação não pode ser desfeita.')) return
+
+    try {
+      await deleteProposal(proposal.id)
+      router.push('/proposals')
+    } catch (error: any) {
+      alert(error?.message || 'Erro ao excluir proposta')
+    }
+  }
+
+  const publicUrl = `${origin}/p/${proposal.token}`
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 p-8">
       <div className="mx-auto max-w-7xl">
+        {/* Back Button */}
+        <button
+          onClick={() => router.push('/proposals')}
+          className="mb-6 flex items-center gap-2 text-sm text-zinc-400 transition-colors hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar para Propostas
+        </button>
+
         {/* Header */}
         <div className="mb-8 flex items-start justify-between">
           <div className="flex-1">
@@ -275,8 +356,11 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
           {/* Action buttons */}
           <div className="flex gap-2">
             <button
-              onClick={() => window.open(publicUrl, '_blank')}
-              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/10"
+              onClick={() => {
+                if (origin) window.open(publicUrl, '_blank')
+              }}
+              disabled={!origin}
+              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/10 disabled:opacity-50"
             >
               <Eye className="h-4 w-4" />
               Preview
@@ -288,12 +372,39 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
               <Copy className="h-4 w-4" />
               Duplicar
             </button>
+            {proposal.status !== 'ACCEPTED' && (
+              <button
+                onClick={handleSendProposal}
+                className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition-all hover:bg-zinc-200"
+              >
+                <Send className="h-4 w-4" />
+                Enviar para Cliente
+              </button>
+            )}
+            {/* SPRINT 2: Botão de Aceite Manual */}
+            {proposal.status !== 'ACCEPTED' && (
+              <button
+                onClick={handleAcceptProposal}
+                className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-green-700"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Aceitar Proposta
+              </button>
+            )}
+            {proposal.status === 'ACCEPTED' && (
+              <div className="flex items-center gap-2 rounded-lg bg-green-500/20 px-4 py-2 text-sm font-medium text-green-400">
+                <CheckCircle2 className="h-4 w-4" />
+                Proposta Aceita
+              </div>
+            )}
+
+            {/* Delete Button */}
             <button
-              onClick={handleSendProposal}
-              className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition-all hover:bg-zinc-200"
+              onClick={handleDeleteProposal}
+              className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-all hover:bg-red-500/20"
+              title="Excluir Proposta"
             >
-              <Send className="h-4 w-4" />
-              Enviar para Cliente
+              <Trash2 className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -333,10 +444,18 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                         <GripVertical className="h-5 w-5 cursor-grab text-zinc-500" />
                         <div className="flex-1">
                           <p className="font-medium text-white">{item.description}</p>
-                          <p className="text-sm text-zinc-400">
-                            {item.quantity}x {formatCurrency(Number(item.unit_price))} ={' '}
-                            {formatCurrency(Number(item.total))}
-                          </p>
+                          <div className="flex items-center gap-3 text-sm text-zinc-400">
+                            <span>
+                              {item.quantity}x {formatCurrency(Number(item.unit_price))} ={' '}
+                              {formatCurrency(Number(item.total))}
+                            </span>
+                            {item.date && (
+                              <span className="flex items-center gap-1 text-purple-400">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(item.date).toLocaleDateString('pt-BR')}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <button
                           onClick={() => handleDeleteItem(item.id)}
@@ -469,6 +588,67 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                   <p className="mt-2 text-sm text-zinc-500">Nenhum vídeo adicionado</p>
                 </div>
               )}
+            </motion.div>
+
+            {/* Branding Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Palette className="h-5 w-5 text-pink-400" />
+                  <h2 className="text-xl font-bold text-white">Design & Branding</h2>
+                </div>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-zinc-400">
+                      Cor de Destaque
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={proposal.primary_color || '#000000'}
+                        onChange={async (e) => {
+                          const newColor = e.target.value
+                          setProposal({ ...proposal, primary_color: newColor })
+                          try {
+                            await updateProposal(proposal.id, { primary_color: newColor })
+                          } catch (err) {
+                            console.error(err)
+                          }
+                        }}
+                        className="h-10 w-20 cursor-pointer rounded bg-transparent p-1"
+                      />
+                      <span className="text-sm text-zinc-500">{proposal.primary_color || 'Padrão'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="mb-2 block text-sm font-medium text-zinc-400">
+                    Imagem de Capa
+                  </label>
+                  <ImageUpload
+                    value={proposal.cover_image}
+                    onChange={async (url) => {
+                      setProposal({ ...proposal, cover_image: url })
+                      await updateProposal(proposal.id, { cover_image: url })
+                    }}
+                    onRemove={async () => {
+                      setProposal({ ...proposal, cover_image: null })
+                      await updateProposal(proposal.id, { cover_image: '' })
+                    }}
+                    bucket="proposals"
+                    label="Capa da Proposta"
+                  />
+                </div>
+              </div>
             </motion.div>
           </div>
 

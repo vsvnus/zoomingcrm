@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
@@ -93,6 +93,11 @@ function getCategoryLabel(category: string) {
 
 export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps) {
   const [payables, setPayables] = useState(data)
+
+  // Sync local state with props when data changes
+  useEffect(() => {
+    setPayables(data)
+  }, [data])
   const [isLoading, setIsLoading] = useState<string | null>(null)
 
   const handleMarkAsPaid = async (id: string) => {
@@ -101,8 +106,14 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
     setIsLoading(id)
     try {
       await markAsPaid(id)
-      setPayables(payables.map((p) => (p.id === id ? { ...p, status: 'PAID' } : p)))
-      onUpdate?.(payables)
+      // Atualizar estado local e remover da lista de pendentes
+      const updatedPayables = payables.filter((p) => p.id !== id)
+      setPayables(updatedPayables)
+      // Notificar pai com dados atualizados
+      onUpdate?.((prev: any) => ({
+        ...prev,
+        payables: updatedPayables,
+      }))
     } catch (error: any) {
       alert(error.message || 'Erro ao marcar como pago')
     } finally {
@@ -114,8 +125,12 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
     setIsLoading(id)
     try {
       await updateTransaction(id, { status: 'SCHEDULED' })
-      setPayables(payables.map((p) => (p.id === id ? { ...p, status: 'SCHEDULED' } : p)))
-      onUpdate?.(payables)
+      const updatedPayables = payables.map((p) => (p.id === id ? { ...p, status: 'SCHEDULED' } : p))
+      setPayables(updatedPayables)
+      onUpdate?.((prev: any) => ({
+        ...prev,
+        payables: updatedPayables,
+      }))
     } catch (error: any) {
       alert(error.message || 'Erro ao agendar pagamento')
     } finally {
@@ -129,8 +144,13 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
     setIsLoading(id)
     try {
       await cancelTransaction(id)
-      setPayables(payables.map((p) => (p.id === id ? { ...p, status: 'CANCELLED' } : p)))
-      onUpdate?.(payables)
+      // Remover da lista ao cancelar
+      const updatedPayables = payables.filter((p) => p.id !== id)
+      setPayables(updatedPayables)
+      onUpdate?.((prev: any) => ({
+        ...prev,
+        payables: updatedPayables,
+      }))
     } catch (error: any) {
       alert(error.message || 'Erro ao cancelar despesa')
     } finally {

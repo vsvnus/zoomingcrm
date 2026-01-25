@@ -175,7 +175,38 @@ export async function getCalendarEvents(
     })
   }
 
-  // 5. Buscar eventos manuais (calendar_events table)
+  // 5. Buscar itens de escopo com prazo (project_items)
+  const { data: projectItems } = await supabase
+    .from('project_items')
+    .select('id, description, due_date, status, project_id, projects(id, title, clients(name))')
+    .eq('projects.organization_id', organizationId)
+    .not('due_date', 'is', null)
+    .gte('due_date', start.toISOString())
+    .lte('due_date', end.toISOString())
+
+  if (projectItems) {
+    projectItems.forEach((item) => {
+      const project = item.projects as any
+      if (project && item.due_date) {
+        events.push({
+          id: `item-${item.id}`,
+          title: `Entrega Item: ${item.description}`,
+          description: `Item do projeto: ${item.description}`,
+          start: item.due_date,
+          end: item.due_date,
+          allDay: true,
+          type: 'delivery',
+          color: item.status === 'DONE' ? '#4ade80' : '#10b981', // Verde claro se feito, verde normal se pendente
+          projectId: project.id,
+          projectTitle: project.title,
+          clientName: project.clients?.name || null,
+          location: null,
+        })
+      }
+    })
+  }
+
+  // 6. Buscar eventos manuais (calendar_events table)
   const { data: manualEvents } = await supabase
     .from('calendar_events')
     .select('*')

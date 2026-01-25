@@ -22,6 +22,54 @@
 
 import { createClient, getUserOrganization } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { createNotificationInternal } from '@/actions/notifications'
+
+// =============================================
+// HELPER: Recalcular valores da proposta
+// =============================================
+
+async function recalculateProposalValues(proposalId: string) {
+  const supabase = await createClient()
+
+  // 1. Buscar proposta (para pegar desconto)
+  const { data: proposal } = await supabase
+    .from('proposals')
+    .select('discount')
+    .eq('id', proposalId)
+    .single()
+
+  if (!proposal) return
+
+  // 2. Buscar itens (somar total)
+  const { data: items } = await supabase
+    .from('proposal_items')
+    .select('total')
+    .eq('proposal_id', proposalId)
+
+  const baseValue = items?.reduce((sum, item) => sum + (Number(item.total) || 0), 0) || 0
+
+  // 3. Buscar opcionais selecionados (somar preço)
+  const { data: optionals } = await supabase
+    .from('proposal_optionals')
+    .select('price')
+    .eq('proposal_id', proposalId)
+    .eq('is_selected', true)
+
+  const optionalsValue = optionals?.reduce((sum, opt) => sum + (Number(opt.price) || 0), 0) || 0
+
+  // 4. Calcular total
+  const discountAmount = (baseValue * (Number(proposal.discount) || 0)) / 100
+  const totalValue = baseValue + optionalsValue - discountAmount
+
+  // 5. Atualizar proposta
+  await supabase
+    .from('proposals')
+    .update({
+      base_value: baseValue,
+      total_value: totalValue,
+    })
+    .eq('id', proposalId)
+}
 
 // =============================================
 // PROPOSTAS - FUNÇÕES PRINCIPAIS
@@ -85,12 +133,12 @@ export async function getProposal(proposalId: string) {
 export async function getProposalByToken(token: string) {
   const supabase = await createClient()
 
-  const { data, error} = await supabase
+  const { data, error } = await supabase
     .from('proposals')
     .select(`
       *,
       clients (id, name, company, email, phone),
-      organizations (id, name, logo, email, phone, website),
+      organizations (id, name, logo, email, phone, website, cnpj, address, bank_name, agency, account_number, pix_key, primary_color, default_terms, show_bank_info),
       items:proposal_items (
         id, description, quantity, unit_price, total, order
       ),
@@ -125,26 +173,42 @@ export async function getProposalByToken(token: string) {
 
 /**
  * Criar nova proposta
+ * NOTA: Os valores base_value e total_value são calculados automaticamente
+ * pelo trigger SQL com base nos itens adicionados à proposta
  */
 export async function addProposal(formData: {
   title: string
   client_id: string
-  base_value?: number
-  discount?: number
   description?: string
 }) {
   const supabase = await createClient()
 
   const organizationId = await getUserOrganization()
 
+  // Verificar se o cliente existe na organização
+  const { data: clientCheck, error: clientError } = await supabase
+    .from('clients')
+    .select('id, name, organization_id')
+    .eq('id', formData.client_id)
+    .single()
+
+  if (!clientCheck) {
+    console.error('Cliente nao encontrado:', formData.client_id)
+    throw new Error('Cliente nao encontrado. Por favor, crie um novo cliente.')
+  }
+
+  if (clientCheck.organization_id !== organizationId) {
+    console.error('Cliente pertence a outra organizacao:', {
+      client_org: clientCheck.organization_id,
+      user_org: organizationId,
+    })
+    throw new Error('Cliente nao pertence a sua organizacao. Por favor, crie um novo cliente.')
+  }
+
   // Gerar token único para a proposta
   const token = `prop_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 
-  // Calcular valor total (será recalculado pelo trigger SQL)
-  const baseValue = formData.base_value || 0
-  const discount = formData.discount || 0
-  const totalValue = baseValue - (baseValue * (discount / 100))
-
+  // Criar proposta com valores zerados - trigger SQL recalculará com base nos itens
   const { data, error } = await supabase
     .from('proposals')
     .insert([
@@ -154,9 +218,9 @@ export async function addProposal(formData: {
         description: formData.description,
         client_id: formData.client_id,
         organization_id: organizationId,
-        base_value: baseValue,
-        discount,
-        total_value: totalValue,
+        base_value: 0, // Calculado pelo trigger baseado nos itens
+        discount: 0,
+        total_value: 0, // Calculado pelo trigger baseado nos itens
         status: 'DRAFT',
       },
     ])
@@ -182,6 +246,8 @@ export async function updateProposal(
     description?: string
     discount?: number
     valid_until?: string
+    cover_image?: string
+    primary_color?: string
   }
 ) {
   const supabase = await createClient()
@@ -197,6 +263,9 @@ export async function updateProposal(
     console.error('Error updating proposal:', error)
     throw new Error('Erro ao atualizar proposta: ' + error.message)
   }
+
+  // Recalcular valores (caso desconto tenha mudado)
+  await recalculateProposalValues(proposalId)
 
   revalidatePath('/proposals')
   revalidatePath(`/proposals/${proposalId}/edit`)
@@ -311,13 +380,14 @@ export async function deleteProposal(proposalId: string) {
 
 /**
  * Duplicar proposta existente
+ * Faz deep copy de todos os dados: itens, opcionais, vídeos
  */
 export async function duplicateProposal(proposalId: string) {
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
 
-  // Buscar proposta original completa
-  const { data: original } = await supabase
+  // Buscar proposta original completa com todos os relacionamentos
+  const { data: original, error: fetchError } = await supabase
     .from('proposals')
     .select(`
       *,
@@ -328,14 +398,25 @@ export async function duplicateProposal(proposalId: string) {
     .eq('id', proposalId)
     .single()
 
-  if (!original) {
+  if (fetchError || !original) {
+    console.error('Error fetching original proposal:', fetchError)
     throw new Error('Proposta original não encontrada')
   }
 
-  // Gerar novo token
+  // Gerar novo token único
   const token = `prop_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 
-  // Criar nova proposta
+  // Calcular valores base a partir dos itens originais
+  const baseValue = original.items?.reduce((sum: number, item: any) => {
+    return sum + (Number(item.total) || 0)
+  }, 0) || Number(original.base_value) || 0
+
+  // Calcular valor total com desconto
+  const discount = Number(original.discount) || 0
+  const discountAmount = (baseValue * discount) / 100
+  const totalValue = baseValue - discountAmount
+
+  // Criar nova proposta com valores calculados
   const { data: newProposal, error: proposalError } = await supabase
     .from('proposals')
     .insert({
@@ -344,20 +425,25 @@ export async function duplicateProposal(proposalId: string) {
       description: original.description,
       client_id: original.client_id,
       organization_id: organizationId,
-      discount: original.discount,
-      base_value: 0, // Será recalculado pelos itens
-      total_value: 0, // Será recalculado pelo trigger
+      discount: original.discount || 0,
+      base_value: baseValue,
+      total_value: totalValue,
       status: 'DRAFT',
       version: 1,
+      // Copiar outros campos relevantes
+      validity_days: original.validity_days,
+      payment_terms: original.payment_terms,
+      notes: original.notes,
     })
     .select()
     .single()
 
-  if (proposalError) {
-    throw new Error('Erro ao duplicar proposta: ' + proposalError.message)
+  if (proposalError || !newProposal) {
+    console.error('Error creating duplicate proposal:', proposalError)
+    throw new Error('Erro ao duplicar proposta: ' + (proposalError?.message || 'Erro desconhecido'))
   }
 
-  // Duplicar itens
+  // Duplicar itens com tratamento de erro
   if (original.items && original.items.length > 0) {
     const itemsToInsert = original.items.map((item: any) => ({
       proposal_id: newProposal.id,
@@ -368,25 +454,32 @@ export async function duplicateProposal(proposalId: string) {
       order: item.order,
     }))
 
-    await supabase.from('proposal_items').insert(itemsToInsert)
+    const { error: itemsError } = await supabase.from('proposal_items').insert(itemsToInsert)
+    if (itemsError) {
+      console.error('Error duplicating proposal items:', itemsError)
+      // Continuar mesmo com erro nos itens
+    }
   }
 
-  // Duplicar opcionais
+  // Duplicar opcionais com tratamento de erro
   if (original.optionals && original.optionals.length > 0) {
     const optionalsToInsert = original.optionals.map((opt: any) => ({
       proposal_id: newProposal.id,
       title: opt.title,
       description: opt.description,
       price: opt.price,
-      is_selected: false, // Resetar seleção
+      is_selected: false, // Resetar seleção para nova proposta
       dependency: opt.dependency,
       order: opt.order,
     }))
 
-    await supabase.from('proposal_optionals').insert(optionalsToInsert)
+    const { error: optionalsError } = await supabase.from('proposal_optionals').insert(optionalsToInsert)
+    if (optionalsError) {
+      console.error('Error duplicating proposal optionals:', optionalsError)
+    }
   }
 
-  // Duplicar vídeos
+  // Duplicar vídeos com tratamento de erro
   if (original.videos && original.videos.length > 0) {
     const videosToInsert = original.videos.map((video: any) => ({
       proposal_id: newProposal.id,
@@ -395,11 +488,27 @@ export async function duplicateProposal(proposalId: string) {
       order: video.order,
     }))
 
-    await supabase.from('proposal_videos').insert(videosToInsert)
+    const { error: videosError } = await supabase.from('proposal_videos').insert(videosToInsert)
+    if (videosError) {
+      console.error('Error duplicating proposal videos:', videosError)
+    }
   }
 
+  // Buscar proposta duplicada com todos os dados para retornar
+  const { data: completeProposal } = await supabase
+    .from('proposals')
+    .select(`
+      *,
+      items:proposal_items (*),
+      optionals:proposal_optionals (*),
+      videos:proposal_videos (*),
+      clients (id, name, company)
+    `)
+    .eq('id', newProposal.id)
+    .single()
+
   revalidatePath('/proposals')
-  return newProposal
+  return completeProposal || newProposal
 }
 
 // =============================================
@@ -426,7 +535,9 @@ export async function toggleProposalOptional(
     throw new Error('Erro ao atualizar opcional: ' + error.message)
   }
 
-  // Trigger SQL recalcula total_value automaticamente
+  // Recalcular valores
+  await recalculateProposalValues(proposalId)
+
   revalidatePath(`/p/*`)
 }
 
@@ -439,7 +550,7 @@ export async function acceptProposalPublic(token: string) {
   // Buscar proposta pelo token
   const { data: proposal } = await supabase
     .from('proposals')
-    .select('id, status, valid_until')
+    .select('id, title, status, valid_until, organization_id, clients (name)')
     .eq('token', token)
     .single()
 
@@ -457,34 +568,33 @@ export async function acceptProposalPublic(token: string) {
     throw new Error('Esta proposta já foi aceita')
   }
 
-  // Aprovar
-  const { data, error } = await supabase
-    .from('proposals')
-    .update({
-      status: 'ACCEPTED',
-      accepted_at: new Date().toISOString(),
+  // Aprovar usando o fluxo unificado
+  const result = await processProposalToProject(proposal.id)
+
+  // Notificar Dono da Organização (Assumindo admin)
+  const { data: orgUsers } = await supabase
+    .from('user_roles')
+    .select('user_id')
+    .eq('organization_id', proposal.organization_id)
+    .eq('role', 'admin')
+    .limit(1)
+
+  if (orgUsers && orgUsers.length > 0) {
+    const recipientId = orgUsers[0].user_id
+    const clientName = (proposal.clients as any)?.name || 'Cliente'
+
+    await createNotificationInternal(recipientId, {
+      title: '🎉 Proposta Aceita!',
+      message: `O cliente ${clientName} aceitou a proposta "${proposal.title}".`,
+      type: 'SUCCESS',
+      action_link: `/proposals/${proposal.id}/edit`
     })
-    .eq('id', proposal.id)
-    .select(`
-      *,
-      clients (id, name, email),
-      organizations (id, name, email)
-    `)
-    .single()
-
-  if (error) {
-    throw new Error('Erro ao aceitar proposta: ' + error.message)
   }
-
-  // 🔔 TRIGGER SQL cria receita automaticamente aqui
-
-  // TODO: Enviar email para produtor notificando aceitação
-  // await sendProposalAcceptedEmail(data.organizations.email, data.title)
 
   revalidatePath('/proposals')
   revalidatePath('/financeiro')
 
-  return data
+  return result
 }
 
 // =============================================
@@ -493,6 +603,7 @@ export async function acceptProposalPublic(token: string) {
 
 /**
  * Adicionar item à proposta
+ * SPRINT 2: Agora suporta campo de data opcional para sincronização com calendário
  */
 export async function addProposalItem(
   proposalId: string,
@@ -500,6 +611,7 @@ export async function addProposalItem(
     description: string
     quantity: number
     unit_price: number
+    date?: string | null // SPRINT 2: Data opcional do item
   }
 ) {
   const supabase = await createClient()
@@ -524,6 +636,7 @@ export async function addProposalItem(
       unit_price: item.unit_price,
       total: item.quantity * item.unit_price,
       order: nextOrder,
+      date: item.date || null, // SPRINT 2: Data opcional
     })
     .select()
     .single()
@@ -532,7 +645,9 @@ export async function addProposalItem(
     throw new Error('Erro ao adicionar item: ' + error.message)
   }
 
-  // Trigger SQL recalcula total_value automaticamente
+  // Recalcular valores
+  await recalculateProposalValues(proposalId)
+
   revalidatePath(`/proposals/${proposalId}/edit`)
   revalidatePath('/proposals')
   return data
@@ -540,6 +655,7 @@ export async function addProposalItem(
 
 /**
  * Atualizar item
+ * SPRINT 2: Agora suporta campo de data opcional
  */
 export async function updateProposalItem(
   itemId: string,
@@ -547,6 +663,7 @@ export async function updateProposalItem(
     description?: string
     quantity?: number
     unit_price?: number
+    date?: string | null // SPRINT 2: Data opcional do item
   }
 ) {
   const supabase = await createClient()
@@ -579,6 +696,9 @@ export async function updateProposalItem(
     throw new Error('Erro ao atualizar item: ' + error.message)
   }
 
+  // Recalcular valores
+  await recalculateProposalValues(currentItem.proposal_id)
+
   revalidatePath(`/proposals`)
   return data
 }
@@ -589,6 +709,13 @@ export async function updateProposalItem(
 export async function deleteProposalItem(itemId: string) {
   const supabase = await createClient()
 
+  // Buscar proposal_id antes de deletar
+  const { data: item } = await supabase
+    .from('proposal_items')
+    .select('proposal_id')
+    .eq('id', itemId)
+    .single()
+
   const { error } = await supabase
     .from('proposal_items')
     .delete()
@@ -596,6 +723,10 @@ export async function deleteProposalItem(itemId: string) {
 
   if (error) {
     throw new Error('Erro ao deletar item: ' + error.message)
+  }
+
+  if (item) {
+    await recalculateProposalValues(item.proposal_id)
   }
 
   revalidatePath(`/proposals`)
@@ -668,6 +799,9 @@ export async function addProposalOptional(
     throw new Error('Erro ao adicionar opcional: ' + error.message)
   }
 
+  // Recalcular valores
+  await recalculateProposalValues(proposalId)
+
   revalidatePath(`/proposals/${proposalId}/edit`)
   revalidatePath('/proposals')
   return data
@@ -687,6 +821,12 @@ export async function updateProposalOptional(
 ) {
   const supabase = await createClient()
 
+  const { data: currentOptional } = await supabase
+    .from('proposal_optionals')
+    .select('proposal_id')
+    .eq('id', optionalId)
+    .single()
+
   const { data, error } = await supabase
     .from('proposal_optionals')
     .update(updates)
@@ -696,6 +836,10 @@ export async function updateProposalOptional(
 
   if (error) {
     throw new Error('Erro ao atualizar opcional: ' + error.message)
+  }
+
+  if (currentOptional) {
+    await recalculateProposalValues(currentOptional.proposal_id)
   }
 
   revalidatePath(`/proposals`)
@@ -708,6 +852,13 @@ export async function updateProposalOptional(
 export async function deleteProposalOptional(optionalId: string) {
   const supabase = await createClient()
 
+  // Buscar proposal_id antes de deletar
+  const { data: optional } = await supabase
+    .from('proposal_optionals')
+    .select('proposal_id')
+    .eq('id', optionalId)
+    .single()
+
   const { error } = await supabase
     .from('proposal_optionals')
     .delete()
@@ -715,6 +866,10 @@ export async function deleteProposalOptional(optionalId: string) {
 
   if (error) {
     throw new Error('Erro ao deletar opcional: ' + error.message)
+  }
+
+  if (optional) {
+    await recalculateProposalValues(optional.proposal_id)
   }
 
   revalidatePath(`/proposals`)
@@ -736,8 +891,6 @@ export async function reorderProposalOptionals(proposalId: string, optionalIds: 
   )
 
   await Promise.all(updates)
-
-  revalidatePath(`/proposals/${proposalId}/edit`)
 }
 
 // =============================================
@@ -783,34 +936,6 @@ export async function addProposalVideo(
   }
 
   revalidatePath(`/proposals/${proposalId}/edit`)
-  revalidatePath('/proposals')
-  return data
-}
-
-/**
- * Atualizar vídeo
- */
-export async function updateProposalVideo(
-  videoId: string,
-  updates: {
-    title?: string
-    video_url?: string
-  }
-) {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('proposal_videos')
-    .update(updates)
-    .eq('id', videoId)
-    .select()
-    .single()
-
-  if (error) {
-    throw new Error('Erro ao atualizar vídeo: ' + error.message)
-  }
-
-  revalidatePath(`/proposals`)
   return data
 }
 
@@ -833,86 +958,11 @@ export async function deleteProposalVideo(videoId: string) {
 }
 
 /**
- * Upload de vídeo para proposta
- */
-export async function uploadProposalVideo(
-  proposalId: string,
-  data: {
-    title: string
-    file: File
-  }
-) {
-  const supabase = await createClient()
-  const organizationId = await getUserOrganization()
-
-  try {
-    // Gerar nome único para o arquivo
-    const fileExt = data.file.name.split('.').pop()
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`
-    const filePath = `${organizationId}/proposal-videos/${fileName}`
-
-    // Upload do arquivo para o Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('videos')
-      .upload(filePath, data.file, {
-        cacheControl: '3600',
-        upsert: false,
-      })
-
-    if (uploadError) {
-      throw new Error('Erro ao fazer upload do vídeo: ' + uploadError.message)
-    }
-
-    // Obter URL pública do vídeo
-    const { data: { publicUrl } } = supabase.storage
-      .from('videos')
-      .getPublicUrl(filePath)
-
-    // Buscar último order
-    const { data: lastVideo } = await supabase
-      .from('proposal_videos')
-      .select('order')
-      .eq('proposal_id', proposalId)
-      .order('order', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    const nextOrder = lastVideo ? (lastVideo.order || 0) + 1 : 1
-
-    // Adicionar registro do vídeo no banco
-    const { data: videoData, error: videoError } = await supabase
-      .from('proposal_videos')
-      .insert({
-        proposal_id: proposalId,
-        title: data.title,
-        video_url: publicUrl,
-        order: nextOrder,
-      })
-      .select()
-      .single()
-
-    if (videoError) {
-      // Se falhar ao criar registro, tentar remover o arquivo do storage
-      await supabase.storage.from('videos').remove([filePath])
-      throw new Error('Erro ao salvar vídeo: ' + videoError.message)
-    }
-
-    revalidatePath(`/proposals/${proposalId}/edit`)
-    revalidatePath('/proposals')
-    return videoData
-  } catch (error) {
-    console.error('Erro no upload do vídeo:', error)
-    throw error
-  }
-}
-
-/**
- * Reordenar vídeos (drag and drop)
+ * Reordenar vídeos
  */
 export async function reorderProposalVideos(proposalId: string, videoIds: string[]) {
   const supabase = await createClient()
 
-  // Atualizar order de cada vídeo
   const updates = videoIds.map((id, index) =>
     supabase
       .from('proposal_videos')
@@ -927,57 +977,25 @@ export async function reorderProposalVideos(proposalId: string, videoIds: string
 }
 
 // =============================================
-// SPRINT 3: PAYMENT SCHEDULE
+// SPRINT 2: ACEITE MANUAL DE PROPOSTA
 // =============================================
 
 /**
- * Adicionar parcela ao cronograma de pagamento
+ * Aceitar proposta manualmente (pelo produtor)
+ * Cria projeto, eventos no calendário e transações financeiras
  */
-export async function addPaymentSchedule(proposalId: string, payment: {
-  description: string
-  dueDate: string
-  amount: number
-  percentage?: number
-  order: number
-}) {
+export async function acceptProposalManual(proposalId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
 
-  const { data, error } = await supabase
-    .from('payment_schedule')
-    .insert([
-      {
-        proposal_id: proposalId,
-        description: payment.description,
-        due_date: payment.dueDate,
-        amount: payment.amount,
-        percentage: payment.percentage,
-        order: payment.order,
-        paid: false,
-      },
-    ])
-    .select()
-    .single()
-
-  if (error) {
-    console.error('Error adding payment schedule:', error)
-    throw new Error('Erro ao adicionar parcela')
-  }
-
-  revalidatePath(`/proposals/${proposalId}`)
-  return data
-}
-
-/**
- * Criar "Contas a Receber" automaticamente quando proposta é aceita
- * REGRA CRÍTICA DO SPRINT 3
- */
-export async function createReceivablesFromProposal(proposalId: string) {
-  const supabase = await createClient()
-
-  // Buscar proposta e cronograma
+  // 1. Buscar proposta completa
   const { data: proposal, error: proposalError } = await supabase
     .from('proposals')
-    .select('*, payment_schedule(*)')
+    .select(`
+      *,
+      items:proposal_items (*),
+      clients (id, name)
+    `)
     .eq('id', proposalId)
     .single()
 
@@ -985,32 +1003,188 @@ export async function createReceivablesFromProposal(proposalId: string) {
     throw new Error('Proposta não encontrada')
   }
 
-  if (!proposal.payment_schedule || proposal.payment_schedule.length === 0) {
-    throw new Error('Proposta não possui cronograma de pagamento')
+  // Usar helper para processar tudo
+  const result = await processProposalToProject(proposalId, (await supabase.auth.getUser()).data.user?.id)
+
+  revalidatePath('/proposals')
+  revalidatePath('/projects')
+  revalidatePath('/calendar')
+  revalidatePath('/financeiro')
+
+  return result
+}
+
+// =============================================
+// HELPER: Processar conversão de proposta para projeto
+// =============================================
+async function processProposalToProject(proposalId: string, userId?: string) {
+  const supabase = await createClient()
+
+  // 1. Buscar proposta completa
+  const { data: proposal, error: proposalError } = await supabase
+    .from('proposals')
+    .select(`
+      *,
+      items:proposal_items (*),
+      clients (id, name, organization_id)
+    `)
+    .eq('id', proposalId)
+    .single()
+
+  if (proposalError || !proposal) {
+    throw new Error('Proposta não encontrada')
   }
 
-  // Criar uma transação para cada parcela
-  const transactions = proposal.payment_schedule.map((payment: any) => ({
-    organization_id: proposal.organization_id,
-    proposal_id: proposal.id,
-    client_id: proposal.client_id,
+  const organizationId = proposal.organization_id
+
+  // 2. Criar Projeto com origin = 'proposal'
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .insert({
+      title: proposal.title,
+      description: proposal.description,
+      client_id: proposal.client_id,
+      organization_id: organizationId,
+      assigned_to_id: userId || null,
+      status: 'PRE_PROD',
+      origin: 'proposal', // Marca que veio de proposta aprovada
+      budget: proposal.total_value,
+      deadline_date: proposal.valid_until,
+      created_at: new Date().toISOString(),
+    })
+    .select()
+    .single()
+
+  if (projectError) {
+    throw new Error('Erro ao criar projeto: ' + projectError.message)
+  }
+
+  // 2b. Inicializar Project Finances
+  const { error: financesError } = await supabase.from('project_finances').insert({
+    project_id: project.id,
+    organization_id: organizationId,
+    approved_value: proposal.total_value,
+    target_margin_percent: 30,
+  })
+
+  if (financesError) {
+    console.error('Erro ao criar finanças do projeto:', financesError)
+  }
+
+  // 3. Criar Eventos no Calendário
+  let calendarEventsCreated = 0
+  if (proposal.items && proposal.items.length > 0) {
+    const eventsToCreate = proposal.items
+      .filter((item: any) => item.date)
+      .map((item: any) => ({
+        title: `${item.description} - ${proposal.title}`,
+        description: `Item da proposta: ${item.description}`,
+        start_date: new Date(item.date).toISOString(),
+        end_date: new Date(new Date(item.date).setHours(new Date(item.date).getHours() + 1)).toISOString(),
+        project_id: project.id,
+        organization_id: organizationId,
+        type: 'shooting',
+        created_by: userId || null,
+      }))
+
+    if (eventsToCreate.length > 0) {
+      const { error: eventsError } = await supabase.from('calendar_events').insert(eventsToCreate)
+      if (!eventsError) {
+        calendarEventsCreated = eventsToCreate.length
+      }
+    }
+  }
+
+  // 4. Criar Transação Financeira (Receita Prevista)
+  // NOTA: Trigger foi removido na migration 11 para evitar duplicação
+  const { error: financeError } = await supabase.from('financial_transactions').insert({
+    organization_id: organizationId,
     type: 'INCOME',
     category: 'CLIENT_PAYMENT',
+    description: `Pagamento Proposta: ${proposal.title}`,
+    amount: proposal.total_value,
     status: 'PENDING',
-    description: `${payment.description} - ${proposal.title}`,
-    amount: payment.amount,
-    due_date: payment.due_date,
-  }))
+    origin: 'proposta',
+    project_id: project.id,
+    proposal_id: proposal.id,
+    client_id: proposal.client_id,
+    due_date: proposal.valid_until,
+    created_by: userId || null
+  })
 
-  const { error: transactionsError } = await supabase
-    .from('financial_transactions')
-    .insert(transactions)
+  // 4a. Copiar itens da proposta para project_items e mapear IDs
+  const itemsMapping: Array<{ proposalItemId: string; projectItemId: string }> = []
 
-  if (transactionsError) {
-    console.error('Error creating receivables:', transactionsError)
-    throw new Error('Erro ao criar contas a receber')
+  if (proposal.items && proposal.items.length > 0) {
+    for (const item of proposal.items) {
+      const { data: projectItem, error: itemError } = await supabase
+        .from('project_items')
+        .insert({
+          project_id: project.id,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total,
+          status: 'PENDING',
+          due_date: item.date || null,
+          order: item.order
+        })
+        .select('id')
+        .single()
+
+      if (!itemError && projectItem) {
+        itemsMapping.push({
+          proposalItemId: item.id,
+          projectItemId: projectItem.id
+        })
+      }
+    }
+
+    // 4b. Copiar assignments dos itens (freelancers vinculados)
+    if (itemsMapping.length > 0) {
+      for (const mapping of itemsMapping) {
+        const { data: proposalAssignments } = await supabase
+          .from('item_assignments')
+          .select('*')
+          .eq('proposal_item_id', mapping.proposalItemId)
+          .eq('organization_id', organizationId)
+
+        if (proposalAssignments && proposalAssignments.length > 0) {
+          const projectAssignments = proposalAssignments.map((assignment: any) => ({
+            freelancer_id: assignment.freelancer_id,
+            proposal_item_id: assignment.proposal_item_id,
+            project_item_id: mapping.projectItemId,
+            role: assignment.role,
+            agreed_fee: assignment.agreed_fee,
+            estimated_hours: assignment.estimated_hours,
+            scheduled_date: assignment.scheduled_date,
+            status: 'PENDING',
+            notes: assignment.notes,
+            organization_id: organizationId,
+          }))
+
+          await supabase.from('item_assignments').insert(projectAssignments)
+        }
+      }
+    }
   }
 
-  revalidatePath('/financeiro')
-  return transactions.length
+  // 5. Atualizar status da proposta
+  await supabase
+    .from('proposals')
+    .update({
+      status: 'ACCEPTED',
+      accepted_at: new Date().toISOString(),
+    })
+    .eq('id', proposalId)
+
+  return {
+    success: true,
+    projectId: project.id,
+    calendarEventsCreated,
+    financialTransactionsCreated: financeError ? 0 : 1,
+    itemsCopied: itemsMapping.length,
+  }
 }
+
+

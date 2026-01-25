@@ -1,11 +1,12 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Plus, FileText, Eye, CheckCircle, XCircle, Clock, DollarSign, Edit } from 'lucide-react'
-import { useState } from 'react'
+import { Plus, FileText, Eye, CheckCircle, XCircle, Clock, Edit, Trash2, CheckCircle2 } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
-import { addProposal } from '@/actions/proposals'
+import { SelectClientModal } from './select-client-modal'
+import { acceptProposalManual, deleteProposal } from '@/actions/proposals'
 
 type Proposal = {
   id: string
@@ -13,6 +14,7 @@ type Proposal = {
   status: string
   base_value: number
   total_value: number
+  token: string
   created_at: string
   clients?: {
     id: string
@@ -35,30 +37,70 @@ interface ProposalsListProps {
 
 export function ProposalsList({ initialProposals }: ProposalsListProps) {
   const router = useRouter()
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [proposals, setProposals] = useState(initialProposals)
-  const [isCreating, setIsCreating] = useState(false)
 
-  const handleCreateNewProposal = async () => {
-    setIsCreating(true)
+  // Sincronizar com dados do servidor quando mudam
+  useEffect(() => {
+    setProposals(initialProposals)
+  }, [initialProposals])
+
+  // Atualizar dados quando a página ganha foco (voltando da edição)
+  useEffect(() => {
+    const handleFocus = () => {
+      router.refresh()
+    }
+
+    // Também atualizar quando visibilidade muda (tab switching)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        router.refresh()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [router])
+
+  // Callback quando modal fecha (proposta pode ter sido criada)
+  const handleModalClose = useCallback(() => {
+    setIsModalOpen(false)
+    // Refresh para pegar nova proposta se foi criada
+    router.refresh()
+  }, [router])
+
+
+  const handleAccept = async (proposal: Proposal) => {
+    if (proposal.status === 'ACCEPTED') return
+
+    const confirmMessage = `Deseja aceitar esta proposta?\n\nIsso irá:\n• Mudar o status para "Aceita"\n• Criar um novo projeto\n• Criar eventos no calendário (itens com data)\n• Gerar lançamentos financeiros`
+
+    if (!confirm(confirmMessage)) return
+
     try {
-      // Criar proposta básica com cliente padrão (primeiro cliente da lista)
-      const newProposal = await addProposal({
-        title: 'Nova Proposta',
-        client_id: proposals[0]?.clients?.id || '',
-        base_value: 0,
-        discount: 0,
-        description: '',
-      })
-
-      // Redirecionar para a página de edição
-      router.push(`/proposals/${newProposal.id}/edit`)
-    } catch (error) {
-      console.error('Erro ao criar proposta:', error)
-      alert('Erro ao criar proposta. Por favor, tente novamente.')
-      setIsCreating(false)
+      await acceptProposalManual(proposal.id)
+      alert('Proposta aceita com sucesso! Projeto criado.')
+      router.refresh()
+    } catch (error: any) {
+      alert(error?.message || 'Erro ao aceitar proposta')
     }
   }
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta proposta? Esta ação não pode ser desfeita.')) return
+
+    try {
+      await deleteProposal(id)
+      router.refresh()
+    } catch (error: any) {
+      alert(error?.message || 'Erro ao excluir proposta')
+    }
+  }
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -86,14 +128,19 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
           animate={{ opacity: 1, scale: 1 }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={handleCreateNewProposal}
-          disabled={isCreating}
-          className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:opacity-90 disabled:opacity-50"
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:opacity-90"
         >
           <Plus className="h-4 w-4" />
-          {isCreating ? 'Criando...' : 'Nova Proposta'}
+          Nova Proposta
         </motion.button>
       </div>
+
+      {/* Modal para selecionar cliente */}
+      <SelectClientModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+      />
 
       {/* Proposals List */}
       {proposals.length > 0 ? (
@@ -159,13 +206,40 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
                   </div>
 
                   {/* Edit Button */}
-                  <div className="mt-4">
+                  <div className="mt-4 flex items-center gap-2">
                     <button
                       onClick={() => router.push(`/proposals/${proposal.id}/edit`)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-secondary border border-[rgb(var(--border))] text-text-primary hover:bg-bg-hover transition-all text-sm font-medium"
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-secondary border border-[rgb(var(--border))] text-text-primary hover:bg-bg-hover transition-all text-sm font-medium"
+                      title="Editar"
                     >
                       <Edit className="h-4 w-4" />
-                      Editar Proposta
+                      <span className="sr-only lg:not-sr-only lg:inline">Editar</span>
+                    </button>
+
+                    {proposal.status !== 'ACCEPTED' && (
+                      <button
+                        onClick={() => handleAccept(proposal)}
+                        className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 hover:bg-green-500/20 transition-all text-sm font-medium"
+                        title="Aceitar Proposta e Gerar Projeto"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => window.open(`/p/${proposal.token}`, '_blank')}
+                      className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-500 hover:bg-blue-500/20 transition-all text-sm font-medium"
+                      title="Visualizar Preview"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+
+                    <button
+                      onClick={() => handleDelete(proposal.id)}
+                      className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 transition-all text-sm font-medium"
+                      title="Excluir"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>

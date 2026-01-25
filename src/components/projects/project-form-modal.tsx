@@ -2,10 +2,10 @@
 
 import { Modal } from '@/components/ui/modal'
 import { useState, useEffect } from 'react'
-import { addProject } from '@/actions/projects'
+import { createProject } from '@/actions/projects'
 import { getClients } from '@/actions/clients'
 import { motion } from 'framer-motion'
-import { DatesManager } from './dates-manager'
+import { useRouter } from 'next/navigation'
 
 interface ProjectFormModalProps {
   isOpen: boolean
@@ -19,33 +19,23 @@ type Client = {
   company?: string | null
 }
 
-interface ShootingDate {
-  date: string
-  time?: string
-  location?: string
-  notes?: string
-}
-
-interface DeliveryDate {
-  date: string
-  description: string
-  completed?: boolean
-}
-
+/**
+ * Modal simplificado de criação de projeto
+ * 
+ * Apenas 3 campos: Título, Cliente e Descrição (opcional)
+ * Após criar, redireciona para tela de detalhes onde usuário pode
+ * configurar o restante progressivamente.
+ */
 export function ProjectFormModal({ isOpen, onClose, onSuccess }: ProjectFormModalProps) {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
   const [formData, setFormData] = useState({
     title: '',
-    description: '',
     client_id: '',
-    deadline: '',
-    shooting_date: '',
-    budget: '',
-    deliverablesDescription: '', // SPRINT 2
+    description: '',
   })
-  const [shootingDates, setShootingDates] = useState<ShootingDate[]>([])
-  const [deliveryDates, setDeliveryDates] = useState<DeliveryDate[]>([])
+  const [redirectAfterCreate, setRedirectAfterCreate] = useState(true)
 
   useEffect(() => {
     if (isOpen) {
@@ -55,42 +45,48 @@ export function ProjectFormModal({ isOpen, onClose, onSuccess }: ProjectFormModa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validação de campos obrigatórios
+    if (!formData.title.trim()) {
+      alert('Por favor, preencha o título do projeto.')
+      return
+    }
+
+    if (!formData.client_id) {
+      alert('Por favor, selecione um cliente.')
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      const newProject = await addProject({
-        title: formData.title,
-        description: formData.description || undefined,
+      const newProject = await createProject({
+        title: formData.title.trim(),
         client_id: formData.client_id,
-        deadline: formData.deadline || undefined,
-        shooting_date: formData.shooting_date || undefined,
-        budget: formData.budget ? parseFloat(formData.budget) : undefined,
-        deliverables_description: formData.deliverablesDescription || undefined, // SPRINT 2
+        description: formData.description || undefined,
       })
-
-      // TODO: Adicionar shooting_dates e delivery_dates após criar o projeto
-      // Isso será implementado quando integrar com a página de detalhes do projeto
 
       // Buscar dados do cliente para incluir no projeto
       const client = clients.find(c => c.id === formData.client_id)
 
+      // Limpar formulário
       setFormData({
         title: '',
-        description: '',
         client_id: '',
-        deadline: '',
-        shooting_date: '',
-        budget: '',
-        deliverablesDescription: '',
+        description: '',
       })
-      setShootingDates([])
-      setDeliveryDates([])
 
-      // Passar o projeto completo com dados do cliente
+      // Notificar sucesso
       onSuccess({ ...newProject, clients: client })
       onClose()
+
+      // Redirecionar para detalhes do projeto (configuração progressiva)
+      if (redirectAfterCreate && newProject?.id) {
+        router.push(`/projects/${newProject.id}`)
+      }
     } catch (error) {
-      alert('Erro ao criar projeto')
+      console.error('Erro ao criar projeto:', error)
+      alert('Erro ao criar projeto. Tente novamente.')
     } finally {
       setIsLoading(false)
     }
@@ -98,32 +94,40 @@ export function ProjectFormModal({ isOpen, onClose, onSuccess }: ProjectFormModa
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Novo Projeto">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Mensagem informativa */}
+        <div className="rounded-lg border border-accent-500/30 bg-accent-500/10 p-3">
+          <p className="text-sm text-accent-300">
+            💡 Crie rapidamente! Configure datas, equipe e orçamento depois na tela de detalhes.
+          </p>
+        </div>
+
         {/* Título */}
         <div>
           <label className="mb-2 block text-sm font-medium text-zinc-300">
-            Título do Projeto *
+            Título do Projeto <span className="text-red-400">*</span>
           </label>
           <input
             type="text"
             required
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
-            placeholder="Vídeo Institucional"
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-zinc-500 transition-all focus:border-accent-500/50 focus:outline-none focus:ring-2 focus:ring-accent-500/20"
+            placeholder="Ex: Vídeo Institucional, Campanha Redes Sociais..."
+            autoFocus
           />
         </div>
 
         {/* Cliente */}
         <div>
           <label className="mb-2 block text-sm font-medium text-zinc-300">
-            Cliente *
+            Cliente <span className="text-red-400">*</span>
           </label>
           <select
             required
             value={formData.client_id}
             onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-white transition-all focus:border-accent-500/50 focus:outline-none focus:ring-2 focus:ring-accent-500/20"
           >
             <option value="">Selecione um cliente</option>
             {clients.map((client) => (
@@ -134,91 +138,40 @@ export function ProjectFormModal({ isOpen, onClose, onSuccess }: ProjectFormModa
           </select>
         </div>
 
-        {/* Descrição */}
+        {/* Descrição (opcional) */}
         <div>
           <label className="mb-2 block text-sm font-medium text-zinc-300">
-            Descrição
+            Descrição <span className="text-zinc-500">(opcional)</span>
           </label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             rows={3}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
-            placeholder="Detalhes do projeto..."
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-zinc-500 transition-all focus:border-accent-500/50 focus:outline-none focus:ring-2 focus:ring-accent-500/20"
+            placeholder="Breve descrição do projeto..."
           />
         </div>
 
-        {/* Data de Gravação */}
-        <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
-            Data de Gravação
-          </label>
+        {/* Checkbox - Ir para detalhes */}
+        <div className="flex items-center gap-2">
           <input
-            type="date"
-            value={formData.shooting_date}
-            onChange={(e) => setFormData({ ...formData, shooting_date: e.target.value })}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+            type="checkbox"
+            id="redirectAfterCreate"
+            checked={redirectAfterCreate}
+            onChange={(e) => setRedirectAfterCreate(e.target.checked)}
+            className="h-4 w-4 rounded border-white/20 bg-white/5 text-accent-500 focus:ring-accent-500/20"
           />
-        </div>
-
-        {/* Deadline */}
-        <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
-            Prazo de Entrega
+          <label htmlFor="redirectAfterCreate" className="text-sm text-zinc-400">
+            Ir para detalhes após criar
           </label>
-          <input
-            type="date"
-            value={formData.deadline}
-            onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
-          />
-        </div>
-
-        {/* Orçamento */}
-        <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
-            Orçamento (R$)
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            value={formData.budget}
-            onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
-            placeholder="10000.00"
-          />
-        </div>
-
-        {/* SPRINT 2: Resumo de Entregáveis */}
-        <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
-            Resumo de Entregáveis
-          </label>
-          <textarea
-            value={formData.deliverablesDescription}
-            onChange={(e) => setFormData({ ...formData, deliverablesDescription: e.target.value })}
-            rows={3}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
-            placeholder="Ex: 1 vídeo 30s Instagram, 2 banners 1920x1080, thumb YouTube..."
-          />
-        </div>
-
-        {/* SPRINT 2: Gerenciador de Datas */}
-        <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-          <DatesManager
-            shootingDates={shootingDates}
-            deliveryDates={deliveryDates}
-            onShootingDatesChange={setShootingDates}
-            onDeliveryDatesChange={setDeliveryDates}
-          />
         </div>
 
         {/* Buttons */}
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-3 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-white/10"
+            className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition-all hover:bg-white/10"
           >
             Cancelar
           </button>
@@ -227,9 +180,19 @@ export function ProjectFormModal({ isOpen, onClose, onSuccess }: ProjectFormModa
             disabled={isLoading}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex-1 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black transition-all hover:bg-zinc-200 disabled:opacity-50"
+            className="flex-1 rounded-lg bg-accent-500 px-4 py-3 text-sm font-medium text-white transition-all hover:bg-accent-600 disabled:opacity-50"
           >
-            {isLoading ? 'Criando...' : 'Criar Projeto'}
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Criando...
+              </span>
+            ) : (
+              'Criar Projeto'
+            )}
           </motion.button>
         </div>
       </form>

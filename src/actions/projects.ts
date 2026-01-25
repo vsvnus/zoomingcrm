@@ -4,6 +4,8 @@ import { createClient, getUserOrganization } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type {
   CreateProjectData,
+  MinimalProjectData,
+  CreateProjectFromProposalData,
   UpdateProjectData,
   ProjectStatus,
   ProjectWithClient,
@@ -39,7 +41,44 @@ export async function getProjects(): Promise<ProjectWithClient[]> {
 }
 
 export async function getProjectsForKanban(): Promise<KanbanBoardData> {
-  const projects = await getProjects()
+  const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+
+  // 1. Buscar projetos
+  const { data: projects, error } = await supabase
+    .from('projects')
+    .select('*, clients(id, name, company)')
+    .eq('organization_id', organizationId)
+    .neq('status', 'ARCHIVED') // Kanban não mostra arquivados geralmente
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching projects for kanban:', error)
+    return { columns: [] }
+  }
+
+  // 2. Buscar próximas gravações para esses projetos
+  const today = new Date().toISOString().split('T')[0]
+  const projectIds = projects?.map(p => p.id) || []
+
+  let shootingDatesMap: Record<string, string> = {}
+
+  if (projectIds.length > 0) {
+    const { data: nextShoots } = await supabase
+      .from('shooting_dates')
+      .select('projectId, date')
+      .in('projectId', projectIds)
+      .gte('date', today)
+      .order('date', { ascending: true })
+
+    // Pegar apenas a PRÓXIMA data de cada projeto (o primeiro da lista já que ordenamos asc)
+    nextShoots?.forEach(shoot => {
+      // Como está ordenado por data ASC, o primeiro que aparecer para o projeto é o mais próximo
+      if (!shootingDatesMap[shoot.projectId]) {
+        shootingDatesMap[shoot.projectId] = shoot.date
+      }
+    })
+  }
 
   const columns: KanbanBoardData['columns'] = [
     { id: 'BRIEFING', title: 'Briefing', projects: [] },
@@ -50,10 +89,16 @@ export async function getProjectsForKanban(): Promise<KanbanBoardData> {
     { id: 'DONE', title: 'Concluído', projects: [] },
   ]
 
-  projects.forEach((project) => {
+  projects?.forEach((project) => {
+    // Injetar próxima gravação no objeto do projeto (extensão dinâmica)
+    const projectWithEvent = {
+      ...project,
+      next_shooting: shootingDatesMap[project.id] || null
+    }
+
     const column = columns.find((col) => col.id === project.status)
     if (column) {
-      column.projects.push(project)
+      column.projects.push(projectWithEvent)
     }
   })
 
@@ -139,24 +184,57 @@ export async function getProject(projectId: string): Promise<ProjectWithRelation
     // Tabela pode não existir ainda
   }
 
+  // Buscar project_items separadamente (SPRINT 2)
+  let items: any[] = []
+  try {
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('project_items')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('order', { ascending: true })
+
+    if (!itemsError && itemsData) {
+      items = itemsData
+    }
+  } catch (e) {
+    // Tabela pode não existir ainda
+  }
+
   return {
     ...data,
     shooting_dates: shootingDates,
     delivery_dates: deliveryDates,
+    items: items,
   }
 }
 
-export async function createProject(formData: CreateProjectData) {
+/**
+ * Criar projeto manualmente (fluxo simplificado)
+ * Apenas 3 campos: título, cliente e descrição opcional
+ */
+export async function createProject(formData: MinimalProjectData) {
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
+
+  // Validação de campos obrigatórios
+  if (!formData.title?.trim()) {
+    throw new Error('Título do projeto é obrigatório')
+  }
+
+  if (!formData.client_id) {
+    throw new Error('Cliente é obrigatório')
+  }
 
   const { data, error } = await supabase
     .from('projects')
     .insert([
       {
-        ...formData,
+        title: formData.title.trim(),
+        description: formData.description || null,
+        client_id: formData.client_id,
         organization_id: organizationId,
         status: 'BRIEFING',
+        origin: 'manual',
       },
     ])
     .select()
@@ -164,11 +242,78 @@ export async function createProject(formData: CreateProjectData) {
 
   if (error) {
     console.error('Error creating project:', error)
-    throw new Error('Erro ao criar projeto')
+    throw new Error('Erro ao criar projeto: ' + error.message)
   }
 
   revalidatePath('/projects')
   return data
+}
+
+/**
+ * Criar projeto a partir de proposta aprovada (fluxo automático)
+ * Cria projeto, finanças, transação e itens de uma vez
+ */
+export async function createProjectFromProposal(formData: CreateProjectFromProposalData, userId?: string) {
+  const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+
+  // 1. Criar projeto com status PRE_PROD
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .insert([
+      {
+        title: formData.title,
+        description: formData.description || null,
+        client_id: formData.client_id,
+        organization_id: organizationId,
+        status: 'PRE_PROD',
+        origin: 'proposal',
+        budget: formData.budget,
+        deadline_date: formData.deadline_date,
+        assigned_to_id: formData.assigned_to_id || userId || null,
+      },
+    ])
+    .select()
+    .single()
+
+  if (projectError) {
+    console.error('Error creating project from proposal:', projectError)
+    throw new Error('Erro ao criar projeto: ' + projectError.message)
+  }
+
+  // 2. Criar project_finances
+  const { error: financesError } = await supabase.from('project_finances').insert({
+    project_id: project.id,
+    organization_id: organizationId,
+    approved_value: formData.budget,
+    target_margin_percent: 30,
+  })
+
+  if (financesError) {
+    console.error('Erro ao criar finanças do projeto:', financesError)
+  }
+
+  // 3. Criar project_items (se fornecidos)
+  if (formData.items && formData.items.length > 0) {
+    const itemsToCreate = formData.items.map((item, index) => ({
+      project_id: project.id,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      total_price: item.total_price,
+      status: 'PENDING',
+      due_date: item.due_date || null,
+      order: index + 1,
+    }))
+
+    const { error: itemsError } = await supabase.from('project_items').insert(itemsToCreate)
+    if (itemsError) {
+      console.error('Erro ao criar itens do projeto:', itemsError)
+    }
+  }
+
+  revalidatePath('/projects')
+  return project
 }
 
 export async function updateProject(projectId: string, formData: UpdateProjectData) {
@@ -567,6 +712,140 @@ export async function toggleDeliveryComplete(deliveryDateId: string, projectId: 
   if (error) {
     console.error('Error updating delivery date:', error)
     throw new Error('Erro ao atualizar entrega')
+  }
+
+  revalidatePath(`/projects/${projectId}`)
+}
+
+
+
+
+export async function getOrganizationUsers() {
+  const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, name, email')
+    .eq('organization_id', organizationId)
+    .order('name', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching users:', error)
+    return []
+  }
+
+  return data
+}
+
+export async function toggleProjectItemStatus(itemId: string, projectId: string, status: 'PENDING' | 'DONE') {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('project_items')
+    .update({ status })
+    .eq('id', itemId)
+
+  if (error) {
+    console.error('Error updating project item:', error)
+    throw new Error('Erro ao atualizar item')
+  }
+
+  revalidatePath(`/projects/${projectId}`)
+}
+
+export async function addProjectItem(projectId: string, item: {
+  description: string
+  quantity: number
+  unit_price: number
+  due_date?: string | null
+}) {
+  const supabase = await createClient()
+
+  // Buscar último order
+  const { data: lastItem } = await supabase
+    .from('project_items')
+    .select('order')
+    .eq('project_id', projectId)
+    .order('order', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const nextOrder = lastItem ? (lastItem.order || 0) + 1 : 1
+
+  const { error } = await supabase.from('project_items').insert({
+    project_id: projectId,
+    description: item.description,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    total_price: item.quantity * item.unit_price,
+    status: 'PENDING',
+    due_date: item.due_date,
+    order: nextOrder
+  })
+
+  if (error) {
+    console.error('Error adding project item:', error)
+    throw new Error('Erro ao adicionar item')
+  }
+
+  revalidatePath(`/projects/${projectId}`)
+}
+
+export async function updateProjectItem(itemId: string, projectId: string, updates: {
+  description?: string
+  quantity?: number
+  unit_price?: number
+  due_date?: string | null
+}) {
+  const supabase = await createClient()
+
+  const updateData: any = { ...updates }
+
+  if (updates.quantity !== undefined || updates.unit_price !== undefined) {
+    // Se mudou quantidade ou preço, recalcular total
+    // Precisamos buscar o valor atual do que não mudou se apenas um deles mudou
+    if (updates.quantity !== undefined && updates.unit_price !== undefined) {
+      updateData.total_price = updates.quantity * updates.unit_price
+    } else {
+      const { data: currentItem } = await supabase
+        .from('project_items')
+        .select('quantity, unit_price')
+        .eq('id', itemId)
+        .single()
+
+      if (currentItem) {
+        const qty = updates.quantity ?? currentItem.quantity
+        const price = updates.unit_price ?? currentItem.unit_price
+        updateData.total_price = qty * price
+      }
+    }
+  }
+
+  const { error } = await supabase
+    .from('project_items')
+    .update(updateData)
+    .eq('id', itemId)
+
+  if (error) {
+    console.error('Error updating project item:', error)
+    throw new Error('Erro ao atualizar item')
+  }
+
+  revalidatePath(`/projects/${projectId}`)
+}
+
+export async function deleteProjectItem(itemId: string, projectId: string) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('project_items')
+    .delete()
+    .eq('id', itemId)
+
+  if (error) {
+    console.error('Error deleting project item:', error)
+    throw new Error('Erro ao deletar item')
   }
 
   revalidatePath(`/projects/${projectId}`)

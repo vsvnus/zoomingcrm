@@ -12,6 +12,8 @@ export type ProjectStatus =
 
 export type ProjectMemberStatus = 'INVITED' | 'CONFIRMED' | 'DECLINED' | 'REMOVED'
 
+export type ProjectOrigin = 'manual' | 'proposal'
+
 export type VideoFormat = '16:9' | '9:16' | '1:1' | '4:5'
 export type VideoResolution = '1080p' | '4K' | '8K'
 
@@ -24,6 +26,7 @@ export interface Project {
   title: string
   description?: string
   status: ProjectStatus
+  origin?: ProjectOrigin // Origem do projeto: manual | proposal
   deadline_date?: string
   shooting_date?: string
   shooting_end_date?: string
@@ -38,6 +41,7 @@ export interface Project {
   organization_id: string
   created_at: string
   updated_at: string
+  budget?: number // SPRINT 2: Orçamento do projeto
 }
 
 export interface ProjectMember {
@@ -89,6 +93,19 @@ export interface DeliveryDate {
   updated_at: string
 }
 
+export interface ProjectItem {
+  id: string
+  description: string
+  quantity: number
+  unit_price: number
+  total_price: number
+  status: 'PENDING' | 'IN_PROGRESS' | 'DONE'
+  due_date?: string
+  project_id: string
+  created_at: string
+  updated_at: string
+}
+
 export interface ProjectWithRelations extends Project {
   clients: {
     id: string
@@ -119,6 +136,7 @@ export interface ProjectWithRelations extends Project {
   // SPRINT 2: Múltiplas datas
   shooting_dates?: ShootingDate[]
   delivery_dates?: DeliveryDate[]
+  items?: ProjectItem[]
 }
 
 export interface ProjectMemberWithFreelancer extends ProjectMember {
@@ -159,6 +177,20 @@ export interface ProjectTeamSummary {
 // Form Data Interfaces
 // ============================================
 
+/**
+ * Dados mínimos para criação manual de projeto
+ * Apenas título, cliente e descrição opcional
+ */
+export interface MinimalProjectData {
+  title: string
+  client_id: string
+  description?: string
+}
+
+/**
+ * Dados completos para criação de projeto (inclui todos os campos opcionais)
+ * @deprecated Para criação manual, use MinimalProjectData
+ */
 export interface CreateProjectData {
   title: string
   description?: string
@@ -175,9 +207,30 @@ export interface CreateProjectData {
   assigned_to_id?: string
 }
 
+/**
+ * Dados para criação de projeto a partir de proposta aprovada
+ */
+export interface CreateProjectFromProposalData {
+  title: string
+  description?: string
+  client_id: string
+  budget: number
+  deadline_date?: string
+  assigned_to_id?: string
+  items?: Array<{
+    description: string
+    quantity: number
+    unit_price: number
+    total_price: number
+    due_date?: string | null
+  }>
+}
+
 export interface UpdateProjectData extends Partial<CreateProjectData> {
   status?: ProjectStatus
+  origin?: ProjectOrigin
 }
+
 
 export interface AddProjectMemberData {
   project_id: string

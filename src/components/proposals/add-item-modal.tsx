@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X, Calendar } from 'lucide-react'
 import { addProposalItem } from '@/actions/proposals'
 
 interface AddItemModalProps {
@@ -17,6 +17,7 @@ export function AddItemModal({ proposalId, isOpen, onClose, onSuccess }: AddItem
     description: '',
     quantity: 1,
     unit_price: '',
+    date: '', // SPRINT 2: Data opcional
   })
 
   if (!isOpen) return null
@@ -30,9 +31,10 @@ export function AddItemModal({ proposalId, isOpen, onClose, onSuccess }: AddItem
         description: formData.description,
         quantity: formData.quantity,
         unit_price: parseFloat(formData.unit_price),
+        date: formData.date || null, // SPRINT 2: Enviar data se preenchida
       })
 
-      setFormData({ description: '', quantity: 1, unit_price: '' })
+      setFormData({ description: '', quantity: 1, unit_price: '', date: '' })
       onSuccess()
       onClose()
     } catch (error) {
@@ -106,6 +108,23 @@ export function AddItemModal({ proposalId, isOpen, onClose, onSuccess }: AddItem
                 placeholder="0.00"
               />
             </div>
+          </div>
+
+          {/* SPRINT 2: Data opcional */}
+          <div>
+            <label className="mb-2 flex items-center gap-2 text-sm font-medium text-zinc-300">
+              <Calendar className="h-4 w-4 text-purple-400" />
+              Data (opcional)
+            </label>
+            <input
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+            />
+            <p className="mt-1 text-xs text-zinc-500">
+              Se preenchida, será criado um evento no calendário ao aceitar a proposta
+            </p>
           </div>
 
           {/* Total Preview */}

@@ -125,30 +125,30 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
         <div className="flex items-center gap-1">
           <button
             onClick={() => handleNavigate('PREV')}
-            className="rounded-lg p-2 hover:bg-white/10 transition-colors"
+            className="rounded-lg p-2 hover:bg-bg-hover text-text-secondary hover:text-text-primary transition-colors"
           >
-            <ChevronLeft className="h-5 w-5 text-white" />
+            <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             onClick={() => handleNavigate('NEXT')}
-            className="rounded-lg p-2 hover:bg-white/10 transition-colors"
+            className="rounded-lg p-2 hover:bg-bg-hover text-text-secondary hover:text-text-primary transition-colors"
           >
-            <ChevronRight className="h-5 w-5 text-white" />
+            <ChevronRight className="h-5 w-5" />
           </button>
         </div>
-        <h2 className="text-xl font-semibold text-white">
+        <h2 className="text-xl font-semibold text-text-primary">
           {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
         </h2>
         <button
           onClick={() => handleNavigate('TODAY')}
-          className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-zinc-300 hover:bg-white/10 transition-colors"
+          className="rounded-lg border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-bg-hover hover:text-text-primary transition-colors"
         >
           Hoje
         </button>
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1 rounded-lg border border-white/10 p-1">
+        <div className="flex items-center gap-1 rounded-lg border border-border p-1 bg-bg-secondary/50">
           {[
             { key: Views.MONTH, label: 'Mês' },
             { key: Views.WEEK, label: 'Semana' },
@@ -158,11 +158,10 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
             <button
               key={v.key}
               onClick={() => setView(v.key)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                view === v.key
-                  ? 'bg-accent-500 text-white'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${view === v.key
+                  ? 'bg-accent-500 text-white shadow-sm'
+                  : 'text-text-tertiary hover:text-text-primary hover:bg-bg-hover'
+                }`}
             >
               {v.label}
             </button>
@@ -171,7 +170,7 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
 
         <button
           onClick={onCreateEvent}
-          className="flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2 text-sm font-medium text-white hover:bg-accent-600 transition-colors"
+          className="flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2 text-sm font-medium text-white hover:bg-accent-600 transition-colors shadow-sm hover:shadow-md"
         >
           <Plus className="h-4 w-4" />
           Novo Evento
@@ -186,7 +185,7 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
     <div className="h-full">
       <CustomToolbar />
 
-      <div className="rounded-2xl border border-white/5 bg-white/5 p-4 backdrop-blur-xl calendar-container">
+      <div className="rounded-2xl border border-border bg-bg-secondary/50 p-4 backdrop-blur-xl calendar-container shadow-2">
         <Calendar
           localizer={localizer}
           events={calendarEvents}
@@ -228,7 +227,7 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
                 className="h-3 w-3 rounded-full"
                 style={{ backgroundColor: colors[type] }}
               />
-              <span className="text-sm text-zinc-400">{label}</span>
+              <span className="text-sm text-text-tertiary">{label}</span>
             </div>
           )
         })}
@@ -249,37 +248,37 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-zinc-900/95 p-6 shadow-2xl backdrop-blur-xl"
+              className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-bg-secondary p-6 shadow-2xl backdrop-blur-xl"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div
-                    className="flex h-10 w-10 items-center justify-center rounded-lg"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg shadow-sm"
                     style={{ backgroundColor: selectedEvent.color }}
                   >
                     <EventIcon className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <span className="text-xs font-medium text-zinc-400">
+                    <span className="text-xs font-medium text-text-tertiary">
                       {eventTypeLabels[selectedEvent.type]}
                     </span>
-                    <h3 className="text-lg font-semibold text-white">
+                    <h3 className="text-lg font-semibold text-text-primary">
                       {selectedEvent.title}
                     </h3>
                   </div>
                 </div>
                 <button
                   onClick={handleCloseEventDetails}
-                  className="rounded-lg p-2 hover:bg-white/10 transition-colors"
+                  className="rounded-lg p-2 hover:bg-bg-hover text-text-quaternary hover:text-text-primary transition-colors"
                 >
-                  <X className="h-5 w-5 text-zinc-400" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
               <div className="mt-6 space-y-4">
                 <div className="flex items-center gap-3 text-sm">
-                  <CalendarIcon className="h-4 w-4 text-zinc-500" />
-                  <span className="text-zinc-300">
+                  <CalendarIcon className="h-4 w-4 text-text-tertiary" />
+                  <span className="text-text-secondary">
                     {format(new Date(selectedEvent.start), "EEEE, dd 'de' MMMM 'de' yyyy", {
                       locale: ptBR,
                     })}
@@ -288,8 +287,8 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
 
                 {!selectedEvent.allDay && (
                   <div className="flex items-center gap-3 text-sm">
-                    <Clock className="h-4 w-4 text-zinc-500" />
-                    <span className="text-zinc-300">
+                    <Clock className="h-4 w-4 text-text-tertiary" />
+                    <span className="text-text-secondary">
                       {format(new Date(selectedEvent.start), 'HH:mm', { locale: ptBR })}
                     </span>
                   </div>
@@ -297,21 +296,21 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
 
                 {selectedEvent.location && (
                   <div className="flex items-center gap-3 text-sm">
-                    <MapPin className="h-4 w-4 text-zinc-500" />
-                    <span className="text-zinc-300">{selectedEvent.location}</span>
+                    <MapPin className="h-4 w-4 text-text-tertiary" />
+                    <span className="text-text-secondary">{selectedEvent.location}</span>
                   </div>
                 )}
 
                 {selectedEvent.clientName && (
                   <div className="flex items-center gap-3 text-sm">
-                    <Users className="h-4 w-4 text-zinc-500" />
-                    <span className="text-zinc-300">{selectedEvent.clientName}</span>
+                    <Users className="h-4 w-4 text-text-tertiary" />
+                    <span className="text-text-secondary">{selectedEvent.clientName}</span>
                   </div>
                 )}
 
                 {selectedEvent.description && (
-                  <div className="mt-4 rounded-lg bg-white/5 p-3">
-                    <p className="text-sm text-zinc-400">{selectedEvent.description}</p>
+                  <div className="mt-4 rounded-lg bg-bg-tertiary p-3 border border-border">
+                    <p className="text-sm text-text-secondary">{selectedEvent.description}</p>
                   </div>
                 )}
               </div>
@@ -320,7 +319,7 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
                 {selectedEvent.projectId && (
                   <Link
                     href={`/projects/${selectedEvent.projectId}`}
-                    className="flex-1 rounded-lg bg-accent-500 py-2.5 text-center text-sm font-medium text-white hover:bg-accent-600 transition-colors"
+                    className="flex-1 rounded-lg bg-accent-500 py-2.5 text-center text-sm font-medium text-white hover:bg-accent-600 transition-colors shadow-sm"
                   >
                     Ver Projeto
                   </Link>
@@ -328,7 +327,7 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
                 {selectedEvent.id.startsWith('manual-') && (
                   <button
                     onClick={() => onEventClick(selectedEvent)}
-                    className="flex-1 rounded-lg border border-white/10 py-2.5 text-center text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                    className="flex-1 rounded-lg border border-border py-2.5 text-center text-sm font-medium text-text-secondary hover:bg-bg-hover hover:text-text-primary transition-colors"
                   >
                     Editar
                   </button>
@@ -342,13 +341,13 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
       <style jsx global>{`
         .calendar-container .rbc-calendar {
           background: transparent;
-          color: white;
+          color: rgb(var(--text-secondary));
         }
         .calendar-container .rbc-header {
           padding: 12px 0;
           font-weight: 500;
-          color: rgba(255, 255, 255, 0.6);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          color: rgb(var(--text-tertiary));
+          border-bottom: 1px solid rgb(var(--border));
         }
         .calendar-container .rbc-month-view {
           border: none;
@@ -357,16 +356,17 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
           border: none;
         }
         .calendar-container .rbc-day-bg {
-          border-left: 1px solid rgba(255, 255, 255, 0.05);
+          border-left: 1px solid rgb(var(--border));
         }
         .calendar-container .rbc-day-bg:first-child {
           border-left: none;
         }
         .calendar-container .rbc-off-range-bg {
-          background: rgba(0, 0, 0, 0.2);
+          background: rgb(var(--bg-tertiary));
+          opacity: 0.5;
         }
         .calendar-container .rbc-today {
-          background: rgba(139, 92, 246, 0.1);
+          background: rgb(var(--accent-500) / 0.1);
         }
         .calendar-container .rbc-date-cell {
           padding: 8px;
@@ -377,7 +377,7 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
           font-weight: 600;
         }
         .calendar-container .rbc-date-cell.rbc-now .rbc-button-link {
-          background: rgb(139, 92, 246);
+          background: rgb(var(--accent-500));
           color: white;
           border-radius: 50%;
           width: 28px;
@@ -387,7 +387,7 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
           justify-content: center;
         }
         .calendar-container .rbc-off-range {
-          color: rgba(255, 255, 255, 0.3);
+          color: rgb(var(--text-quaternary));
         }
         .calendar-container .rbc-event {
           padding: 2px 6px;
@@ -405,7 +405,7 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
           text-overflow: ellipsis;
         }
         .calendar-container .rbc-show-more {
-          color: rgba(139, 92, 246, 1);
+          color: rgb(var(--accent-500));
           font-size: 12px;
           font-weight: 500;
         }
@@ -416,40 +416,40 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
           border: none;
         }
         .calendar-container .rbc-time-header {
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          border-bottom: 1px solid rgb(var(--border));
         }
         .calendar-container .rbc-time-content {
           border-top: none;
         }
         .calendar-container .rbc-timeslot-group {
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          border-bottom: 1px solid rgb(var(--border));
         }
         .calendar-container .rbc-time-slot {
-          border-top: 1px solid rgba(255, 255, 255, 0.02);
+          border-top: 1px solid rgb(var(--border));
         }
         .calendar-container .rbc-label {
-          color: rgba(255, 255, 255, 0.5);
+          color: rgb(var(--text-tertiary));
           font-size: 12px;
         }
         .calendar-container .rbc-day-slot .rbc-time-slot {
           border-top: none;
         }
         .calendar-container .rbc-current-time-indicator {
-          background-color: rgb(239, 68, 68);
+          background-color: rgb(var(--error));
         }
         .calendar-container .rbc-agenda-view table.rbc-agenda-table {
           border: none;
         }
         .calendar-container .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          border-bottom: 1px solid rgb(var(--border));
           padding: 12px 8px;
         }
         .calendar-container .rbc-agenda-date-cell,
         .calendar-container .rbc-agenda-time-cell {
-          color: rgba(255, 255, 255, 0.6);
+          color: rgb(var(--text-secondary));
         }
         .calendar-container .rbc-agenda-event-cell {
-          color: white;
+          color: white; // Keep white as event background is likely dark/colored
         }
       `}</style>
     </div>

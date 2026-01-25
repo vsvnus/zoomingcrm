@@ -368,7 +368,15 @@ export async function addEquipmentBooking(booking: EquipmentBooking) {
 
   const { data, error } = await supabase
     .from('equipment_bookings')
-    .insert([booking])
+    .insert([{
+      project_id: booking.projectId,
+      equipment_id: booking.equipmentId,
+      kit_id: booking.kitId,
+      start_date: booking.startDate,
+      end_date: booking.endDate,
+      return_date: booking.returnDate,
+      notes: booking.notes
+    }])
     .select()
     .single()
 
@@ -438,9 +446,19 @@ export async function getProjectEquipmentBookings(projectId: string) {
 export async function updateEquipmentBooking(id: string, updates: Partial<EquipmentBooking>) {
   const supabase = await createClient()
 
+
+  const updatePayload: any = {}
+  if (updates.projectId) updatePayload.project_id = updates.projectId
+  if (updates.equipmentId) updatePayload.equipment_id = updates.equipmentId
+  if (updates.kitId) updatePayload.kit_id = updates.kitId
+  if (updates.startDate) updatePayload.start_date = updates.startDate
+  if (updates.endDate) updatePayload.end_date = updates.endDate
+  if (updates.returnDate) updatePayload.return_date = updates.returnDate
+  if (updates.notes) updatePayload.notes = updates.notes
+
   const { data, error } = await supabase
     .from('equipment_bookings')
-    .update(updates)
+    .update(updatePayload)
     .eq('id', id)
     .select()
     .single()

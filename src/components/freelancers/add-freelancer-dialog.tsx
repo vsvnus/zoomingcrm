@@ -28,7 +28,11 @@ const ROLES = [
 
 const SPECIALTIES = ['Câmera', 'Som', 'Edição', 'Colorização', 'Motion']
 
-export function AddFreelancerDialog() {
+interface AddFreelancerDialogProps {
+  onSuccess?: (freelancer: any) => void
+}
+
+export function AddFreelancerDialog({ onSuccess }: AddFreelancerDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -50,7 +54,7 @@ export function AddFreelancerDialog() {
     setLoading(true)
 
     try {
-      await createFreelancer({
+      const newFreelancer = await createFreelancer({
         ...formData,
         specialty: selectedSpecialties,
       })
@@ -68,6 +72,11 @@ export function AddFreelancerDialog() {
         status: 'AVAILABLE',
       })
       setSelectedSpecialties([])
+
+      // Atualizar UI imediatamente via callback (optimistic update)
+      if (onSuccess && newFreelancer) {
+        onSuccess(newFreelancer)
+      }
 
       router.refresh()
     } catch (error) {

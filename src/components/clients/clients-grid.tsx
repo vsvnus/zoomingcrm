@@ -1,10 +1,11 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Plus, Search, Mail, Phone, Building, MoreVertical, Trash2, Calendar, Edit } from 'lucide-react'
+import { Plus, Search, Mail, Phone, Building, MoreVertical, Trash2, Calendar, Edit, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { deleteClient } from '@/actions/clients'
 import { ClientFormModal } from './client-form-modal'
+import { ClientTransferModal } from './client-transfer-modal'
 import { useRouter } from 'next/navigation'
 
 type Client = {
@@ -26,6 +27,7 @@ export function ClientsGrid({ initialClients }: ClientsGridProps) {
   const [clients, setClients] = useState(initialClients)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [clientToTransfer, setClientToTransfer] = useState<Client | null>(null)
 
   const filteredClients = clients.filter(
     (client) =>
@@ -40,8 +42,16 @@ export function ClientsGrid({ initialClients }: ClientsGridProps) {
     try {
       await deleteClient(id)
       setClients(clients.filter((c) => c.id !== id))
-    } catch (error) {
-      alert('Erro ao deletar cliente')
+    } catch (error: any) {
+      const message = error.message || ''
+      if (message.toLowerCase().includes('projetos vinculados') || message.includes('vinculados')) {
+        const client = clients.find((c) => c.id === id)
+        if (client) {
+          setClientToTransfer(client)
+          return
+        }
+      }
+      alert(message || 'Erro ao deletar cliente')
     } finally {
       setIsDeleting(null)
     }
@@ -140,89 +150,92 @@ export function ClientsGrid({ initialClients }: ClientsGridProps) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 + index * 0.05 }}
-              className="group relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card transition-all hover:shadow-3"
+              onClick={() => router.push(`/clients/${client.id}`)}
+              className="group relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card transition-all hover:shadow-3 hover:border-primary/20 cursor-pointer"
             >
               <div className="relative flex items-center gap-6 p-6">
-                {/* Avatar */}
-                <div
-                  className={`flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getAvatarColor(
-                    client.name
-                  )} text-2xl font-bold text-white shadow-lg transition-transform group-hover:scale-105`}
-                >
-                  {getInitials(client.name)}
-                </div>
+                  {/* Avatar */}
+                  <div
+                    className={`flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getAvatarColor(
+                      client.name
+                    )} text-2xl font-bold text-white shadow-lg transition-transform group-hover:scale-105`}
+                  >
+                    {getInitials(client.name)}
+                  </div>
 
-                {/* Info Section */}
-                <div className="flex flex-1 flex-col gap-3">
-                  {/* Name and Company */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-text-primary">
-                        {client.name}
-                      </h3>
-                      {client.company && (
-                        <div className="mt-1 flex items-center gap-2 text-sm text-text-tertiary">
-                          <Building className="h-4 w-4" />
-                          <span>{client.company}</span>
+                  {/* Info Section */}
+                  <div className="flex flex-1 flex-col gap-3">
+                    {/* Name and Company */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-text-primary group-hover:text-primary transition-colors">
+                          {client.name}
+                        </h3>
+                        {client.company && (
+                          <div className="mt-1 flex items-center gap-2 text-sm text-text-tertiary">
+                            <Building className="h-4 w-4" />
+                            <span>{client.company}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Date Badge */}
+                      <div className="flex items-center gap-1.5 rounded-lg border border-[rgb(var(--border))] bg-secondary px-3 py-1.5 text-xs text-text-tertiary">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>{formatDate(client.created_at)}</span>
+                      </div>
+                    </div>
+
+                    {/* Contact Details */}
+                    <div className="flex flex-wrap items-center gap-6">
+                      <div className="flex items-center gap-2 text-sm text-text-tertiary">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-secondary">
+                          <Mail className="h-4 w-4 text-text-tertiary" />
+                        </div>
+                        <span>{client.email}</span>
+                      </div>
+                      {client.phone && (
+                        <div className="flex items-center gap-2 text-sm text-text-tertiary">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-secondary">
+                            <Phone className="h-4 w-4 text-text-tertiary" />
+                          </div>
+                          <span>{client.phone}</span>
                         </div>
                       )}
                     </div>
-
-                    {/* Date Badge */}
-                    <div className="flex items-center gap-1.5 rounded-lg border border-[rgb(var(--border))] bg-secondary px-3 py-1.5 text-xs text-text-tertiary">
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span>{formatDate(client.created_at)}</span>
-                    </div>
                   </div>
 
-                  {/* Contact Details */}
-                  <div className="flex flex-wrap items-center gap-6">
-                    <div className="flex items-center gap-2 text-sm text-text-tertiary">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-secondary">
-                        <Mail className="h-4 w-4 text-text-tertiary" />
-                      </div>
-                      <a
-                        href={`mailto:${client.email}`}
-                        className="transition-colors hover:text-text-primary"
-                      >
-                        {client.email}
-                      </a>
-                    </div>
-                    {client.phone && (
-                      <div className="flex items-center gap-2 text-sm text-text-tertiary">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-secondary">
-                          <Phone className="h-4 w-4 text-text-tertiary" />
-                        </div>
-                        <a
-                          href={`tel:${client.phone}`}
-                          className="transition-colors hover:text-text-primary"
-                        >
-                          {client.phone}
-                        </a>
-                      </div>
-                    )}
+                  {/* Arrow indicator */}
+                  <div className="flex-shrink-0 text-text-tertiary group-hover:text-primary transition-colors">
+                    <ChevronRight className="h-5 w-5" />
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex flex-shrink-0 items-center gap-2 opacity-0 transition-all group-hover:opacity-100">
-                  <button
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[rgb(var(--border))] bg-secondary text-text-tertiary transition-all hover:bg-bg-hover hover:text-text-primary"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(client.id)}
-                    disabled={isDeleting === client.id}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[rgb(var(--border))] bg-secondary text-text-tertiary transition-all hover:border-error/20 hover:bg-error/10 hover:text-error disabled:opacity-50"
-                  >
-                    {isDeleting === client.id ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-text-tertiary border-t-transparent" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
+              {/* Actions - floating on hover */}
+              <div className="absolute right-4 top-4 flex items-center gap-2 opacity-0 transition-all group-hover:opacity-100">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    router.push(`/clients/${client.id}`)
+                  }}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-card text-text-tertiary transition-all hover:bg-bg-hover hover:text-text-primary shadow-sm"
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDelete(client.id)
+                  }}
+                  disabled={isDeleting === client.id}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-card text-text-tertiary transition-all hover:border-error/20 hover:bg-error/10 hover:text-error disabled:opacity-50 shadow-sm"
+                >
+                  {isDeleting === client.id ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-text-tertiary border-t-transparent" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </motion.div>
           ))}
@@ -248,6 +261,19 @@ export function ClientsGrid({ initialClients }: ClientsGridProps) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={() => router.refresh()}
+      />
+
+      <ClientTransferModal
+        isOpen={!!clientToTransfer}
+        onClose={() => setClientToTransfer(null)}
+        sourceClient={clientToTransfer}
+        clients={clients}
+        onSuccess={() => {
+          if (clientToTransfer) {
+            setClients((prev) => prev.filter((c) => c.id !== clientToTransfer.id))
+          }
+          router.refresh()
+        }}
       />
     </div>
   )

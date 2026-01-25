@@ -4,7 +4,7 @@ import { DashboardContent } from '@/components/dashboard/dashboard-content'
 
 async function DashboardData() {
   const stats = await getDashboardStats()
-  return <DashboardContent stats={stats} />
+  return <DashboardContent initialStats={stats} />
 }
 
 function DashboardLoading() {

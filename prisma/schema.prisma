@@ -28,6 +28,21 @@ model Organization {
   maxDiscount Decimal @default(15) // Desconto máximo em propostas (%)
   maxRevisions Int    @default(2)  // Rodadas de revisão inclusas
 
+  // Detalhes da Empresa - SPRINT 1
+  cnpj           String?
+  address        String?
+  
+  // Dados Bancários
+  bankName       String?
+  agency         String?
+  accountNumber  String?
+  pixKey         String?
+
+  // Branding & Defaults
+  primaryColor   String? @default("#000000")
+  showBankInfo   Boolean @default(true)
+  defaultTerms   String? @db.Text
+
   // Financeiro - SPRINT 0
   initialCapital       Decimal?  @db.Decimal(12, 2) // Capital inicial informado no cadastro
   initialCapitalSetAt  DateTime? // Data em que o capital foi definido
@@ -107,6 +122,8 @@ model Proposal {
   token       String   @unique // URL pública: /p/{token}
   title       String
   description String?
+  coverImage  String?  // Imagem de capa da proposta
+  primaryColor String? // Cor de destaque personalizada
 
   // Valores
   baseValue   Decimal
@@ -150,12 +167,13 @@ enum ProposalStatus {
 }
 
 model ProposalItem {
-  id          String  @id @default(cuid())
+  id          String    @id @default(cuid())
   description String
-  quantity    Int     @default(1)
+  quantity    Int       @default(1)
   unitPrice   Decimal
-  total       Decimal // quantity * unitPrice
-  order       Int     // Para ordenação na proposta
+  total       Decimal   // quantity * unitPrice
+  order       Int       // Para ordenação na proposta
+  date        DateTime? // SPRINT 2: Data opcional do item (para sync com calendário)
 
   proposalId String
   proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
@@ -229,6 +247,7 @@ model Project {
 
   // SPRINT 2: Resumo de entregáveis
   deliverablesDescription String? @db.Text // Descrição dos entregáveis (vídeos, banners, etc)
+  budget                  Decimal? @db.Decimal(12, 2) // Orçamento do projeto (vindo da proposta)
 
   // Relacionamentos
   clientId       String
@@ -248,8 +267,10 @@ model Project {
   allocations FreelancerAllocation[]
   reviews    ReviewVersion[]
   financialTransactions FinancialTransaction[]
+
   shootingDates ShootingDate[] // SPRINT 2: Múltiplas datas de gravação
   deliveryDates DeliveryDate[] // SPRINT 2: Múltiplas datas de entrega
+  items         ProjectItem[]  // SPRINT 2: Itens do escopo (copiados da proposta)
 
   @@map("projects")
 }
@@ -296,6 +317,27 @@ model DeliveryDate {
   updatedAt DateTime @updatedAt
 
   @@map("delivery_dates")
+}
+
+// SPRINT 2: Itens do Escopo do Projeto (copiados da proposta)
+model ProjectItem {
+  id          String   @id @default(cuid())
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @default(0) @map("unit_price") @db.Decimal(12, 2)
+  totalPrice  Decimal  @default(0) @map("total_price") @db.Decimal(12, 2)
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, DONE
+  dueDate     DateTime? @map("due_date")
+  order       Int      @default(0)
+
+  projectId   String   @map("project_id")
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([projectId])
+  @@map("project_items")
 }
 
 // ============================================
@@ -441,6 +483,7 @@ model Freelancer {
   tags        FreelancerTag[]
   allocations FreelancerAllocation[]
   availability FreelancerAvailability[]
+  financialTransactions FinancialTransaction[]
 
   @@map("freelancers")
 }
@@ -601,72 +644,72 @@ model FinancialTransaction {
   id String @id @default(cuid())
 
   // Relacionamentos
-  organizationId String
+  organizationId String   @map("organization_id")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  projectId   String?
+  projectId   String?  @map("project_id")
   project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  proposalId  String?
+  proposalId  String?  @map("proposal_id")
   proposal    Proposal? @relation(fields: [proposalId], references: [id], onDelete: SetNull)
 
-  clientId    String?
+  clientId    String?  @map("client_id")
   client      Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
 
+  freelancerId String? @map("freelancer_id")
+  freelancer   Freelancer? @relation(fields: [freelancerId], references: [id], onDelete: SetNull)
+
+  equipmentId  String? @map("equipment_id")
+
   // Tipo e classificação
-  type   TransactionType   // capital_inicial | receita | despesa | transferencia
-  origin TransactionOrigin // cadastro | projeto | manual | proposta | sistema
-  status TransactionStatus @default(CONFIRMADO) // confirmado | pendente | agendado | cancelado
+  type   TransactionType   // INCOME | EXPENSE | INITIAL_CAPITAL
+  status TransactionStatus @default(PENDING) // PAID | PENDING | SCHEDULED | CANCELLED
 
   // Valores
-  valor Decimal @db.Decimal(12, 2) // Valor da transação
+  amount          Decimal  @db.Decimal(12, 2) // Valor da transação
+  estimatedAmount Decimal? @db.Decimal(12, 2) @map("estimated_amount") // Valor estimado
 
   // Descrição e categoria
   description String
-  category    String? // Categorização livre (ex: "Equipamento", "Freelancer")
+  category    String? // Categorização (CREW_TALENT, EQUIPMENT_RENTAL, etc.)
 
   // Datas
-  transactionDate DateTime @default(now()) // Data da transação
-  dueDate         DateTime? // Data de vencimento (para receitas/despesas futuras)
+  dueDate     DateTime? @map("due_date")     // Data de vencimento
+  paymentDate DateTime? @map("payment_date") // Data do pagamento efetivo
+
+  // Pagamento
+  paymentMethod String? @map("payment_method") // Método de pagamento
+  invoiceNumber String? @map("invoice_number") // Número da nota fiscal
+  receiptUrl    String? @map("receipt_url")    // URL do comprovante
 
   // Metadados
-  notes    String?
-  metadata Json? // Dados adicionais flexíveis
+  notes String?
 
   // Auditoria
-  createdBy String? // ID do usuário que criou
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([organizationId])
   @@index([type])
   @@index([status])
-  @@index([transactionDate])
+  @@index([paymentDate])
   @@index([projectId])
   @@index([clientId])
   @@map("financial_transactions")
 }
 
 enum TransactionType {
-  CAPITAL_INICIAL  // Capital inicial informado no cadastro
-  RECEITA          // Receita de projeto/venda
-  DESPESA          // Despesa operacional
-  TRANSFERENCIA    // Movimentação entre contas (futuro)
-}
-
-enum TransactionOrigin {
-  CADASTRO  // Criado no cadastro (capital inicial)
-  PROJETO   // Vinculado a um projeto
-  MANUAL    // Lançamento manual
-  PROPOSTA  // Vinculado a uma proposta aceita
-  SISTEMA   // Criado automaticamente pelo sistema
+  INCOME          // Receita (pagamento de cliente, etc.)
+  EXPENSE         // Despesa (freelancer, equipamento, etc.)
+  INITIAL_CAPITAL // Capital inicial
 }
 
 enum TransactionStatus {
-  CONFIRMADO  // Transação realizada/confirmada
-  PENDENTE    // Aguardando confirmação
-  AGENDADO    // Agendado para data futura
-  CANCELADO   // Transação cancelada
+  PAID      // Transação paga/recebida
+  PENDING   // Aguardando pagamento
+  SCHEDULED // Agendado para data futura
+  CANCELLED // Transação cancelada
 }
 
 // ============================================

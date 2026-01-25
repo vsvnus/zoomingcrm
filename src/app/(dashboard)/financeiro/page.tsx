@@ -7,6 +7,10 @@ export const metadata = {
   description: 'Gestão financeira unificada',
 }
 
+interface PageProps {
+  searchParams: Promise<{ tab?: string }>
+}
+
 async function getFinancialData(organizationId: string) {
   const supabase = await createClient()
 
@@ -52,7 +56,7 @@ async function getFinancialData(organizationId: string) {
   }
 }
 
-async function FinanceiroData() {
+async function FinanceiroData({ defaultTab }: { defaultTab?: string }) {
   const organizationId = await getUserOrganization()
   const data = await getFinancialData(organizationId)
 
@@ -66,7 +70,7 @@ async function FinanceiroData() {
           </p>
         </div>
       </div>
-      <FinancialTabs initialData={data} organizationId={organizationId} />
+      <FinancialTabs initialData={data} organizationId={organizationId} defaultTab={defaultTab} />
     </div>
   )
 }
@@ -79,10 +83,13 @@ function FinanceiroLoading() {
   )
 }
 
-export default function FinanceiroPage() {
+export default async function FinanceiroPage({ searchParams }: PageProps) {
+  const params = await searchParams
+  const defaultTab = params.tab || 'overview'
+
   return (
     <Suspense fallback={<FinanceiroLoading />}>
-      <FinanceiroData />
+      <FinanceiroData defaultTab={defaultTab} />
     </Suspense>
   )
 }

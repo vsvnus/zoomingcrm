@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   TrendingUp,
@@ -18,7 +18,7 @@ import {
 import { format, isPast, isToday, differenceInDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
-import { type DashboardStats } from '@/actions/dashboard'
+import { getDashboardStats, type DashboardStats } from '@/actions/dashboard'
 import { CashFlowChart } from '@/components/charts/cash-flow-chart'
 import { DateRangePicker } from './date-range-picker'
 
@@ -29,10 +29,11 @@ interface DashboardContentProps {
 const stageMap: Record<string, string> = {
   LEAD: 'Lead',
   BRIEFING: 'Briefing',
-  PRE_PRODUCTION: 'Pré-Produção',
+  PRE_PROD: 'Pré-Produção',
   SHOOTING: 'Gravação',
-  POST_PRODUCTION: 'Pós-Produção',
+  POST_PROD: 'Pós-Produção',
   REVIEW: 'Revisão',
+  DONE: 'Concluído',
   DELIVERED: 'Entregue',
   ARCHIVED: 'Arquivado',
 }
@@ -40,17 +41,52 @@ const stageMap: Record<string, string> = {
 const stageColors: Record<string, string> = {
   LEAD: 'bg-neutral-500',
   BRIEFING: 'bg-warning',
-  PRE_PRODUCTION: 'bg-info',
+  PRE_PROD: 'bg-info',
   SHOOTING: 'bg-neutral-600',
-  POST_PRODUCTION: 'bg-warning',
+  POST_PROD: 'bg-warning',
   REVIEW: 'bg-neutral-500',
+  DONE: 'bg-success',
   DELIVERED: 'bg-success',
   ARCHIVED: 'bg-neutral-700',
 }
 
-export function DashboardContent({ stats }: DashboardContentProps) {
+export function DashboardContent({ initialStats }: { initialStats?: DashboardStats }) {
+  const [stats, setStats] = useState<DashboardStats>(initialStats || {
+    activeProjects: 0,
+    newClients: 0,
+    currentBalance: 0,
+    projects: [],
+    upcomingShoots: [],
+    cashFlowData: [],
+    pendingReceivables: 0,
+    pendingPayables: 0,
+  })
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null)
   const [chartVariant, setChartVariant] = useState<'area' | 'bar'>('area')
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Atualizar stats quando dateRange mudar
+  useEffect(() => {
+    async function updateStats() {
+      setIsLoading(true)
+      try {
+        const newStats = await getDashboardStats(dateRange || undefined)
+        setStats(newStats)
+      } catch (error) {
+        console.error('Erro ao atualizar dashboard:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (dateRange) {
+      updateStats()
+    } else {
+      // Se limpar o filtro, voltar ao inicial (ou buscar sem filtro)
+      // Para simplificar, buscamos sem filtro
+      updateStats()
+    }
+  }, [dateRange])
 
   const formatCurrency = (value: number) => {
     const formatted = value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')
@@ -95,6 +131,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
       icon: DollarSign,
       color: stats.currentBalance >= 0 ? 'from-neutral-600 to-neutral-800' : 'from-neutral-500 to-neutral-700',
       trend: stats.currentBalance >= 0 ? 'up' : 'down',
+      href: '/financeiro',
     },
     {
       label: 'Projetos Ativos',
@@ -102,6 +139,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
       change: stats.activeProjects === 1 ? 'projeto' : 'projetos',
       icon: Film,
       color: 'from-neutral-500 to-neutral-700',
+      href: '/projects',
     },
     {
       label: 'A Receber',
@@ -110,6 +148,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
       icon: ArrowUpRight,
       color: 'from-neutral-600 to-neutral-800',
       trend: 'up',
+      href: '/financeiro?tab=receivables',
     },
     {
       label: 'A Pagar',
@@ -118,6 +157,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
       icon: ArrowDownRight,
       color: 'from-neutral-500 to-neutral-700',
       trend: 'down',
+      href: '/financeiro?tab=payables',
     },
   ]
 
@@ -159,24 +199,28 @@ export function DashboardContent({ stats }: DashboardContentProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="group relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card p-5 transition-all hover:shadow-3"
           >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-text-tertiary">{stat.label}</p>
-                <p className="mt-1 text-2xl font-bold text-text-primary">{stat.value}</p>
-                <div className="mt-1 flex items-center gap-1">
-                  {stat.trend === 'up' && <TrendingUp className="h-3 w-3 text-success" />}
-                  {stat.trend === 'down' && <TrendingDown className="h-3 w-3 text-error" />}
-                  <p className={`text-xs ${stat.trend === 'up' ? 'text-success' : stat.trend === 'down' ? 'text-error' : 'text-text-tertiary'}`}>
-                    {stat.change}
-                  </p>
+            <Link
+              href={stat.href as any}
+              className="group block relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card p-5 transition-all hover:shadow-3 hover:border-primary/30"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-text-tertiary">{stat.label}</p>
+                  <p className="mt-1 text-2xl font-bold text-text-primary">{stat.value}</p>
+                  <div className="mt-1 flex items-center gap-1">
+                    {stat.trend === 'up' && <TrendingUp className="h-3 w-3 text-success" />}
+                    {stat.trend === 'down' && <TrendingDown className="h-3 w-3 text-error" />}
+                    <p className={`text-xs ${stat.trend === 'up' ? 'text-success' : stat.trend === 'down' ? 'text-error' : 'text-text-tertiary'}`}>
+                      {stat.change}
+                    </p>
+                  </div>
+                </div>
+                <div className={`rounded-xl bg-gradient-to-br ${stat.color} p-2.5`}>
+                  <stat.icon className="h-5 w-5 text-white" />
                 </div>
               </div>
-              <div className={`rounded-xl bg-gradient-to-br ${stat.color} p-2.5`}>
-                <stat.icon className="h-5 w-5 text-white" />
-              </div>
-            </div>
+            </Link>
           </motion.div>
         ))}
       </div>
@@ -186,8 +230,14 @@ export function DashboardContent({ stats }: DashboardContentProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="rounded-2xl border border-[rgb(var(--border))] bg-card p-6"
+        className="relative rounded-2xl border border-[rgb(var(--border))] bg-card p-6"
       >
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-black/50 backdrop-blur-[2px]">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        )}
+
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-gradient-to-br from-neutral-600 to-neutral-800 p-2">
@@ -195,27 +245,25 @@ export function DashboardContent({ stats }: DashboardContentProps) {
             </div>
             <div>
               <h2 className="text-lg font-semibold text-text-primary">Fluxo de Caixa</h2>
-              <p className="text-xs text-text-tertiary">Últimos 6 meses</p>
+              <p className="text-xs text-text-tertiary">Últimos {dateRange ? differenceInDays(dateRange.end, dateRange.start) + ' dias' : '6 meses'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setChartVariant('area')}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                chartVariant === 'area'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-text-tertiary hover:text-text-primary'
-              }`}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${chartVariant === 'area'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-text-tertiary hover:text-text-primary'
+                }`}
             >
               Área
             </button>
             <button
               onClick={() => setChartVariant('bar')}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                chartVariant === 'bar'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-text-tertiary hover:text-text-primary'
-              }`}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${chartVariant === 'bar'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-text-tertiary hover:text-text-primary'
+                }`}
             >
               Barras
             </button>
@@ -253,7 +301,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
           {stats.projects.length > 0 ? (
             <div className="space-y-3">
               {stats.projects.map((project, index) => {
-                const deadlineStatus = getDeadlineStatus(project.deadline)
+                const deadlineStatus = getDeadlineStatus(project.deadline_date)
 
                 return (
                   <motion.div
@@ -271,8 +319,8 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                           <h3 className="font-medium text-text-primary truncate group-hover:text-text-secondary transition-colors">
                             {project.title}
                           </h3>
-                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${stageColors[project.stage]} text-white`}>
-                            {stageMap[project.stage] || project.stage}
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${stageColors[project.status]} text-white`}>
+                            {stageMap[project.status] || project.status}
                           </span>
                         </div>
                         <p className="mt-1 text-sm text-text-tertiary truncate">
@@ -338,18 +386,16 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                   >
                     <Link
                       href={`/projects/${shoot.id}`}
-                      className={`group block rounded-xl border p-4 transition-all hover:bg-bg-hover ${
-                        isShootToday
-                          ? 'border-primary/30 bg-primary/5'
-                          : 'border-[rgb(var(--border))] bg-secondary'
-                      }`}
+                      className={`group block rounded-xl border p-4 transition-all hover:bg-bg-hover ${isShootToday
+                        ? 'border-primary/30 bg-primary/5'
+                        : 'border-[rgb(var(--border))] bg-secondary'
+                        }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
-                          isShootToday
-                            ? 'bg-primary'
-                            : 'bg-gradient-to-br from-neutral-600 to-neutral-800'
-                        }`}>
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${isShootToday
+                          ? 'bg-primary'
+                          : 'bg-gradient-to-br from-neutral-600 to-neutral-800'
+                          }`}>
                           <Play className="h-4 w-4 text-white" fill="white" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -359,7 +405,11 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                           <div className="mt-1 flex items-center gap-1.5 text-xs text-text-tertiary">
                             <Calendar className="h-3 w-3" />
                             <span>
-                              {shootDate && format(shootDate, "dd/MM 'às' HH:mm", { locale: ptBR })}
+                              {shootDate && (
+                                shoot.shooting_time
+                                  ? format(shootDate, "dd/MM 'às' HH:mm", { locale: ptBR })
+                                  : format(shootDate, "dd/MM", { locale: ptBR })
+                              )}
                             </span>
                             {isShootToday && (
                               <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">

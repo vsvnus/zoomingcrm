@@ -149,24 +149,24 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
         <div className="mb-4 flex items-center justify-between">
           <button
             onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            className="rounded-lg p-2 hover:bg-white/10 transition-colors"
+            className="rounded-lg p-2 hover:bg-bg-hover text-text-secondary hover:text-text-primary transition-colors"
           >
-            <ChevronLeft className="h-4 w-4 text-white" />
+            <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="text-sm font-medium text-white">
+          <span className="text-sm font-medium text-text-primary">
             {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
           </span>
           <button
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            className="rounded-lg p-2 hover:bg-white/10 transition-colors"
+            className="rounded-lg p-2 hover:bg-bg-hover text-text-secondary hover:text-text-primary transition-colors"
           >
-            <ChevronRight className="h-4 w-4 text-white" />
+            <ChevronRight className="h-4 w-4" />
           </button>
         </div>
 
         <div className="grid grid-cols-7 gap-1 mb-2">
           {weekDays.map((day) => (
-            <div key={day} className="text-center text-xs text-zinc-500 py-1">
+            <div key={day} className="text-center text-xs text-text-tertiary py-1">
               {day}
             </div>
           ))}
@@ -191,8 +191,8 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                 disabled={!isCurrentMonth}
                 className={`
                   relative h-8 w-8 text-sm rounded-lg transition-all
-                  ${!isCurrentMonth ? 'text-zinc-700 cursor-not-allowed' : 'text-white hover:bg-white/10'}
-                  ${isSelected ? 'bg-accent-500 text-white font-medium' : ''}
+                  ${!isCurrentMonth ? 'text-text-quaternary cursor-not-allowed' : 'text-text-primary hover:bg-bg-hover'}
+                  ${isSelected ? '!bg-accent-500 !text-white font-medium' : ''}
                   ${isInRange && !isSelected ? 'bg-accent-500/20' : ''}
                   ${isToday && !isSelected ? 'ring-1 ring-accent-500' : ''}
                 `}
@@ -212,9 +212,9 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
 
   return (
     <div className="relative" ref={containerRef}>
-      <button
+      <div
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
+        className="flex items-center gap-2 rounded-lg border border-border bg-bg-secondary px-3 py-2 text-sm text-text-primary hover:bg-bg-hover hover:border-text-tertiary transition-colors cursor-pointer"
       >
         <Calendar className="h-4 w-4" />
         <span>{displayValue}</span>
@@ -224,12 +224,12 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
               e.stopPropagation()
               handleClear()
             }}
-            className="ml-1 rounded p-0.5 hover:bg-white/20"
+            className="ml-1 rounded p-0.5 hover:bg-bg-hover"
           >
             <X className="h-3 w-3" />
           </button>
         )}
-      </button>
+      </div>
 
       <AnimatePresence>
         {isOpen && (
@@ -238,16 +238,16 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full z-50 mt-2 flex overflow-hidden rounded-xl border border-white/10 bg-zinc-900/95 shadow-2xl backdrop-blur-xl"
+            className="absolute right-0 top-full z-50 mt-2 flex overflow-hidden rounded-xl border border-border bg-bg-secondary shadow-2xl backdrop-blur-xl"
           >
             {/* Presets */}
-            <div className="w-40 border-r border-white/10 p-2">
-              <p className="mb-2 px-2 text-xs font-medium text-zinc-500">Atalhos</p>
+            <div className="w-40 border-r border-border p-2">
+              <p className="mb-2 px-2 text-xs font-medium text-text-tertiary">Atalhos</p>
               {presetRanges.map((preset) => (
                 <button
                   key={preset.label}
                   onClick={() => handlePresetClick(preset)}
-                  className="w-full rounded-lg px-3 py-2 text-left text-sm text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-hover hover:text-text-primary transition-colors"
                 >
                   {preset.label}
                 </button>
@@ -259,11 +259,11 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
               {renderCalendar()}
 
               {selecting === 'end' && tempRange.start && (
-                <div className="border-t border-white/10 px-4 py-2">
-                  <p className="text-xs text-zinc-400">
+                <div className="border-t border-border px-4 py-2">
+                  <p className="text-xs text-text-tertiary">
                     Início: {format(tempRange.start, 'dd/MM/yyyy')}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-text-quaternary">
                     Selecione a data final
                   </p>
                 </div>

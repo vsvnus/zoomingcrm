@@ -37,15 +37,15 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
           />
 
           {/* Modal */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg rounded-2xl border border-[rgb(var(--border))] bg-card p-6 shadow-4"
+              className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-[rgb(var(--border))] bg-card p-6 shadow-4"
             >
               {/* Header */}
-              <div className="mb-6 flex items-center justify-between">
+              <div className="mb-6 flex items-center justify-between sticky top-0 bg-card pb-2 -mt-2 pt-2">
                 <h2 className="text-2xl font-bold text-text-primary">{title}</h2>
                 <button
                   onClick={onClose}
