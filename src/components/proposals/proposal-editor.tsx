@@ -452,7 +452,7 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                             {item.date && (
                               <span className="flex items-center gap-1 text-purple-400">
                                 <Calendar className="h-3 w-3" />
-                                {new Date(item.date).toLocaleDateString('pt-BR')}
+                                {new Date(item.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                               </span>
                             )}
                           </div>
@@ -724,7 +724,7 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                     <div className="rounded-lg border border-white/5 bg-white/5 p-3">
                       <p className="text-xs text-zinc-500">Válido até</p>
                       <p className="mt-1 font-medium text-white">
-                        {new Date(proposal.valid_until).toLocaleDateString('pt-BR')}
+                        {new Date(proposal.valid_until).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                       </p>
                     </div>
                   )}

@@ -32,7 +32,10 @@ export async function POST(req: Request) {
             model: 'gpt-4o',
             stream: true,
             messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
+                {
+                    role: 'system',
+                    content: `${SYSTEM_PROMPT}\n\nDATA ATUAL: ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. Use esta data como referência absoluta para "hoje".`
+                },
                 ...messages
             ],
             functions: getToolsDefinitions(),
@@ -56,7 +59,10 @@ export async function POST(req: Request) {
                     model: 'gpt-4o',
                     stream: true,
                     messages: [
-                        { role: 'system', content: SYSTEM_PROMPT },
+                        {
+                            role: 'system',
+                            content: `${SYSTEM_PROMPT}\n\nDATA ATUAL: ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. Use esta data como referência absoluta para "hoje".`
+                        },
                         ...messages,
                         ...newMessages
                     ],
