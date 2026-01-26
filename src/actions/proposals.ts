@@ -267,6 +267,23 @@ export async function updateProposal(
   // Recalcular valores (caso desconto tenha mudado)
   await recalculateProposalValues(proposalId)
 
+  // SINCRO: Se o titulo mudou, atualizar o nome do projeto vinculado (se existir)
+  if (formData.title) {
+    // Tenta encontrar projeto vinculado pelo proposal_id
+    const { data: linkedProject } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('proposal_id', proposalId)
+      .single()
+
+    if (linkedProject) {
+      await supabase
+        .from('projects')
+        .update({ title: formData.title })
+        .eq('id', linkedProject.id)
+    }
+  }
+
   revalidatePath('/proposals')
   revalidatePath(`/proposals/${proposalId}/edit`)
   return data
@@ -364,6 +381,21 @@ export async function deleteProposal(proposalId: string) {
   const organizationId = await getUserOrganization()
 
   // SEGURANÇA: Filtrar por organization_id para garantir isolamento multi-tenant
+  // 1. Verificar status atual
+  const { data: currentProposal } = await supabase
+    .from('proposals')
+    .select('status')
+    .eq('id', proposalId)
+    .single()
+
+  // 2. Se estiver ACEITA, modificar para CANCELLED para bypassar o trigger "prevent_delete_approved_proposal"
+  if (currentProposal?.status === 'ACCEPTED') {
+    await supabase
+      .from('proposals')
+      .update({ status: 'CANCELLED' })
+      .eq('id', proposalId)
+  }
+
   const { error } = await supabase
     .from('proposals')
     .delete()

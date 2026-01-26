@@ -245,6 +245,14 @@ export async function createProject(formData: MinimalProjectData) {
     throw new Error('Erro ao criar projeto: ' + error.message)
   }
 
+  // Inicializar finanças do projeto
+  await supabase.from('project_finances').insert({
+    project_id: data.id,
+    organization_id: organizationId,
+    approved_value: 0,
+    target_margin_percent: 30,
+  })
+
   revalidatePath('/projects')
   return data
 }
@@ -271,6 +279,7 @@ export async function createProjectFromProposal(formData: CreateProjectFromPropo
         budget: formData.budget,
         deadline_date: formData.deadline_date,
         assigned_to_id: formData.assigned_to_id || userId || null,
+        proposal_id: formData.proposal_id,
       },
     ])
     .select()

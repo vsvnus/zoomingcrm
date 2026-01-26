@@ -59,14 +59,38 @@ export async function addExpense(formData: {
   const supabase = await createClient()
 
   // Buscar project_finance_id
-  const { data: financeData } = await supabase
+  let { data: financeData } = await supabase
     .from('project_finances')
     .select('id, organization_id')
     .eq('project_id', formData.project_id)
     .single()
 
   if (!financeData) {
-    throw new Error('Project finance not found')
+    // Lazy creation: se ainda no existe financeiro, criar agora
+    const { data: project } = await supabase
+      .from('projects')
+      .select('organization_id')
+      .eq('id', formData.project_id)
+      .single()
+
+    if (!project) throw new Error('Projeto no encontrado')
+
+    const { data: newFinance } = await supabase
+      .from('project_finances')
+      .insert({
+        project_id: formData.project_id,
+        organization_id: project.organization_id,
+        approved_value: 0,
+        target_margin_percent: 30,
+      })
+      .select('id, organization_id')
+      .single()
+
+    financeData = newFinance
+  }
+
+  if (!financeData) {
+    throw new Error('Erro ao inicializar financeiro do projeto')
   }
 
   const { data, error } = await supabase

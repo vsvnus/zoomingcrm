@@ -224,6 +224,7 @@ export interface CreateProjectFromProposalData {
     total_price: number
     due_date?: string | null
   }>
+  proposal_id?: string
 }
 
 export interface UpdateProjectData extends Partial<CreateProjectData> {
