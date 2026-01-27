@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, Pencil } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -11,21 +11,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { createFreelancer, type CreateFreelancerData } from '@/actions/freelancers'
+import { createFreelancer, updateFreelancer, type CreateFreelancerData } from '@/actions/freelancers'
 
 import { FREELANCER_ROLES, FREELANCER_SPECIALTIES } from '@/constants/freelancers'
 
 interface AddFreelancerDialogProps {
   onSuccess?: (freelancer: any) => void
+  freelancer?: any
+  trigger?: React.ReactNode
 }
 
-export function AddFreelancerDialog({ onSuccess }: AddFreelancerDialogProps) {
+export function AddFreelancerDialog({ onSuccess, freelancer, trigger }: AddFreelancerDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([])
 
-  const [formData, setFormData] = useState<CreateFreelancerData & { daily_rate?: string }>({
+  const [formData, setFormData] = useState<CreateFreelancerData>({
     name: '',
     email: '',
     phone: '',
@@ -34,35 +36,23 @@ export function AddFreelancerDialog({ onSuccess }: AddFreelancerDialogProps) {
     portfolio: '',
     notes: '',
     status: 'AVAILABLE',
-    daily_rate: '',
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-
-    try {
-      const newFreelancer = await createFreelancer({
-        ...formData,
-        specialty: selectedSpecialties,
-        // @ts-ignore
-        daily_rate: formData.daily_rate ? parseFloat(formData.daily_rate) : 0,
+  useEffect(() => {
+    if (freelancer && open) {
+      setFormData({
+        name: freelancer.name || '',
+        email: freelancer.email || '',
+        phone: freelancer.phone || '',
+        role: freelancer.role || '',
+        specialty: freelancer.specialty || [],
+        portfolio: freelancer.portfolio || '',
+        notes: freelancer.notes || '',
+        status: freelancer.status || 'AVAILABLE',
       })
-
-      // Se houver daily_rate, atualizar usando a action separada
-      if (formData.daily_rate && newFreelancer?.id) {
-        const numericRate = parseFloat(formData.daily_rate)
-        if (!isNaN(numericRate)) {
-          // Importar e usar updateFreelancerRate aqui seria ideal, mas createFreelancer pode ser atualizado para aceitar daily_rate
-          // Como createFreelancer não aceita daily_rate ainda, vamos atualizar depois
-          const { updateFreelancerRate } = await import('@/actions/freelancers') // Import dinâmico para evitar dependência circular se houver
-          await updateFreelancerRate(newFreelancer.id, numericRate)
-          newFreelancer.daily_rate = numericRate
-        }
-      }
-
-      setOpen(false)
-      // Resetar form
+      setSelectedSpecialties(freelancer.specialty || [])
+    } else if (!freelancer && open) {
+      // Reset logic for new freelancer
       setFormData({
         name: '',
         email: '',
@@ -72,19 +62,55 @@ export function AddFreelancerDialog({ onSuccess }: AddFreelancerDialogProps) {
         portfolio: '',
         notes: '',
         status: 'AVAILABLE',
-        daily_rate: '',
       })
       setSelectedSpecialties([])
+    }
+  }, [freelancer, open])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      let result
+
+      if (freelancer) {
+        result = await updateFreelancer(freelancer.id, {
+          ...formData,
+          specialty: selectedSpecialties,
+        })
+      } else {
+        result = await createFreelancer({
+          ...formData,
+          specialty: selectedSpecialties,
+        })
+      }
+
+      setOpen(false)
+      // Reset form
+      if (!freelancer) {
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          role: '',
+          specialty: [],
+          portfolio: '',
+          notes: '',
+          status: 'AVAILABLE',
+        })
+        setSelectedSpecialties([])
+      }
 
       // Atualizar UI imediatamente via callback (optimistic update)
-      if (onSuccess && newFreelancer) {
-        onSuccess(newFreelancer)
+      if (onSuccess && result) {
+        onSuccess(result)
       }
 
       router.refresh()
     } catch (error) {
-      console.error('Error creating freelancer:', error)
-      alert('Erro ao criar freelancer. Tente novamente.')
+      console.error('Error saving freelancer:', error)
+      alert('Erro ao salvar freelancer. Tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -98,19 +124,25 @@ export function AddFreelancerDialog({ onSuccess }: AddFreelancerDialogProps) {
     )
   }
 
+  const isEditing = !!freelancer
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:opacity-90">
-          <Plus className="h-4 w-4" />
-          Novo Freelancer
-        </button>
+        {trigger || (
+          <button className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:opacity-90">
+            <Plus className="h-4 w-4" />
+            Novo Freelancer
+          </button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto border-[rgb(var(--border))] bg-card sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-text-primary">Adicionar Freelancer</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-text-primary">
+            {isEditing ? 'Editar Freelancer' : 'Adicionar Freelancer'}
+          </DialogTitle>
           <DialogDescription className="text-text-tertiary">
-            Preencha as informações do novo freelancer
+            {isEditing ? 'Atualize as informações do freelancer' : 'Preencha as informações do novo freelancer'}
           </DialogDescription>
         </DialogHeader>
 
@@ -163,44 +195,27 @@ export function AddFreelancerDialog({ onSuccess }: AddFreelancerDialogProps) {
             </div>
           </div>
 
-          {/* Role & Daily Rate */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="role" className="text-sm font-medium text-text-secondary">
-                Função Principal *
-              </label>
-              <select
-                id="role"
-                required
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                className="w-full rounded-lg border border-[rgb(var(--border))] bg-secondary px-4 py-3 text-text-primary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
-              >
-                <option value="" className="bg-card">
-                  Selecione uma função
+          {/* Role */}
+          <div className="space-y-2">
+            <label htmlFor="role" className="text-sm font-medium text-text-secondary">
+              Função Principal *
+            </label>
+            <select
+              id="role"
+              required
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              className="w-full rounded-lg border border-[rgb(var(--border))] bg-secondary px-4 py-3 text-text-primary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
+            >
+              <option value="" className="bg-card">
+                Selecione uma função
+              </option>
+              {FREELANCER_ROLES.map((role) => (
+                <option key={role} value={role} className="bg-card">
+                  {role}
                 </option>
-                {FREELANCER_ROLES.map((role) => (
-                  <option key={role} value={role} className="bg-card">
-                    {role}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="daily_rate" className="text-sm font-medium text-text-secondary">
-                Valor da Diária (R$)
-              </label>
-              <input
-                id="daily_rate"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.daily_rate}
-                onChange={(e) => setFormData({ ...formData, daily_rate: e.target.value })}
-                className="w-full rounded-lg border border-[rgb(var(--border))] bg-secondary px-4 py-3 text-text-primary placeholder-text-tertiary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
-                placeholder="0.00"
-              />
-            </div>
+              ))}
+            </select>
           </div>
 
           {/* Specialties */}
@@ -213,8 +228,8 @@ export function AddFreelancerDialog({ onSuccess }: AddFreelancerDialogProps) {
                   type="button"
                   onClick={() => toggleSpecialty(specialty)}
                   className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${selectedSpecialties.includes(specialty)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'border border-[rgb(var(--border))] bg-secondary text-text-tertiary hover:bg-bg-hover'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'border border-[rgb(var(--border))] bg-secondary text-text-tertiary hover:bg-bg-hover'
                     }`}
                 >
                   {specialty}
@@ -270,7 +285,7 @@ export function AddFreelancerDialog({ onSuccess }: AddFreelancerDialogProps) {
               disabled={loading}
               className="flex-1 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-all hover:opacity-90 disabled:opacity-50"
             >
-              {loading ? 'Criando...' : 'Criar Freelancer'}
+              {loading ? 'Salvar' : isEditing ? 'Atualizar Freelancer' : 'Criar Freelancer'}
             </button>
           </div>
         </form>

@@ -99,8 +99,10 @@ export function ReceivablesTab({ data, onUpdate }: ReceivablesTabProps) {
     setIsLoading(id)
     try {
       await markAsPaid(id)
-      // Remover da lista de pendentes após recebimento
-      const updatedReceivables = receivables.filter((r) => r.id !== id)
+      // Atualizar estado local mantendo na lista
+      const updatedReceivables = receivables.map((r) =>
+        r.id === id ? { ...r, status: 'PAID' } : r
+      )
       setReceivables(updatedReceivables)
       onUpdate?.((prev: any) => ({
         ...prev,
@@ -136,8 +138,10 @@ export function ReceivablesTab({ data, onUpdate }: ReceivablesTabProps) {
     setIsLoading(id)
     try {
       await cancelTransaction(id)
-      // Remover da lista após cancelar
-      const updatedReceivables = receivables.filter((r) => r.id !== id)
+      // Atualizar estado local mantendo na lista
+      const updatedReceivables = receivables.map((r) =>
+        r.id === id ? { ...r, status: 'CANCELLED' } : r
+      )
       setReceivables(updatedReceivables)
       onUpdate?.((prev: any) => ({
         ...prev,

@@ -152,6 +152,10 @@ export function FreelancersGrid({ initialFreelancers }: FreelancersGridProps) {
     setFreelancers((prev) => [newFreelancer, ...prev])
   }, [])
 
+  const handleFreelancerUpdated = useCallback((updatedFreelancer: Freelancer) => {
+    setFreelancers((prev) => prev.map((f) => (f.id === updatedFreelancer.id ? updatedFreelancer : f)))
+  }, [])
+
   const filteredFreelancers = freelancers.filter((freelancer) =>
     freelancer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     freelancer.role.toLowerCase().includes(searchTerm.toLowerCase())
@@ -237,21 +241,34 @@ export function FreelancersGrid({ initialFreelancers }: FreelancersGridProps) {
                   transition={{ delay: index * 0.1 }}
                   className="group relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card p-6 transition-all hover:shadow-3 hover-lift cursor-pointer"
                 >
-                  {/* Status Badge */}
-                  <div className="absolute right-4 top-4 flex items-center gap-2">
+                  {/* Edit Button */}
+                  <div className="absolute top-4 right-4 z-20 flex gap-2">
+                    <div onClick={(e) => e.preventDefault()}>
+                      <AddFreelancerDialog
+                        freelancer={freelancer}
+                        onSuccess={handleFreelancerUpdated}
+                        trigger={
+                          <button
+                            className="rounded-full p-2 bg-secondary text-text-tertiary hover:bg-bg-hover hover:text-text-primary transition-colors shadow-sm"
+                            title="Editar Freelancer"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                        }
+                      />
+                    </div>
                     <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${freelancer.status === 'AVAILABLE'
+                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${freelancer.status === 'AVAILABLE'
                         ? 'bg-success/10 text-success'
                         : 'bg-secondary text-text-tertiary'
                         }`}
                     >
                       {freelancer.status === 'AVAILABLE' ? 'Disponível' : 'Ocupado'}
                     </span>
-                    <ExternalLink className="h-4 w-4 text-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
 
                   {/* Avatar */}
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-4 mt-8">
                     <div
                       className={`flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${getAvatarColor(
                         freelancer.id

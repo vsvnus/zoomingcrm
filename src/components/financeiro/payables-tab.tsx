@@ -106,10 +106,11 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
     setIsLoading(id)
     try {
       await markAsPaid(id)
-      // Atualizar estado local e remover da lista de pendentes
-      const updatedPayables = payables.filter((p) => p.id !== id)
+      // Atualizar estado local mantendo na lista com status atualizado
+      const updatedPayables = payables.map((p) =>
+        p.id === id ? { ...p, status: 'PAID' } : p
+      )
       setPayables(updatedPayables)
-      // Notificar pai com dados atualizados
       onUpdate?.((prev: any) => ({
         ...prev,
         payables: updatedPayables,
@@ -144,8 +145,10 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
     setIsLoading(id)
     try {
       await cancelTransaction(id)
-      // Remover da lista ao cancelar
-      const updatedPayables = payables.filter((p) => p.id !== id)
+      // Atualizar estado local mantendo na lista com status atualizado
+      const updatedPayables = payables.map((p) =>
+        p.id === id ? { ...p, status: 'CANCELLED' } : p
+      )
       setPayables(updatedPayables)
       onUpdate?.((prev: any) => ({
         ...prev,

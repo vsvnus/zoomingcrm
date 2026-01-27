@@ -105,3 +105,34 @@ export async function updateFreelancerRate(id: string, daily_rate: number) {
 
   revalidatePath('/freelancers')
 }
+
+export async function updateFreelancer(id: string, data: Partial<CreateFreelancerData>) {
+  const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+
+  const { data: updatedFreelancer, error } = await supabase
+    .from('freelancers')
+    .update({
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      role: data.role,
+      specialty: data.specialty,
+      portfolio: data.portfolio,
+      notes: data.notes,
+      status: data.status,
+    })
+    .eq('id', id)
+    .eq('organization_id', organizationId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating freelancer:', error)
+    throw new Error('Erro ao atualizar freelancer')
+  }
+
+  revalidatePath('/freelancers')
+  revalidatePath(`/freelancers/${id}`)
+  return updatedFreelancer
+}
