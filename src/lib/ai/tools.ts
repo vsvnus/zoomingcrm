@@ -1,5 +1,10 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 // Definições de tools compatíveis com OpenAI Standard (JSON Schema)
 // Isso substitui o uso de 'tool()' do SDK AI novo que requer versão 4+
@@ -89,6 +94,58 @@ export const getToolsDefinitions = () => [
             required: ['name']
         },
     },
+    {
+        name: 'update_proposal_status',
+        description: 'Atualiza o status de uma proposta comercial (ex: aceitar, rejeitar).',
+        parameters: {
+            type: 'object',
+            properties: {
+                proposalId: { type: 'string', description: 'ID da proposta' },
+                status: { type: 'string', enum: ['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED'], description: 'Novo status' },
+                notes: { type: 'string', description: 'Observações sobre a mudança (opcional)' }
+            },
+            required: ['proposalId', 'status']
+        },
+    },
+    {
+        name: 'schedule_calendar_event',
+        description: 'Agenda uma reunião ou evento no calendário.',
+        parameters: {
+            type: 'object',
+            properties: {
+                title: { type: 'string', description: 'Título do evento' },
+                description: { type: 'string', description: 'Descrição detalhada' },
+                startDate: { type: 'string', description: 'Data e hora de início (ISO 8601)' },
+                endDate: { type: 'string', description: 'Data e hora de término (ISO 8601)' },
+                type: { type: 'string', enum: ['meeting', 'shooting', 'delivery', 'other'], description: 'Tipo de evento' },
+                projectId: { type: 'string', description: 'ID do projeto associado (opcional)' }
+            },
+            required: ['title', 'startDate', 'endDate', 'type']
+        },
+    },
+    {
+        name: 'search_client_history',
+        description: 'Consulta a Base de Conhecimento (Memória) e histórico de clientes por similaridade.',
+        parameters: {
+            type: 'object',
+            properties: {
+                query: { type: 'string', description: 'Pergunta ou termo de contexto' },
+            },
+            required: ['query']
+        },
+    },
+    {
+        name: 'memorize_fact',
+        description: 'Salva uma informação importante na memória de longo prazo (RAG).',
+        parameters: {
+            type: 'object',
+            properties: {
+                content: { type: 'string', description: 'O fato, preferência ou informação a ser lembrada' },
+                category: { type: 'string', description: 'Categoria (ex: client_preference, project_insight, negotiation)', enum: ['client_preference', 'project_insight', 'negotiation', 'other'] }
+            },
+            required: ['content']
+        },
+    },
 ];
 
 // Implementação das Tools (Execução)
@@ -114,6 +171,14 @@ export const executeTool = async (
                 return await listProposals(args, supabase, organizationId);
             case 'get_client_info':
                 return await getClientInfo(args, supabase, organizationId);
+            case 'update_proposal_status':
+                return await updateProposalStatus(args, supabase, organizationId);
+            case 'schedule_calendar_event':
+                return await scheduleCalendarEvent(args, supabase, organizationId);
+            case 'search_client_history':
+                return await searchKnowledgeBase(args, supabase, organizationId);
+            case 'memorize_fact':
+                return await memorizeFact(args, supabase, organizationId);
             default:
                 return 'Ferramenta não encontrada.';
         }
@@ -248,4 +313,117 @@ async function getClientInfo({ name }: any, supabase: SupabaseClient, organizati
 
     // Ocultar dados sensíveis se necessário, mas em CRM interno geralmente mostra tudo
     return JSON.stringify(data);
+}
+
+async function updateProposalStatus({ proposalId, status, notes }: any, supabase: SupabaseClient, organizationId: string) {
+    const { data, error } = await supabase
+        .from('proposals')
+        .update({ status: status, notes: notes ? notes : undefined }) // Assumindo coluna notes, ou ignorando se não existir
+        .eq('id', proposalId)
+        .eq('organization_id', organizationId)
+        .select();
+
+    if (error) throw error;
+    return `Status da proposta atualizado para ${status}.`;
+}
+
+async function scheduleCalendarEvent({ title, description, startDate, endDate, type, projectId }: any, supabase: SupabaseClient, organizationId: string) {
+    const { data, error } = await supabase
+        .from('calendar_events')
+        .insert({
+            title,
+            description,
+            start_date: startDate,
+            end_date: endDate,
+            type,
+            project_id: projectId, // Pode ser null
+            organization_id: organizationId,
+            all_day: false
+        })
+        .select();
+
+    if (error) throw error;
+    return `Evento agendado com sucesso: "${title}" de ${startDate} até ${endDate}.`;
+}
+
+async function searchKnowledgeBase({ query }: any, supabase: SupabaseClient, organizationId: string) {
+    // 1. Vector Search (RAG Real)
+    try {
+        const embeddingResponse = await openai.embeddings.create({
+            model: 'text-embedding-3-small',
+            input: query,
+        });
+        const embedding = embeddingResponse.data[0].embedding;
+
+        const { data: vectorResults, error } = await supabase.rpc('search_agent_memory', {
+            query_embedding: embedding,
+            match_threshold: 0.5, // Similaridade mínima
+            match_count: 5,
+            org_id: organizationId
+        });
+
+        if (error) {
+            console.error('Vector search error:', error);
+            // Continue to fallback
+        }
+
+        // 2. Fallback / Complemento (Busca Textual em Clientes/Projetos)
+        const { data: clientData } = await supabase.from('clients')
+            .select('name, notes')
+            .eq('organization_id', organizationId)
+            .ilike('notes', `%${query}%`)
+            .limit(3);
+
+        const { data: projectData } = await supabase.from('projects')
+            .select('title, description')
+            .eq('organization_id', organizationId)
+            .ilike('description', `%${query}%`)
+            .limit(3);
+
+        // Combinar Resultados
+        let combined = [];
+
+        if (vectorResults && vectorResults.length > 0) {
+            combined.push(...vectorResults.map((v: any) => `[MEMÓRIA] ${v.content}`));
+        }
+
+        if (clientData) {
+            combined.push(...clientData.map(c => `[CLIENTE: ${c.name}] ${c.notes}`));
+        }
+
+        if (projectData) {
+            combined.push(...projectData.map(p => `[PROJETO: ${p.title}] ${p.description}`));
+        }
+
+        if (combined.length === 0) return 'Nenhuma informação encontrada na memória.';
+        return JSON.stringify(combined);
+
+    } catch (e) {
+        console.error('RAG Error:', e);
+        return `Erro na busca de memória: ${(e as any).message}`;
+    }
+}
+
+async function memorizeFact({ content, category }: any, supabase: SupabaseClient, organizationId: string) {
+    try {
+        // Gerar Embedding
+        const embeddingResponse = await openai.embeddings.create({
+            model: 'text-embedding-3-small',
+            input: content,
+        });
+        const embedding = embeddingResponse.data[0].embedding;
+
+        // Salvar
+        const { error } = await supabase.from('agent_memory').insert({
+            content,
+            metadata: { category },
+            embedding,
+            organization_id: organizationId
+        });
+
+        if (error) throw error;
+        return 'Informação salva na memória de longo prazo.';
+    } catch (e) {
+        return `Erro ao memorizar: ${(e as any).message}`;
+    }
 }
