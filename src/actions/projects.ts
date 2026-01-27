@@ -804,6 +804,24 @@ export async function deleteDeliveryDate(deliveryDateId: string, projectId: stri
   revalidatePath(`/projects/${projectId}`)
 }
 
+export async function getProjectShootingDates(projectId: string) {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('shooting_dates')
+    .select('id, date, location, time')
+    .eq('projectId', projectId)
+    .order('date', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching shooting dates:', error)
+    return []
+  }
+
+  return data
+}
+
+
 export async function toggleDeliveryComplete(deliveryDateId: string, projectId: string, completed: boolean) {
   const supabase = await createClient()
 

@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { motion } from 'framer-motion'
-import { Package, Calendar } from 'lucide-react'
+import { Package, Calendar, Check } from 'lucide-react'
 import { getEquipments, addEquipmentBooking } from '@/actions/equipments'
+import { getProjectShootingDates } from '@/actions/projects'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 
 interface AddEquipmentModalProps {
   isOpen: boolean
@@ -22,48 +24,83 @@ interface Equipment {
   serial_number?: string
 }
 
+interface ShootingDate {
+  id: string
+  date: string
+  location?: string
+  time?: string
+}
+
 export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentModalProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [equipments, setEquipments] = useState<Equipment[]>([])
+  const [shootingDates, setShootingDates] = useState<ShootingDate[]>([])
+
   const [formData, setFormData] = useState({
     equipmentId: '',
-    startDate: '',
-    endDate: '',
+    selectedDates: [] as string[],
     notes: '',
   })
 
   useEffect(() => {
     if (isOpen) {
+      // Carregar equipamentos
       getEquipments().then((data) => {
-        // Filtrar apenas equipamentos disponíveis
         const available = data.filter(
           (e: Equipment) => e.status === 'AVAILABLE' || e.status === 'IN_USE'
         )
         setEquipments(available)
       })
+
+      // Carregar datas de gravação
+      getProjectShootingDates(projectId).then((data) => {
+        setShootingDates(data || [])
+      })
     }
-  }, [isOpen])
+  }, [isOpen, projectId])
+
+  const toggleDate = (date: string) => {
+    setFormData(prev => {
+      const exists = prev.selectedDates.includes(date)
+      if (exists) {
+        return { ...prev, selectedDates: prev.selectedDates.filter(d => d !== date) }
+      } else {
+        return { ...prev, selectedDates: [...prev.selectedDates, date] }
+      }
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      await addEquipmentBooking({
-        projectId,
-        equipmentId: formData.equipmentId,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        notes: formData.notes || undefined,
-      })
+      if (formData.selectedDates.length === 0) {
+        throw new Error('Selecione pelo menos uma data de gravação')
+      }
+
+      // Criar uma reserva para cada data selecionada
+      // Usamos Promise.all para fazer em paralelo, mas se falhar uma, falha tudo (ou trata erro individualmente)
+      // Como é uma operação server action, vamos tentar uma a uma para garantir consistência ou feedback
+
+      const promises = formData.selectedDates.map(date =>
+        addEquipmentBooking({
+          projectId,
+          equipmentId: formData.equipmentId,
+          startDate: date,
+          endDate: date, // Reserva de 1 dia apenas
+          notes: formData.notes || undefined,
+        })
+      )
+
+      await Promise.all(promises)
 
       router.refresh()
       onClose()
       setFormData({
         equipmentId: '',
-        startDate: '',
-        endDate: '',
+        selectedDates: [],
         notes: '',
       })
     } catch (error: any) {
@@ -104,10 +141,10 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
             {equipments.map((equipment) => (
               <option key={equipment.id} value={equipment.id} className="bg-zinc-900">
                 {equipment.name} ({categoryLabels[equipment.category] || equipment.category})
-                {equipment.daily_rate && ` - R$ ${equipment.daily_rate}/dia`}
               </option>
             ))}
           </select>
+          {/* Removido display de preço (diária) conforme solicitado */}
         </div>
 
         {/* Preview do equipamento selecionado */}
@@ -128,32 +165,54 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
           </div>
         )}
 
-        {/* Datas */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-300">
-              Data Início *
-            </label>
-            <input
-              type="date"
-              required
-              value={formData.startDate}
-              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
-            />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-300">
-              Data Fim *
-            </label>
-            <input
-              type="date"
-              required
-              value={formData.endDate}
-              onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
-            />
-          </div>
+        {/* Seleção de Datas (Checklist) */}
+        <div>
+          <label className="mb-2 block text-sm font-medium text-zinc-300">
+            Dias de Uso (Datas de Gravação) *
+          </label>
+
+          {shootingDates.length > 0 ? (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+              {shootingDates.map((shoot) => {
+                const isSelected = formData.selectedDates.includes(shoot.date)
+                return (
+                  <div
+                    key={shoot.id}
+                    onClick={() => toggleDate(shoot.date)}
+                    className={cn(
+                      "cursor-pointer rounded-lg border px-3 py-2 transition-all flex items-center gap-3",
+                      isSelected
+                        ? "border-purple-500 bg-purple-500/10 text-white"
+                        : "border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10"
+                    )}
+                  >
+                    <div className={cn(
+                      "flex h-5 w-5 items-center justify-center rounded border transition-colors",
+                      isSelected ? "border-purple-500 bg-purple-500 text-white" : "border-zinc-600 bg-transparent"
+                    )}>
+                      {isSelected && <Check className="h-3 w-3" />}
+                    </div>
+                    <div>
+                      <span className="block text-sm font-medium">
+                        {new Date(shoot.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                      </span>
+                      {shoot.location && (
+                        <span className="block text-xs opacity-70 truncate max-w-[120px]">
+                          {shoot.location}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-yellow-500/30 bg-yellow-500/5 p-4 text-center">
+              <Calendar className="mx-auto h-6 w-6 text-yellow-500/50 mb-2" />
+              <p className="text-sm text-yellow-200/80">Este projeto não possui datas de gravação cadastradas.</p>
+              <p className="text-xs text-yellow-200/50 mt-1">Adicione datas de gravação na aba "Detalhes" primeiro.</p>
+            </div>
+          )}
         </div>
 
         {/* Observações */}
@@ -164,18 +223,10 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
           <textarea
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            rows={2}
-            placeholder="Ex: Trazer baterias extras, cuidado com lente..."
+            rows={2} // Reduced rows
+            placeholder="Ex: Trazer baterias extras..."
             className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
           />
-        </div>
-
-        {/* Aviso de conflito */}
-        <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
-          <p className="text-xs text-blue-300">
-            💡 O sistema verificará automaticamente se o equipamento está disponível nas datas
-            selecionadas.
-          </p>
         </div>
 
         {/* Botões */}
@@ -189,12 +240,12 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
           </button>
           <motion.button
             type="submit"
-            disabled={isLoading || !formData.equipmentId || !formData.startDate || !formData.endDate}
+            disabled={isLoading || !formData.equipmentId || formData.selectedDates.length === 0}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className="flex-1 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-purple-700 disabled:opacity-50"
           >
-            {isLoading ? 'Reservando...' : 'Reservar Equipamento'}
+            {isLoading ? 'Reservando...' : `Reservar (${formData.selectedDates.length} dias)`}
           </motion.button>
         </div>
       </form>
