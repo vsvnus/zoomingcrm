@@ -77,7 +77,7 @@ export function FinancialTabs({ initialData, organizationId, defaultTab = 'overv
       </TabsContent>
 
       <TabsContent value="receivables" className="space-y-4">
-        <ReceivablesTab data={data.receivables} onUpdate={setData} />
+        <ReceivablesTab data={data.receivables} onUpdate={setData} organizationId={organizationId} />
       </TabsContent>
     </Tabs>
   )

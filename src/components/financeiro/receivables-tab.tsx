@@ -32,11 +32,13 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { AddIncomeDialog } from './add-income-dialog'
 import { markAsPaid, cancelTransaction, updateTransaction } from '@/actions/financeiro'
 
 interface ReceivablesTabProps {
   data: any[]
   onUpdate: (data: any) => void
+  organizationId: string
 }
 
 function formatCurrency(value: number) {
@@ -84,7 +86,7 @@ function getCategoryLabel(category: string) {
   return labels[category] || category
 }
 
-export function ReceivablesTab({ data, onUpdate }: ReceivablesTabProps) {
+export function ReceivablesTab({ data, onUpdate, organizationId }: ReceivablesTabProps) {
   const [receivables, setReceivables] = useState(data)
 
   // Sync local state with props when data changes
@@ -164,10 +166,7 @@ export function ReceivablesTab({ data, onUpdate }: ReceivablesTabProps) {
         <p className="text-sm text-muted-foreground mb-4">
           Comece adicionando receitas de projetos e propostas aprovadas
         </p>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar Receita
-        </Button>
+        <AddIncomeDialog organizationId={organizationId} />
       </div>
     )
   }
@@ -181,10 +180,7 @@ export function ReceivablesTab({ data, onUpdate }: ReceivablesTabProps) {
             {receivables.length} receita{receivables.length !== 1 ? 's' : ''} pendente{receivables.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Receita
-        </Button>
+        <AddIncomeDialog organizationId={organizationId} />
       </div>
 
       <div className="rounded-md border">
