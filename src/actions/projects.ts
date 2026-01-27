@@ -63,8 +63,10 @@ export async function getProjectsForKanban(): Promise<KanbanBoardData> {
 
   let shootingDatesMap: Record<string, string> = {}
   let taskProgressMap: Record<string, { total: number; completed: number }> = {}
+  let nextTaskMap: Record<string, string> = {}
 
   if (projectIds.length > 0) {
+    // Buscar próximas gravações
     const { data: nextShoots } = await supabase
       .from('shooting_dates')
       .select('projectId, date')
@@ -80,7 +82,7 @@ export async function getProjectsForKanban(): Promise<KanbanBoardData> {
       }
     })
 
-    // 3. Buscar contagem de tarefas por projeto
+    // Buscar tarefas para contagem e próxima tarefa pendente
     const { data: allTasks, error: tasksError } = await supabase
       .from('project_tasks')
       .select('project_id, title, completed, order')
@@ -91,16 +93,18 @@ export async function getProjectsForKanban(): Promise<KanbanBoardData> {
       console.error('Error fetching tasks for kanban:', tasksError)
     }
 
-    // Map de próxima tarefa pendente por projeto
-    let nextTaskMap: Record<string, string> = {}
-
     if (allTasks) {
       allTasks.forEach((task) => {
+        // Inicializar contadores se não existir
         if (!taskProgressMap[task.project_id]) {
           taskProgressMap[task.project_id] = { total: 0, completed: 0 }
         }
+
+        // Contar total
         taskProgressMap[task.project_id].total++
+
         if (task.completed) {
+          // Contar completed
           taskProgressMap[task.project_id].completed++
         } else {
           // Primeira tarefa não completa = próxima tarefa
@@ -120,25 +124,6 @@ export async function getProjectsForKanban(): Promise<KanbanBoardData> {
     { id: 'REVIEW', title: 'Revisão', projects: [] },
     { id: 'DONE', title: 'Concluído', projects: [] },
   ]
-
-  // Precisamos acessar nextTaskMap fora do if
-  let nextTaskMap: Record<string, string> = {}
-
-  if (projectIds.length > 0) {
-    const { data: allTasks } = await supabase
-      .from('project_tasks')
-      .select('project_id, title, completed, order')
-      .in('project_id', projectIds)
-      .order('order', { ascending: true })
-
-    if (allTasks) {
-      allTasks.forEach((task) => {
-        if (!task.completed && !nextTaskMap[task.project_id]) {
-          nextTaskMap[task.project_id] = task.title
-        }
-      })
-    }
-  }
 
   projects?.forEach((project) => {
     // Injetar próxima gravação e progresso de tarefas no objeto do projeto
@@ -186,7 +171,10 @@ export async function getProject(projectId: string): Promise<ProjectWithRelation
     .single()
 
   if (error) {
-    console.error('Error fetching project:', error)
+    // PGRST116 = "no rows returned" - não é um erro real, apenas projeto não encontrado
+    if (error.code !== 'PGRST116') {
+      console.error('Error fetching project:', error)
+    }
     return null
   }
 
@@ -423,10 +411,43 @@ export async function updateProjectStatus(projectId: string, status: ProjectStat
   return updateProject(projectId, { status })
 }
 
-export async function deleteProject(projectId: string) {
+export async function deleteProject(projectId: string, deleteLinkedProposal: boolean = false) {
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
 
+  // 1. Deletar eventos do calendário associados (importante por causa do ON DELETE SET NULL)
+  await supabase
+    .from('calendar_events')
+    .delete()
+    .eq('project_id', projectId)
+    .eq('organization_id', organizationId)
+
+  // 2. Deletar proposta vinculada se solicitado
+  if (deleteLinkedProposal) {
+    // Buscar ID da proposta
+    const { data: project } = await supabase
+      .from('projects')
+      .select('proposal_id')
+      .eq('id', projectId)
+      .eq('organization_id', organizationId)
+      .single()
+
+    if (project?.proposal_id) {
+      // Se estiver ACEITA, mudar para CANCELLED antes de deletar (ver actions/proposals.ts)
+      await supabase
+        .from('proposals')
+        .update({ status: 'CANCELLED' })
+        .eq('id', project.proposal_id)
+
+      await supabase
+        .from('proposals')
+        .delete()
+        .eq('id', project.proposal_id)
+        .eq('organization_id', organizationId)
+    }
+  }
+
+  // 3. Deletar projeto
   const { error } = await supabase
     .from('projects')
     .delete()
@@ -439,6 +460,7 @@ export async function deleteProject(projectId: string) {
   }
 
   revalidatePath('/projects')
+  revalidatePath('/proposals')
 }
 
 // ============================================

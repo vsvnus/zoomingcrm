@@ -17,6 +17,7 @@ interface OverviewTabProps {
     pending_receivable: number
     pending_payable: number
     profit_margin_percent: number
+    current_balance: number
   }
 }
 
@@ -35,6 +36,7 @@ function formatCurrency(value: any) {
 
 export function OverviewTab({ data }: OverviewTabProps) {
   const isProfit = data.net_profit >= 0
+  const isBalancePositive = data.current_balance >= 0
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -120,18 +122,18 @@ export function OverviewTab({ data }: OverviewTabProps) {
         </CardContent>
       </Card>
 
-      {/* Fluxo de Caixa Projetado */}
+      {/* Saldo Atual (Antigo Fluxo Projetado) */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Fluxo Projetado</CardTitle>
-          <CheckCircle className="h-4 w-4 text-purple-600" />
+          <CardTitle className="text-sm font-medium">Saldo Atual</CardTitle>
+          <CheckCircle className={`h-4 w-4 ${isBalancePositive ? 'text-purple-600' : 'text-red-600'}`} />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-purple-600">
-            {formatCurrency(data.pending_receivable - data.pending_payable)}
+          <div className={`text-2xl font-bold ${isBalancePositive ? 'text-purple-600' : 'text-red-600'}`}>
+            {formatCurrency(data.current_balance)}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Diferença entre receber e pagar
+            Caixa disponível (Capital + Lucro)
           </p>
         </CardContent>
       </Card>

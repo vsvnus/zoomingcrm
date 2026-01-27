@@ -164,9 +164,97 @@ export async function getClientFinancials(clientId: string) {
   return data || []
 }
 
-export async function deleteClient(id: string) {
+export async function deleteClient(id: string, forceDelete: boolean = false) {
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
+
+  // Se forceDelete for true, deletar dependências primeiro
+  if (forceDelete) {
+    // A. Buscar IDs dos projetos
+    const { data: clientProjects } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('client_id', id)
+      .eq('organization_id', organizationId)
+    const projectIds = clientProjects?.map(p => p.id) || []
+
+    // B. Buscar IDs das propostas
+    const { data: clientProposals } = await supabase
+      .from('proposals')
+      .select('id')
+      .eq('client_id', id)
+      .eq('organization_id', organizationId)
+    const proposalIds = clientProposals?.map(p => p.id) || []
+
+    // 1. Deletar Transações Financeiras (Vinculadas ao Cliente, Projetos ou Propostas)
+    let orQuery = `client_id.eq.${id}`
+    if (projectIds.length > 0) orQuery += `,project_id.in.(${projectIds.join(',')})`
+    if (proposalIds.length > 0) orQuery += `,proposal_id.in.(${proposalIds.join(',')})`
+
+    await supabase
+      .from('financial_transactions')
+      .delete()
+      .or(orQuery)
+      .eq('organization_id', organizationId)
+
+    // 2. Limpar Dependências de Projetos
+    if (projectIds.length > 0) {
+      // 2.1 Buscar Itens de Projeto para limpar Assignments
+      const { data: projItems } = await supabase.from('project_items').select('id').in('project_id', projectIds)
+      const projectItemIds = projItems?.map(i => i.id) || []
+
+      if (projectItemIds.length > 0) {
+        await supabase.from('item_assignments').delete().in('project_item_id', projectItemIds)
+      }
+
+      // 2.2 Deletar dependências diretas de projeto
+      await supabase.from('project_items').delete().in('project_id', projectIds)
+      await supabase.from('calendar_events').delete().in('project_id', projectIds)
+      await supabase.from('project_tasks').delete().in('project_id', projectIds)
+      await supabase.from('project_finances').delete().in('project_id', projectIds)
+
+      // Tentar deletar notas/times se existirem (ignorar erro se tabela não existir ou estiver vazia)
+      await supabase.from('project_notes').delete().in('project_id', projectIds)
+      await supabase.from('project_team').delete().in('project_id', projectIds)
+    }
+
+    // 3. Limpar Dependências de Propostas
+    if (proposalIds.length > 0) {
+      // 3.1 Buscar Itens de Proposta para limpar Assignments
+      const { data: propItems } = await supabase.from('proposal_items').select('id').in('proposal_id', proposalIds)
+      const proposalItemIds = propItems?.map(i => i.id) || []
+
+      if (proposalItemIds.length > 0) {
+        await supabase.from('item_assignments').delete().in('proposal_item_id', proposalItemIds)
+      }
+
+      // 3.2 Deletar dependências diretas de proposta
+      await supabase.from('proposal_items').delete().in('proposal_id', proposalIds)
+      await supabase.from('proposal_optionals').delete().in('proposal_id', proposalIds)
+      await supabase.from('proposal_videos').delete().in('proposal_id', proposalIds)
+    }
+
+    // 4. Deletar Projetos
+    if (projectIds.length > 0) {
+      await supabase
+        .from('projects')
+        .delete()
+        .in('id', projectIds)
+        .eq('organization_id', organizationId)
+    }
+
+    // 5. Deletar Propostas
+    if (proposalIds.length > 0) {
+      // Setar status para CANCELLED para evitar triggers de proteção se houver
+      await supabase.from('proposals').update({ status: 'CANCELLED' }).in('id', proposalIds)
+
+      await supabase
+        .from('proposals')
+        .delete()
+        .in('id', proposalIds)
+        .eq('organization_id', organizationId)
+    }
+  }
 
   // SEGURANÇA: Filtrar por organization_id para garantir isolamento multi-tenant
   const { error } = await supabase
@@ -178,9 +266,9 @@ export async function deleteClient(id: string) {
   if (error) {
     console.error('Error deleting client:', error)
 
-    // Tratamento de segurança: Impede exclusão se houver projetos vinculados
+    // Tratamento de segurança: Impede exclusão se houver projetos vinculados (apenas se não for forceDelete)
     if ((error as any).code === '23503') {
-      throw new Error('Não é possível excluir: Este cliente possui Projetos vinculados. O sistema protege esses dados. \n\nSugestão: Transfira os projetos para outro cliente antes de tentar novamente.')
+      throw new Error('DEPENDENCY_ERROR: Este cliente possui Projetos ou Propostas vinculadas.')
     }
 
     throw new Error('Erro ao deletar cliente')

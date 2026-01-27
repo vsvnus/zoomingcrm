@@ -86,3 +86,22 @@ export async function createFreelancer(data: CreateFreelancerData) {
   revalidatePath('/freelancers')
   return freelancer
 }
+
+export async function updateFreelancerRate(id: string, daily_rate: number) {
+  const supabase = await createClient()
+
+  const organizationId = await getUserOrganization()
+
+  const { error } = await supabase
+    .from('freelancers')
+    .update({ daily_rate })
+    .eq('id', id)
+    .eq('organization_id', organizationId)
+
+  if (error) {
+    console.error('Error updating freelancer rate:', error)
+    throw new Error('Erro ao atualizar taxa diária')
+  }
+
+  revalidatePath('/freelancers')
+}

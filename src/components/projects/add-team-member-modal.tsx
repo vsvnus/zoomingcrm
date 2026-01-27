@@ -8,6 +8,8 @@ import { motion } from 'framer-motion'
 import { Search, User } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
+import { FREELANCER_ROLES } from '@/constants/freelancers'
+
 interface AddTeamMemberModalProps {
   isOpen: boolean
   onClose: () => void
@@ -23,18 +25,6 @@ type Freelancer = {
   daily_rate?: number
 }
 
-const COMMON_ROLES = [
-  'Diretor',
-  'Diretor de Fotografia',
-  'Câmera',
-  'Editor',
-  'Motion Designer',
-  'Colorista',
-  'Sound Designer',
-  'Assistente de Câmera',
-  'Gaffer',
-  'Produtor',
-]
 
 export function AddTeamMemberModal({
   isOpen,
@@ -212,7 +202,7 @@ export function AddTeamMemberModal({
             placeholder="Ex: Diretor, Câmera, Editor..."
           />
           <datalist id="role-suggestions">
-            {COMMON_ROLES.map((role) => (
+            {FREELANCER_ROLES.map((role) => (
               <option key={role} value={role} />
             ))}
           </datalist>

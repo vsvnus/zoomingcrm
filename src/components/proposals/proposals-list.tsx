@@ -6,7 +6,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { SelectClientModal } from './select-client-modal'
-import { acceptProposalManual, deleteProposal } from '@/actions/proposals'
+import { acceptProposalManual, deleteProposal, getProposalLinkedProject } from '@/actions/proposals'
+import { deleteProject } from '@/actions/projects'
 
 type Proposal = {
   id: string
@@ -96,7 +97,21 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
     if (!confirm('Tem certeza que deseja excluir esta proposta? Esta ação não pode ser desfeita.')) return
 
     try {
-      await deleteProposal(id)
+      // Verificar se existe projeto associado
+      const linkedProject = await getProposalLinkedProject(id)
+      let shouldDeleteProject = false
+
+      if (linkedProject) {
+        shouldDeleteProject = confirm(`Existe um projeto "${linkedProject.title}" associado a esta proposta. Deseja excluí-lo também?`)
+      }
+
+      if (shouldDeleteProject && linkedProject) {
+        // Agora passamos o flag para deletar o projeto vinculado junto na server action
+        await deleteProposal(id, true)
+      } else {
+        await deleteProposal(id, false)
+      }
+
       router.refresh()
     } catch (error: any) {
       alert(error?.message || 'Erro ao excluir proposta')

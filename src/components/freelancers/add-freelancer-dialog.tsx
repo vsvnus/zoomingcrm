@@ -13,20 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { createFreelancer, type CreateFreelancerData } from '@/actions/freelancers'
 
-const ROLES = [
-  'Operador de Câmera',
-  'Editor de Vídeo',
-  'Técnico de Som',
-  'Colorista',
-  'Motion Designer',
-  'Diretor',
-  'Produtor',
-  'Fotógrafo',
-  'Roteirista',
-  'Assistente de Produção',
-]
-
-const SPECIALTIES = ['Câmera', 'Som', 'Edição', 'Colorização', 'Motion']
+import { FREELANCER_ROLES, FREELANCER_SPECIALTIES } from '@/constants/freelancers'
 
 interface AddFreelancerDialogProps {
   onSuccess?: (freelancer: any) => void
@@ -38,7 +25,7 @@ export function AddFreelancerDialog({ onSuccess }: AddFreelancerDialogProps) {
   const [loading, setLoading] = useState(false)
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([])
 
-  const [formData, setFormData] = useState<CreateFreelancerData>({
+  const [formData, setFormData] = useState<CreateFreelancerData & { daily_rate?: string }>({
     name: '',
     email: '',
     phone: '',
@@ -47,6 +34,7 @@ export function AddFreelancerDialog({ onSuccess }: AddFreelancerDialogProps) {
     portfolio: '',
     notes: '',
     status: 'AVAILABLE',
+    daily_rate: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,7 +45,21 @@ export function AddFreelancerDialog({ onSuccess }: AddFreelancerDialogProps) {
       const newFreelancer = await createFreelancer({
         ...formData,
         specialty: selectedSpecialties,
+        // @ts-ignore
+        daily_rate: formData.daily_rate ? parseFloat(formData.daily_rate) : 0,
       })
+
+      // Se houver daily_rate, atualizar usando a action separada
+      if (formData.daily_rate && newFreelancer?.id) {
+        const numericRate = parseFloat(formData.daily_rate)
+        if (!isNaN(numericRate)) {
+          // Importar e usar updateFreelancerRate aqui seria ideal, mas createFreelancer pode ser atualizado para aceitar daily_rate
+          // Como createFreelancer não aceita daily_rate ainda, vamos atualizar depois
+          const { updateFreelancerRate } = await import('@/actions/freelancers') // Import dinâmico para evitar dependência circular se houver
+          await updateFreelancerRate(newFreelancer.id, numericRate)
+          newFreelancer.daily_rate = numericRate
+        }
+      }
 
       setOpen(false)
       // Resetar form
@@ -70,6 +72,7 @@ export function AddFreelancerDialog({ onSuccess }: AddFreelancerDialogProps) {
         portfolio: '',
         notes: '',
         status: 'AVAILABLE',
+        daily_rate: '',
       })
       setSelectedSpecialties([])
 
@@ -160,43 +163,59 @@ export function AddFreelancerDialog({ onSuccess }: AddFreelancerDialogProps) {
             </div>
           </div>
 
-          {/* Role */}
-          <div className="space-y-2">
-            <label htmlFor="role" className="text-sm font-medium text-text-secondary">
-              Função Principal *
-            </label>
-            <select
-              id="role"
-              required
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full rounded-lg border border-[rgb(var(--border))] bg-secondary px-4 py-3 text-text-primary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
-            >
-              <option value="" className="bg-card">
-                Selecione uma função
-              </option>
-              {ROLES.map((role) => (
-                <option key={role} value={role} className="bg-card">
-                  {role}
+          {/* Role & Daily Rate */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="role" className="text-sm font-medium text-text-secondary">
+                Função Principal *
+              </label>
+              <select
+                id="role"
+                required
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                className="w-full rounded-lg border border-[rgb(var(--border))] bg-secondary px-4 py-3 text-text-primary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
+              >
+                <option value="" className="bg-card">
+                  Selecione uma função
                 </option>
-              ))}
-            </select>
+                {FREELANCER_ROLES.map((role) => (
+                  <option key={role} value={role} className="bg-card">
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="daily_rate" className="text-sm font-medium text-text-secondary">
+                Valor da Diária (R$)
+              </label>
+              <input
+                id="daily_rate"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.daily_rate}
+                onChange={(e) => setFormData({ ...formData, daily_rate: e.target.value })}
+                className="w-full rounded-lg border border-[rgb(var(--border))] bg-secondary px-4 py-3 text-text-primary placeholder-text-tertiary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
+                placeholder="0.00"
+              />
+            </div>
           </div>
 
           {/* Specialties */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-secondary">Especialidades</label>
             <div className="flex flex-wrap gap-2">
-              {SPECIALTIES.map((specialty) => (
+              {FREELANCER_SPECIALTIES.map((specialty) => (
                 <button
                   key={specialty}
                   type="button"
                   onClick={() => toggleSpecialty(specialty)}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
-                    selectedSpecialties.includes(specialty)
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${selectedSpecialties.includes(specialty)
                       ? 'bg-primary text-primary-foreground'
                       : 'border border-[rgb(var(--border))] bg-secondary text-text-tertiary hover:bg-bg-hover'
-                  }`}
+                    }`}
                 >
                   {specialty}
                   {selectedSpecialties.includes(specialty) && (

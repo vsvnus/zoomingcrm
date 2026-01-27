@@ -359,10 +359,11 @@ export async function approveProposal(proposalId: string) {
   }
 
   // 🔔 TRIGGER SQL cria receita automaticamente aqui
+  const result = await processProposalToProject(proposalId)
 
   revalidatePath('/proposals')
   revalidatePath('/financeiro')
-  return data
+  return result
 }
 
 /**
@@ -394,7 +395,7 @@ export async function rejectProposal(proposalId: string, reason?: string) {
  * Deletar proposta
  * ATENÇÃO: Propostas aprovadas não podem ser deletadas (constraint no banco)
  */
-export async function deleteProposal(proposalId: string) {
+export async function deleteProposal(proposalId: string, deleteLinkedProject: boolean = false) {
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
 
@@ -414,6 +415,32 @@ export async function deleteProposal(proposalId: string) {
       .eq('id', proposalId)
   }
 
+  // 3. Deletar projeto vinculado se solicitado
+  if (deleteLinkedProject) {
+    const { data: linkedProject } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('proposal_id', proposalId)
+      .eq('organization_id', organizationId)
+      .single()
+
+    if (linkedProject) {
+      // Deletar eventos do calendário do projeto
+      await supabase
+        .from('calendar_events')
+        .delete()
+        .eq('project_id', linkedProject.id)
+        .eq('organization_id', organizationId)
+
+      // Deletar projeto
+      await supabase
+        .from('projects')
+        .delete()
+        .eq('id', linkedProject.id)
+        .eq('organization_id', organizationId)
+    }
+  }
+
   const { error } = await supabase
     .from('proposals')
     .delete()
@@ -426,6 +453,7 @@ export async function deleteProposal(proposalId: string) {
   }
 
   revalidatePath('/proposals')
+  revalidatePath('/projects')
 }
 
 /**
@@ -1066,8 +1094,24 @@ export async function acceptProposalManual(proposalId: string) {
     .eq('id', proposalId)
     .single()
 
+
+
   if (proposalError || !proposal) {
     throw new Error('Proposta não encontrada')
+  }
+
+  // 2. Atualizar status da proposta para ACCEPTED
+  const { error: updateError } = await supabase
+    .from('proposals')
+    .update({
+      status: 'ACCEPTED',
+      accepted_at: new Date().toISOString(),
+    })
+    .eq('id', proposalId)
+    .eq('organization_id', organizationId)
+
+  if (updateError) {
+    throw new Error('Erro ao atualizar status da proposta: ' + updateError.message)
   }
 
   // Usar helper para processar tudo
@@ -1119,6 +1163,7 @@ async function processProposalToProject(proposalId: string, userId?: string) {
       deadline_date: proposal.valid_until,
       created_at: new Date().toISOString(),
       is_recurring: proposal.is_recurring || false,
+      proposal_id: proposal.id, // VINCULAR PROJETO A PROPOSTA
     })
     .select()
     .single()
@@ -1215,7 +1260,6 @@ async function processProposalToProject(proposalId: string, userId?: string) {
       description: `Pagamento Proposta: ${proposal.title} (${index + 1}/${installments})`,
       amount: installmentValue,
       status: 'PENDING',
-      origin: 'proposta',
       project_id: project.id,
       proposal_id: proposal.id,
       client_id: proposal.client_id,

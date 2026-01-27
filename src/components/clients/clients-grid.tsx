@@ -36,22 +36,48 @@ export function ClientsGrid({ initialClients }: ClientsGridProps) {
   )
 
   const handleDelete = async (id: string) => {
+    // Primeira tentativa: Deletar normal
     if (!confirm('Tem certeza que deseja deletar este cliente?')) return
 
     setIsDeleting(id)
     try {
-      await deleteClient(id)
+      await deleteClient(id, false)
       setClients(clients.filter((c) => c.id !== id))
     } catch (error: any) {
       const message = error.message || ''
-      if (message.toLowerCase().includes('projetos vinculados') || message.includes('vinculados')) {
-        const client = clients.find((c) => c.id === id)
-        if (client) {
-          setClientToTransfer(client)
-          return
+
+      // Se for erro de dependência (Projetos/Propostas vinculados)
+      if (message.includes('DEPENDENCY_ERROR')) {
+        // Perguntar ao usuário o que fazer
+        const userChoice = confirm(
+          'Este cliente possui PROJETOS, PROPOSTAS e FINANCEIROS vinculados.\n\n' +
+          'O que deseja fazer?\n' +
+          '[OK] -> EXCLUIR TUDO (O cliente e todos os seus dados vinculados serão apagados permanentemente)\n' +
+          '[Cancelar] -> Manter tudo e apenas cancelar a operação'
+        )
+
+        if (userChoice) {
+          // Usuário escolheu EXCLUIR TUDO
+          try {
+            await deleteClient(id, true) // Force delete
+            setClients(clients.filter((c) => c.id !== id))
+            alert('Cliente e todos os dados vinculados foram excluídos.')
+          } catch (forceError: any) {
+            alert('Erro ao excluir tudo: ' + forceError.message)
+          }
+        } else {
+          // Opção de transferir (mantendo comportamento antigo ou sugerindo)
+          const wantTransfer = confirm('Deseja então TRANSFERIR os dados para outro cliente antes de excluir este?')
+          if (wantTransfer) {
+            const client = clients.find((c) => c.id === id)
+            if (client) {
+              setClientToTransfer(client)
+            }
+          }
         }
+      } else {
+        alert(message || 'Erro ao deletar cliente')
       }
-      alert(message || 'Erro ao deletar cliente')
     } finally {
       setIsDeleting(null)
     }
@@ -154,62 +180,62 @@ export function ClientsGrid({ initialClients }: ClientsGridProps) {
               className="group relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card transition-all hover:shadow-3 hover:border-primary/20 cursor-pointer"
             >
               <div className="relative flex items-center gap-6 p-6">
-                  {/* Avatar */}
-                  <div
-                    className={`flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getAvatarColor(
-                      client.name
-                    )} text-2xl font-bold text-white shadow-lg transition-transform group-hover:scale-105`}
-                  >
-                    {getInitials(client.name)}
-                  </div>
+                {/* Avatar */}
+                <div
+                  className={`flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getAvatarColor(
+                    client.name
+                  )} text-2xl font-bold text-white shadow-lg transition-transform group-hover:scale-105`}
+                >
+                  {getInitials(client.name)}
+                </div>
 
-                  {/* Info Section */}
-                  <div className="flex flex-1 flex-col gap-3">
-                    {/* Name and Company */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-text-primary group-hover:text-primary transition-colors">
-                          {client.name}
-                        </h3>
-                        {client.company && (
-                          <div className="mt-1 flex items-center gap-2 text-sm text-text-tertiary">
-                            <Building className="h-4 w-4" />
-                            <span>{client.company}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Date Badge */}
-                      <div className="flex items-center gap-1.5 rounded-lg border border-[rgb(var(--border))] bg-secondary px-3 py-1.5 text-xs text-text-tertiary">
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span>{formatDate(client.created_at)}</span>
-                      </div>
-                    </div>
-
-                    {/* Contact Details */}
-                    <div className="flex flex-wrap items-center gap-6">
-                      <div className="flex items-center gap-2 text-sm text-text-tertiary">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-secondary">
-                          <Mail className="h-4 w-4 text-text-tertiary" />
-                        </div>
-                        <span>{client.email}</span>
-                      </div>
-                      {client.phone && (
-                        <div className="flex items-center gap-2 text-sm text-text-tertiary">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-secondary">
-                            <Phone className="h-4 w-4 text-text-tertiary" />
-                          </div>
-                          <span>{client.phone}</span>
+                {/* Info Section */}
+                <div className="flex flex-1 flex-col gap-3">
+                  {/* Name and Company */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-text-primary group-hover:text-primary transition-colors">
+                        {client.name}
+                      </h3>
+                      {client.company && (
+                        <div className="mt-1 flex items-center gap-2 text-sm text-text-tertiary">
+                          <Building className="h-4 w-4" />
+                          <span>{client.company}</span>
                         </div>
                       )}
                     </div>
+
+                    {/* Date Badge */}
+                    <div className="flex items-center gap-1.5 rounded-lg border border-[rgb(var(--border))] bg-secondary px-3 py-1.5 text-xs text-text-tertiary">
+                      <Calendar className="h-3.5 w-3.5" />
+                      <span>{formatDate(client.created_at)}</span>
+                    </div>
                   </div>
 
-                  {/* Arrow indicator */}
-                  <div className="flex-shrink-0 text-text-tertiary group-hover:text-primary transition-colors">
-                    <ChevronRight className="h-5 w-5" />
+                  {/* Contact Details */}
+                  <div className="flex flex-wrap items-center gap-6">
+                    <div className="flex items-center gap-2 text-sm text-text-tertiary">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-secondary">
+                        <Mail className="h-4 w-4 text-text-tertiary" />
+                      </div>
+                      <span>{client.email}</span>
+                    </div>
+                    {client.phone && (
+                      <div className="flex items-center gap-2 text-sm text-text-tertiary">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-secondary">
+                          <Phone className="h-4 w-4 text-text-tertiary" />
+                        </div>
+                        <span>{client.phone}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Arrow indicator */}
+                <div className="flex-shrink-0 text-text-tertiary group-hover:text-primary transition-colors">
+                  <ChevronRight className="h-5 w-5" />
+                </div>
+              </div>
 
               {/* Actions - floating on hover */}
               <div className="absolute right-4 top-4 flex items-center gap-2 opacity-0 transition-all group-hover:opacity-100">

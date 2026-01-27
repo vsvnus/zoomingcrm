@@ -273,11 +273,10 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
       }
 
       if (shouldDeleteProject && linkedProject) {
-        const { deleteProject } = await import('@/actions/projects')
-        await deleteProject(linkedProject.id)
+        await deleteProposal(proposal.id, true)
+      } else {
+        await deleteProposal(proposal.id, false)
       }
-
-      await deleteProposal(proposal.id)
 
       router.push('/proposals')
     } catch (error: any) {

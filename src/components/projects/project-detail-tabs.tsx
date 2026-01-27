@@ -108,13 +108,17 @@ export function ProjectDetailTabs({
     if (!confirm('Tem certeza que deseja excluir ESTE PROJETO? Esta ação não pode ser desfeita.')) return
 
     try {
-      const shouldDeleteProposal = project.proposal_id && confirm('Deseja excluir também a PROPOSTA associada a este projeto?')
+      // Verificar se existe proposta associada
+      let shouldDeleteProposal = false
+      if (project.proposal_id) {
+        shouldDeleteProposal = confirm('Existe uma PROPOSTA associada a este projeto. Deseja excluí-la também?')
+      }
 
-      await deleteProject(project.id)
-
+      // IMPORTANTE: Passar o flag para deletar a proposta vinculada junto na server action
       if (shouldDeleteProposal && project.proposal_id) {
-        const { deleteProposal } = await import('@/actions/proposals')
-        await deleteProposal(project.proposal_id)
+        await deleteProject(project.id, true)
+      } else {
+        await deleteProject(project.id, false)
       }
 
       router.push('/projects')
@@ -298,6 +302,24 @@ export function ProjectDetailTabs({
                 {project.clients.company || project.clients.name}
               </span>
             </motion.div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/10"
+            >
+              <Edit className="h-4 w-4" />
+              Editar
+            </button>
+            <button
+              onClick={handleDeleteProject}
+              className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-all hover:bg-red-500/20"
+              title="Excluir Projeto"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>

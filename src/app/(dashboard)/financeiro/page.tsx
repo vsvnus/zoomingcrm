@@ -14,13 +14,15 @@ interface PageProps {
 async function getFinancialData(organizationId: string) {
   const supabase = await createClient()
 
-  // Buscar dados das views criadas no schema COM filtro por organização
-  const [overviewData, payablesData, receivablesData] = await Promise.all([
-    supabase
-      .from('financial_overview')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .single(),
+  // Buscar todas as transações (exceto canceladas) para cálculo preciso
+  const { data: transactions } = await supabase
+    .from('financial_transactions')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .neq('status', 'CANCELLED')
+
+  // Buscar contas a pagar/receber para as tabelas (mantendo queries originais para garantir relacionamentos)
+  const [payablesData, receivablesData] = await Promise.all([
     supabase
       .from('accounts_payable')
       .select(`
@@ -42,14 +44,46 @@ async function getFinancialData(organizationId: string) {
       .order('due_date', { ascending: true }),
   ])
 
+  // Calcular métricas manualmente para garantir precisão
+  let initialCapital = 0
+  let totalIncome = 0
+  let totalExpenses = 0
+  let pendingReceivable = 0
+  let pendingPayable = 0
+  let paidIncome = 0
+  let paidExpenses = 0
+
+  if (transactions) {
+    transactions.forEach((t) => {
+      const amount = Number(t.amount || 0)
+
+      if (t.type === 'INITIAL_CAPITAL') {
+        if (t.status === 'PAID') initialCapital += amount
+      } else if (t.type === 'INCOME') {
+        totalIncome += amount
+        if (t.status === 'PAID') paidIncome += amount
+        else pendingReceivable += amount
+      } else if (t.type === 'EXPENSE') {
+        totalExpenses += amount
+        if (t.status === 'PAID') paidExpenses += amount
+        else pendingPayable += amount
+      }
+    })
+  }
+
+  const netProfit = totalIncome - totalExpenses
+  const currentBalance = initialCapital + paidIncome - paidExpenses
+  const profitMarginPercent = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0
+
   return {
-    overview: overviewData.data || {
-      total_income: 0,
-      total_expenses: 0,
-      net_profit: 0,
-      pending_receivable: 0,
-      pending_payable: 0,
-      profit_margin_percent: 0,
+    overview: {
+      total_income: totalIncome,
+      total_expenses: totalExpenses,
+      net_profit: netProfit,
+      pending_receivable: pendingReceivable,
+      pending_payable: pendingPayable,
+      profit_margin_percent: profitMarginPercent,
+      current_balance: currentBalance,
     },
     payables: payablesData.data || [],
     receivables: receivablesData.data || [],

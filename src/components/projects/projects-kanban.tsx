@@ -32,7 +32,6 @@ const STATUSES: Array<{
   label: string
   color: string
 }> = [
-    { id: 'BRIEFING', label: 'Briefing', color: 'bg-slate-500' },
     { id: 'PRE_PROD', label: 'Pré-Produção', color: 'bg-blue-500' },
     { id: 'SHOOTING', label: 'Gravação', color: 'bg-purple-500' },
     { id: 'POST_PROD', label: 'Pós-Produção', color: 'bg-yellow-500' },
@@ -313,7 +312,7 @@ function KanbanColumn({ status, projects, index }: { status: typeof STATUSES[num
 
       <div
         ref={setNodeRef}
-        className={`space-y-3 min-h-[400px] rounded-xl border border-[rgb(var(--border))] bg-secondary/30 p-3 transition-colors ${isOver ? 'bg-primary/5 ring-2 ring-primary/20' : ''
+        className={`space-y-3 h-[calc(100vh-300px)] min-h-[400px] overflow-y-auto custom-scrollbar rounded-xl border border-[rgb(var(--border))] bg-secondary/30 p-3 transition-colors ${isOver ? 'bg-primary/5 ring-2 ring-primary/20' : ''
           }`}
       >
         {projects.length > 0 ? (

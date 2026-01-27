@@ -1,10 +1,11 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Camera, Mic, Video, Edit, Music, Star, ExternalLink } from 'lucide-react'
+import { Camera, Mic, Video, Edit, Music, Star, ExternalLink, Check, X } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useCallback } from 'react'
 import { AddFreelancerDialog } from './add-freelancer-dialog'
+import { updateFreelancerRate } from '@/actions/freelancers'
 
 type Freelancer = {
   id: string
@@ -17,24 +18,129 @@ type Freelancer = {
   status: string
 }
 
+
 const roleIcons: Record<string, any> = {
-  'Camera Operator': Camera,
-  'Sound Engineer': Mic,
-  'Video Editor': Edit,
-  'Colorist': Video,
+  'Diretor': Video,
+  'Diretor de Fotografia': Camera,
+  'Operador de Câmera': Camera,
+  'Técnico de Som': Mic,
+  'Editor de Vídeo': Edit,
+  'Colorista': Video,
   'Motion Designer': Music,
+  'Produtor': Star,
+  'Fotógrafo': Camera,
 }
 
 const specialtyColors: Record<string, string> = {
-  'Camera': 'bg-info/10 text-info',
-  'Sound': 'bg-success/10 text-success',
-  'Editing': 'bg-secondary text-text-secondary',
-  'Color': 'bg-warning/10 text-warning',
-  'Motion': 'bg-secondary text-text-secondary',
+  'Direção': 'bg-purple-500/10 text-purple-500',
+  'Câmera': 'bg-blue-500/10 text-blue-500',
+  'Luz': 'bg-yellow-500/10 text-yellow-500',
+  'Som': 'bg-green-500/10 text-green-500',
+  'Arte': 'bg-pink-500/10 text-pink-500',
+  'Produção': 'bg-orange-500/10 text-orange-500',
+  'Pós-Produção': 'bg-indigo-500/10 text-indigo-500',
+  'Roteiro': 'bg-teal-500/10 text-teal-500',
+  'Fotografia': 'bg-cyan-500/10 text-cyan-500',
+  'Beleza': 'bg-rose-500/10 text-rose-500',
 }
 
 interface FreelancersGridProps {
   initialFreelancers: Freelancer[]
+}
+
+function FreelancerRateEditor({
+  id,
+  initialRate,
+  onUpdate
+}: {
+  id: string
+  initialRate: number
+  onUpdate: (newRateValue: number) => void
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [rate, setRate] = useState(initialRate?.toString() || '')
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSave = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const numericRate = parseFloat(rate.toString().replace(/[^0-9.]/g, ''))
+
+    if (isNaN(numericRate)) return
+
+    setIsLoading(true)
+    try {
+      await updateFreelancerRate(id, numericRate)
+      onUpdate(numericRate)
+      setIsEditing(false)
+    } catch (error) {
+      console.error(error)
+      alert('Erro ao atualizar valor')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleCancel = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsEditing(false)
+    setRate(initialRate?.toString() || '')
+  }
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsEditing(true)
+    setRate(initialRate?.toString() || '')
+  }
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-2" onClick={(e) => e.preventDefault()}>
+        <div className="relative">
+          <span className="absolute left-2 top-1.5 text-xs text-text-tertiary">R$</span>
+          <input
+            type="number"
+            value={rate}
+            onChange={(e) => setRate(e.target.value)}
+            className="w-24 rounded-lg border border-[rgb(var(--border))] bg-secondary pl-7 py-1 text-sm font-medium text-text-primary focus:border-primary/30 focus:outline-none"
+            autoFocus
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={isLoading}
+          className="rounded-lg bg-green-500/10 p-1.5 text-green-500 hover:bg-green-500/20"
+        >
+          <Check className="h-4 w-4" />
+        </button>
+        <button
+          onClick={handleCancel}
+          disabled={isLoading}
+          className="rounded-lg bg-red-500/10 p-1.5 text-red-500 hover:bg-red-500/20"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-2 group/rate relative z-20">
+      <span className="text-lg font-bold text-text-primary">
+        R$ {initialRate?.toLocaleString('pt-BR') ?? '0'}
+      </span>
+      <button
+        onClick={handleEditClick}
+        className="opacity-0 group-hover/rate:opacity-100 rounded-lg p-1.5 text-text-tertiary hover:bg-secondary hover:text-text-primary transition-all"
+      >
+        <Edit className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  )
 }
 
 export function FreelancersGrid({ initialFreelancers }: FreelancersGridProps) {
@@ -186,9 +292,13 @@ export function FreelancersGrid({ initialFreelancers }: FreelancersGridProps) {
                   {/* Daily Rate */}
                   <div className="mt-4 flex items-center justify-between border-t border-[rgb(var(--border))] pt-4">
                     <span className="text-sm text-text-tertiary">Diária</span>
-                    <span className="text-lg font-bold text-text-primary">
-                      R$ {freelancer.daily_rate?.toLocaleString('pt-BR') ?? '0'}
-                    </span>
+                    <FreelancerRateEditor
+                      id={freelancer.id}
+                      initialRate={freelancer.daily_rate}
+                      onUpdate={(newRate) => {
+                        setFreelancers(prev => prev.map(f => f.id === freelancer.id ? { ...f, daily_rate: newRate } : f))
+                      }}
+                    />
                   </div>
                 </motion.div>
               </Link>
