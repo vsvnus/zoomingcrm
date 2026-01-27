@@ -127,6 +127,21 @@ export async function getProposal(proposalId: string) {
 }
 
 /**
+ * Buscar projeto vinculado à proposta
+ */
+export async function getProposalLinkedProject(proposalId: string) {
+  const supabase = await createClient()
+
+  const { data } = await supabase
+    .from('projects')
+    .select('id, title')
+    .eq('proposal_id', proposalId)
+    .single()
+
+  return data
+}
+
+/**
  * Buscar proposta por TOKEN (para página pública)
  * NÃO requer autenticação
  */
@@ -248,6 +263,9 @@ export async function updateProposal(
     valid_until?: string
     cover_image?: string
     primary_color?: string
+    payment_date?: string
+    installments?: number
+    is_recurring?: boolean
   }
 ) {
   const supabase = await createClient()
@@ -466,6 +484,8 @@ export async function duplicateProposal(proposalId: string) {
       validity_days: original.validity_days,
       payment_terms: original.payment_terms,
       notes: original.notes,
+      installments: original.installments || 1,
+      is_recurring: original.is_recurring || false,
     })
     .select()
     .single()
@@ -484,6 +504,10 @@ export async function duplicateProposal(proposalId: string) {
       unit_price: item.unit_price,
       total: item.total,
       order: item.order,
+      show_dates: item.show_dates,
+      // Dates are not copied by default to avoid confusion, or maybe they should? 
+      // User didn't specify, but usually dates are specific to the event.
+      // Saving show_dates is important though.
     }))
 
     const { error: itemsError } = await supabase.from('proposal_items').insert(itemsToInsert)
@@ -643,7 +667,10 @@ export async function addProposalItem(
     description: string
     quantity: number
     unit_price: number
-    date?: string | null // SPRINT 2: Data opcional do item
+    date?: string | null // Legacy date
+    recording_date?: string | null
+    delivery_date?: string | null
+    show_dates?: boolean
   }
 ) {
   const supabase = await createClient()
@@ -668,7 +695,10 @@ export async function addProposalItem(
       unit_price: item.unit_price,
       total: item.quantity * item.unit_price,
       order: nextOrder,
-      date: item.date || null, // SPRINT 2: Data opcional
+      date: item.date || null,
+      recording_date: item.recording_date || null,
+      delivery_date: item.delivery_date || null,
+      show_dates: item.show_dates || false,
     })
     .select()
     .single()
@@ -695,7 +725,10 @@ export async function updateProposalItem(
     description?: string
     quantity?: number
     unit_price?: number
-    date?: string | null // SPRINT 2: Data opcional do item
+    date?: string | null
+    recording_date?: string | null
+    delivery_date?: string | null
+    show_dates?: boolean
   }
 ) {
   const supabase = await createClient()
@@ -736,7 +769,7 @@ export async function updateProposalItem(
 }
 
 /**
- * Deletar item
+ * Deletar item da proposta
  */
 export async function deleteProposalItem(itemId: string) {
   const supabase = await createClient()
@@ -748,6 +781,10 @@ export async function deleteProposalItem(itemId: string) {
     .eq('id', itemId)
     .single()
 
+  if (!item) {
+    throw new Error('Item no encontrado')
+  }
+
   const { error } = await supabase
     .from('proposal_items')
     .delete()
@@ -757,9 +794,7 @@ export async function deleteProposalItem(itemId: string) {
     throw new Error('Erro ao deletar item: ' + error.message)
   }
 
-  if (item) {
-    await recalculateProposalValues(item.proposal_id)
-  }
+  await recalculateProposalValues(item.proposal_id)
 
   revalidatePath(`/proposals`)
 }
@@ -1083,6 +1118,7 @@ async function processProposalToProject(proposalId: string, userId?: string) {
       budget: proposal.total_value,
       deadline_date: proposal.valid_until,
       created_at: new Date().toISOString(),
+      is_recurring: proposal.is_recurring || false,
     })
     .select()
     .single()
@@ -1106,18 +1142,53 @@ async function processProposalToProject(proposalId: string, userId?: string) {
   // 3. Criar Eventos no Calendário
   let calendarEventsCreated = 0
   if (proposal.items && proposal.items.length > 0) {
-    const eventsToCreate = proposal.items
-      .filter((item: any) => item.date)
-      .map((item: any) => ({
-        title: `${item.description} - ${proposal.title}`,
-        description: `Item da proposta: ${item.description}`,
-        start_date: new Date(item.date).toISOString(),
-        end_date: new Date(new Date(item.date).setHours(new Date(item.date).getHours() + 1)).toISOString(),
-        project_id: project.id,
-        organization_id: organizationId,
-        type: 'shooting',
-        created_by: userId || null,
-      }))
+    const eventsToCreate: any[] = []
+
+    proposal.items.forEach((item: any) => {
+      // Evento da Data Base (Legacy)
+      if (item.date) {
+        eventsToCreate.push({
+          title: `${item.description} - ${proposal.title}`,
+          description: `Item da proposta: ${item.description}`,
+          start_date: new Date(item.date).toISOString(),
+          end_date: new Date(new Date(item.date).setHours(new Date(item.date).getHours() + 1)).toISOString(),
+          project_id: project.id,
+          organization_id: organizationId,
+          type: 'shooting',
+          created_by: userId || null,
+        })
+      }
+
+      // Evento de Gravação
+      if (item.recording_date) {
+        eventsToCreate.push({
+          title: `GRAVAÇÃO: ${item.description}`,
+          description: `Gravação referente ao projeto: ${proposal.title}`,
+          start_date: new Date(item.recording_date).toISOString(),
+          end_date: new Date(
+            new Date(item.recording_date).setHours(new Date(item.recording_date).getHours() + 4)
+          ).toISOString(), // Assume 4h duration
+          project_id: project.id,
+          organization_id: organizationId,
+          type: 'shooting',
+          created_by: userId || null,
+        })
+      }
+
+      // Evento de Entrega
+      if (item.delivery_date) {
+        eventsToCreate.push({
+          title: `ENTREGA: ${item.description}`,
+          description: `Entrega referente ao projeto: ${proposal.title}`,
+          start_date: new Date(item.delivery_date).toISOString(),
+          end_date: new Date(item.delivery_date).toISOString(), // Start = End for deadline
+          project_id: project.id,
+          organization_id: organizationId,
+          type: 'delivery', // Assuming type 'delivery' exists or fallback to 'meeting'/'other'
+          created_by: userId || null,
+        })
+      }
+    })
 
     if (eventsToCreate.length > 0) {
       const { error: eventsError } = await supabase.from('calendar_events').insert(eventsToCreate)
@@ -1127,22 +1198,33 @@ async function processProposalToProject(proposalId: string, userId?: string) {
     }
   }
 
-  // 4. Criar Transação Financeira (Receita Prevista)
+  // 4. Criar Transações Financeiras (Receita Prevista)
   // NOTA: Trigger foi removido na migration 11 para evitar duplicação
-  const { error: financeError } = await supabase.from('financial_transactions').insert({
-    organization_id: organizationId,
-    type: 'INCOME',
-    category: 'CLIENT_PAYMENT',
-    description: `Pagamento Proposta: ${proposal.title}`,
-    amount: proposal.total_value,
-    status: 'PENDING',
-    origin: 'proposta',
-    project_id: project.id,
-    proposal_id: proposal.id,
-    client_id: proposal.client_id,
-    due_date: proposal.valid_until,
-    created_by: userId || null
+  const installments = proposal.installments || 1
+  const installmentValue = proposal.total_value / installments
+  const firstDueDate = proposal.payment_date ? new Date(proposal.payment_date) : new Date(proposal.valid_until || Date.now())
+
+  const transactionsToCreate = Array.from({ length: installments }).map((_, index) => {
+    const dueDate = new Date(firstDueDate)
+    dueDate.setMonth(dueDate.getMonth() + index)
+
+    return {
+      organization_id: organizationId,
+      type: 'INCOME',
+      category: 'CLIENT_PAYMENT',
+      description: `Pagamento Proposta: ${proposal.title} (${index + 1}/${installments})`,
+      amount: installmentValue,
+      status: 'PENDING',
+      origin: 'proposta',
+      project_id: project.id,
+      proposal_id: proposal.id,
+      client_id: proposal.client_id,
+      due_date: dueDate.toISOString(),
+      created_by: userId || null
+    }
   })
+
+  const { error: financeError } = await supabase.from('financial_transactions').insert(transactionsToCreate)
 
   // 4a. Copiar itens da proposta para project_items e mapear IDs
   const itemsMapping: Array<{ proposalItemId: string; projectItemId: string }> = []
@@ -1159,6 +1241,8 @@ async function processProposalToProject(proposalId: string, userId?: string) {
           total_price: item.total,
           status: 'PENDING',
           due_date: item.date || null,
+          recording_date: item.recording_date || null,
+          delivery_date: item.delivery_date || null,
           order: item.order
         })
         .select('id')

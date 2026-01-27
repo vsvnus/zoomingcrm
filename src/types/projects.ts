@@ -42,6 +42,7 @@ export interface Project {
   created_at: string
   updated_at: string
   budget?: number // SPRINT 2: Orçamento do projeto
+  proposal_id?: string
 }
 
 export interface ProjectMember {
@@ -106,6 +107,15 @@ export interface ProjectItem {
   updated_at: string
 }
 
+export interface ProjectTask {
+  id: string
+  title: string
+  completed: boolean
+  order: number
+  project_id: string
+  created_at: string
+}
+
 export interface ProjectWithRelations extends Project {
   clients: {
     id: string
@@ -137,6 +147,7 @@ export interface ProjectWithRelations extends Project {
   shooting_dates?: ShootingDate[]
   delivery_dates?: DeliveryDate[]
   items?: ProjectItem[]
+  tasks?: ProjectTask[]
 }
 
 export interface ProjectMemberWithFreelancer extends ProjectMember {

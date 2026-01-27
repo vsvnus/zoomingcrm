@@ -38,7 +38,7 @@ import { EditProjectModal } from './edit-project-modal'
 import { AddTeamMemberModal } from './add-team-member-modal'
 import { AddEquipmentModal } from './add-equipment-modal'
 import { AddExpenseModal } from '@/components/finances/add-expense-modal'
-import { updateProjectMember, removeProjectMember, toggleProjectItemStatus, deleteProjectItem } from '@/actions/projects'
+import { updateProjectMember, removeProjectMember, toggleProjectItemStatus, deleteProjectItem, deleteProject, addProjectTask, toggleProjectTask, deleteProjectTask, updateProjectTask, initializeDefaultTasks } from '@/actions/projects'
 import { deleteExpense } from '@/actions/finances'
 import { useRouter } from 'next/navigation'
 import { ManageProjectItemModal } from './manage-project-item-modal'
@@ -66,6 +66,10 @@ export function ProjectDetailTabs({
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
   const [isManageItemOpen, setIsManageItemOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
+  const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [isAddingTask, setIsAddingTask] = useState(false)
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [editingTaskTitle, setEditingTaskTitle] = useState('')
 
   const tabs = [
     { id: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
@@ -99,6 +103,26 @@ export function ProjectDetailTabs({
       alert('Erro ao confirmar membro')
     }
   }
+
+  const handleDeleteProject = async () => {
+    if (!confirm('Tem certeza que deseja excluir ESTE PROJETO? Esta ação não pode ser desfeita.')) return
+
+    try {
+      const shouldDeleteProposal = project.proposal_id && confirm('Deseja excluir também a PROPOSTA associada a este projeto?')
+
+      await deleteProject(project.id)
+
+      if (shouldDeleteProposal && project.proposal_id) {
+        const { deleteProposal } = await import('@/actions/proposals')
+        await deleteProposal(project.proposal_id)
+      }
+
+      router.push('/projects')
+    } catch (error: any) {
+      alert(error?.message || 'Erro ao excluir projeto')
+    }
+  }
+
 
   const handleRemoveMember = async (memberId: string) => {
     if (!confirm('Tem certeza que deseja remover este membro?')) return
@@ -150,6 +174,72 @@ export function ProjectDetailTabs({
   const handleAddItem = () => {
     setEditingItem(null)
     setIsManageItemOpen(true)
+  }
+
+  // Task handlers
+  const handleAddTask = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newTaskTitle.trim()) return
+
+    setIsAddingTask(true)
+    try {
+      await addProjectTask(project.id, newTaskTitle)
+      setNewTaskTitle('')
+      router.refresh()
+    } catch (error) {
+      alert('Erro ao adicionar tarefa')
+    } finally {
+      setIsAddingTask(false)
+    }
+  }
+
+  const handleToggleTask = async (taskId: string, completed: boolean) => {
+    try {
+      await toggleProjectTask(taskId, project.id, completed)
+      router.refresh()
+    } catch (error) {
+      alert('Erro ao atualizar tarefa')
+    }
+  }
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await deleteProjectTask(taskId, project.id)
+      router.refresh()
+    } catch (error) {
+      alert('Erro ao remover tarefa')
+    }
+  }
+
+  const handleInitDefaultTasks = async () => {
+    try {
+      await initializeDefaultTasks(project.id)
+      router.refresh()
+    } catch (error) {
+      alert('Erro ao criar tarefas padrão')
+    }
+  }
+
+  const handleStartEditTask = (task: any) => {
+    setEditingTaskId(task.id)
+    setEditingTaskTitle(task.title)
+  }
+
+  const handleSaveEditTask = async (taskId: string) => {
+    if (!editingTaskTitle.trim()) return
+    try {
+      await updateProjectTask(taskId, project.id, editingTaskTitle)
+      setEditingTaskId(null)
+      setEditingTaskTitle('')
+      router.refresh()
+    } catch (error) {
+      alert('Erro ao atualizar tarefa')
+    }
+  }
+
+  const handleCancelEditTask = () => {
+    setEditingTaskId(null)
+    setEditingTaskTitle('')
   }
 
   // Cálculos financeiros
@@ -209,18 +299,6 @@ export function ProjectDetailTabs({
               </span>
             </motion.div>
           </div>
-
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsEditModalOpen(true)}
-            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition-all hover:bg-white/10"
-          >
-            <Edit className="h-4 w-4" />
-            Editar
-          </motion.button>
         </div>
       </div>
 
@@ -538,6 +616,146 @@ export function ProjectDetailTabs({
                 </p>
               </div>
             )}
+
+            {/* To-Do List */}
+            <div className="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">
+                  Checklist do Projeto
+                </h3>
+                {(!project.tasks || project.tasks.length === 0) && (
+                  <button
+                    onClick={handleInitDefaultTasks}
+                    className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-all hover:bg-white/10"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Criar Tarefas Padrão
+                  </button>
+                )}
+              </div>
+
+              {/* Task List */}
+              <div className="space-y-2">
+                {project.tasks && project.tasks.length > 0 ? (
+                  <>
+                    {project.tasks.map((task: any) => (
+                      <div
+                        key={task.id}
+                        className={`group flex items-center gap-3 rounded-lg border p-3 transition-all ${task.completed
+                          ? 'border-green-500/20 bg-green-500/5'
+                          : 'border-white/5 bg-white/5 hover:border-white/10'
+                          }`}
+                      >
+                        <button
+                          onClick={() => handleToggleTask(task.id, !task.completed)}
+                          className={`flex h-5 w-5 items-center justify-center rounded-full border transition-all ${task.completed
+                            ? 'border-green-500 bg-green-500 text-white'
+                            : 'border-zinc-600 bg-transparent text-transparent hover:border-zinc-400'
+                            }`}
+                        >
+                          <Check className="h-3 w-3" />
+                        </button>
+                        <span
+                          className={`flex-1 text-sm ${task.completed
+                            ? 'text-zinc-500 line-through'
+                            : 'text-white'
+                            }`}
+                        >
+                          {editingTaskId === task.id ? (
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={editingTaskTitle}
+                                onChange={(e) => setEditingTaskTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveEditTask(task.id)
+                                  if (e.key === 'Escape') handleCancelEditTask()
+                                }}
+                                className="flex-1 rounded border border-white/20 bg-white/10 px-2 py-0.5 text-sm text-white focus:outline-none focus:border-white/40"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => handleSaveEditTask(task.id)}
+                                className="rounded p-1 text-green-400 hover:bg-green-500/10"
+                              >
+                                <Check className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={handleCancelEditTask}
+                                className="rounded p-1 text-zinc-400 hover:bg-zinc-500/10"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            task.title
+                          )}
+                        </span>
+                        {editingTaskId !== task.id && (
+                          <>
+                            <button
+                              onClick={() => handleStartEditTask(task)}
+                              className="rounded p-1 text-zinc-600 opacity-0 transition-all hover:bg-white/10 hover:text-white group-hover:opacity-100"
+                              title="Editar"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTask(task.id)}
+                              className="rounded p-1 text-zinc-600 opacity-0 transition-all hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
+                              title="Excluir"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Progress */}
+                    <div className="mt-4 pt-4 border-t border-white/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-zinc-500">Progresso</span>
+                        <span className="text-xs font-medium text-zinc-300">
+                          {project.tasks.filter((t: any) => t.completed).length} / {project.tasks.length}
+                        </span>
+                      </div>
+                      <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500"
+                          style={{
+                            width: `${(project.tasks.filter((t: any) => t.completed).length / project.tasks.length) * 100}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-zinc-500 text-center py-4">
+                    Nenhuma tarefa ainda. Adicione tarefas ou use as padrão.
+                  </p>
+                )}
+              </div>
+
+              {/* Add Task Form */}
+              <form onSubmit={handleAddTask} className="mt-4 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Nova tarefa..."
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={isAddingTask || !newTaskTitle.trim()}
+                  className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition-all hover:bg-zinc-200 disabled:opacity-50"
+                >
+                  <Plus className="h-4 w-4" />
+                  Adicionar
+                </button>
+              </form>
+            </div>
           </div>
         )}
 
@@ -1161,12 +1379,15 @@ export function ProjectDetailTabs({
         }
       </motion.div >
 
+
+      {/* ... rest of JSX ... */}
       {/* Modals */}
       {
         isEditModalOpen && (
           <EditProjectModal
             isOpen={isEditModalOpen}
             onClose={() => setIsEditModalOpen(false)}
+            onDelete={handleDeleteProject}
             project={project}
           />
         )

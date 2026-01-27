@@ -447,14 +447,14 @@ function Header() {
         <nav className="hidden md:flex gap-8 text-sm font-medium text-zinc-400">
           <Link href="#features" className="hover:text-white transition-colors">Funcionalidades</Link>
           <Link href="#pricing" className="hover:text-white transition-colors">Planos</Link>
-          <Link href="/login" className="hover:text-white transition-colors">Login</Link>
+          <a href="/login" className="hover:text-white transition-colors">Login</a>
         </nav>
-        <Link
+        <a
           href="/login"
           className="px-5 py-2 bg-white/10 border border-white/5 text-white text-sm font-semibold rounded-lg hover:bg-white hover:text-black transition-all"
         >
           Entrar
-        </Link>
+        </a>
       </div>
     </header>
   )

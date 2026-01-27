@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { Play, Mail, Lock, ArrowRight, Phone, DollarSign, Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -17,6 +16,7 @@ export default function LoginPage() {
     name: '',
     companyName: '',
     whatsapp: '',
+
     capitalInicial: '',
   })
 
@@ -62,17 +62,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black p-4">
+    <div className="flex min-h-screen items-center justify-center bg-black p-4" >
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-black to-black opacity-50" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-zinc-800/20 via-transparent to-transparent" />
 
       {/* Login card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative w-full max-w-md"
-      >
+      <div className="relative w-full max-w-md">
         <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-8 backdrop-blur-xl">
           {/* Logo */}
           <div className="mb-8 flex items-center justify-center gap-3">
@@ -227,11 +223,9 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <motion.button
+            <button
               type="submit"
               disabled={isLoading}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
               className="group relative w-full overflow-hidden rounded-lg bg-white py-3 font-medium text-black transition-all hover:bg-zinc-200 disabled:opacity-50"
             >
               <span className="flex items-center justify-center gap-2">
@@ -247,7 +241,7 @@ export default function LoginPage() {
                   </>
                 )}
               </span>
-            </motion.button>
+            </button>
           </form>
 
           {/* Toggle sign up/sign in */}
@@ -288,7 +282,7 @@ export default function LoginPage() {
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
     </div>
   )
 }

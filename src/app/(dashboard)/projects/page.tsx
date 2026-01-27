@@ -1,10 +1,12 @@
 import { Suspense } from 'react'
-import { getProjects } from '@/actions/projects'
+import { getProjectsForKanban } from '@/actions/projects'
 import { ProjectsKanban } from '@/components/projects/projects-kanban'
 
 async function ProjectsData() {
-  const projects = await getProjects()
-  return <ProjectsKanban initialProjects={projects} />
+  const kanbanData = await getProjectsForKanban()
+  // Flatten all projects from columns for the Kanban component
+  const allProjects = kanbanData.columns.flatMap(col => col.projects)
+  return <ProjectsKanban initialProjects={allProjects} />
 }
 
 function ProjectsLoading() {

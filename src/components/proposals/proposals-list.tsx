@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Plus, FileText, Eye, CheckCircle, XCircle, Clock, Edit, Trash2, CheckCircle2 } from 'lucide-react'
+import { Plus, FileText, Eye, CheckCircle, XCircle, Clock, Edit, Trash2, CheckCircle2, Grid, List } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
@@ -39,6 +39,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
   const router = useRouter()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [proposals, setProposals] = useState(initialProposals)
+  const [viewMode, setViewMode] = useState<'grid' | 'client'>('grid')
 
   // Sincronizar com dados do servidor quando mudam
   useEffect(() => {
@@ -101,6 +102,118 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
       alert(error?.message || 'Erro ao excluir proposta')
     }
   }
+
+  const groupedProposals = proposals.reduce((acc, proposal) => {
+    const clientName = proposal.clients?.name || 'Sem Cliente'
+    if (!acc[clientName]) {
+      acc[clientName] = []
+    }
+    acc[clientName].push(proposal)
+    return acc
+  }, {} as Record<string, Proposal[]>)
+
+  const ProposalCard = ({ proposal }: { proposal: Proposal }) => {
+    const statusInfo = statusMap[proposal.status] || statusMap.DRAFT
+    const StatusIcon = statusInfo.icon
+
+    return (
+      <motion.div
+        layout
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="group relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card p-6 transition-all hover:shadow-3 hover-lift"
+      >
+        {/* Status Badge */}
+        <div className="absolute right-4 top-4">
+          <div className={`flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 ${statusInfo.color}`}>
+            <StatusIcon className="h-3 w-3" />
+            <span className="text-xs font-medium">{statusInfo.label}</span>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="mt-8">
+          <h3 className="text-lg font-bold text-text-primary line-clamp-2">
+            {proposal.title}
+          </h3>
+
+          {proposal.clients && viewMode === 'grid' && (
+            <p className="mt-2 text-sm text-text-tertiary">
+              {proposal.clients.name}
+            </p>
+          )}
+
+          {/* Values */}
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-text-tertiary">Valor Base</span>
+              <span className="font-medium text-text-secondary">
+                {formatCurrency(Number(proposal.base_value))}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-tertiary">Valor Total</span>
+              <span className="text-lg font-bold text-success">
+                {formatCurrency(Number(proposal.total_value))}
+              </span>
+            </div>
+          </div>
+
+          {/* Date */}
+          <div className="mt-4 pt-4 border-t border-[rgb(var(--border))]">
+            <span className="text-xs text-text-tertiary">
+              Criada em{' '}
+              {new Date(proposal.created_at).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })}
+            </span>
+          </div>
+
+          {/* Edit Button */}
+          <div className="mt-4 flex items-center gap-2">
+            <button
+              onClick={() => router.push(`/proposals/${proposal.id}/edit`)}
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-secondary border border-[rgb(var(--border))] text-text-primary hover:bg-bg-hover transition-all text-sm font-medium"
+              title="Editar"
+            >
+              <Edit className="h-4 w-4" />
+              <span className="sr-only lg:not-sr-only lg:inline">Editar</span>
+            </button>
+
+            {proposal.status !== 'ACCEPTED' && (
+              <button
+                onClick={() => handleAccept(proposal)}
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 hover:bg-green-500/20 transition-all text-sm font-medium"
+                title="Aceitar Proposta e Gerar Projeto"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+              </button>
+            )}
+
+            <button
+              onClick={() => window.open(`/p/${proposal.token}`, '_blank')}
+              className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-500 hover:bg-blue-500/20 transition-all text-sm font-medium"
+              title="Visualizar Preview"
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+
+            <button
+              onClick={() => handleDelete(proposal.id)}
+              className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 transition-all text-sm font-medium"
+              title="Excluir"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    )
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -123,17 +236,36 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
           </motion.p>
         </div>
 
-        <motion.button
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" />
-          Nova Proposta
-        </motion.button>
+        <div className="flex items-center gap-3">
+          <div className="flex bg-secondary rounded-lg p-1 border border-[rgb(var(--border))]">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-primary text-white shadow-sm' : 'text-text-tertiary hover:text-text-primary'}`}
+              title="Visualização em Grade"
+            >
+              <Grid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('client')}
+              className={`p-2 rounded-md transition-all ${viewMode === 'client' ? 'bg-primary text-white shadow-sm' : 'text-text-tertiary hover:text-text-primary'}`}
+              title="Agrupar por Cliente"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" />
+            Nova Proposta
+          </motion.button>
+        </div>
       </div>
 
       {/* Modal para selecionar cliente */}
@@ -144,109 +276,36 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
 
       {/* Proposals List */}
       {proposals.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {proposals.map((proposal, index) => {
-            const statusInfo = statusMap[proposal.status] || statusMap.DRAFT
-            const StatusIcon = statusInfo.icon
-
-            return (
+        viewMode === 'grid' ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {proposals.map((proposal) => (
+              <ProposalCard key={proposal.id} proposal={proposal} />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-12">
+            {Object.entries(groupedProposals).map(([clientName, clientProposals], index) => (
               <motion.div
-                key={proposal.id}
+                key={clientName}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="group relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card p-6 transition-all hover:shadow-3 hover-lift"
+                className="space-y-6"
               >
-                {/* Status Badge */}
-                <div className="absolute right-4 top-4">
-                  <div className={`flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 ${statusInfo.color}`}>
-                    <StatusIcon className="h-3 w-3" />
-                    <span className="text-xs font-medium">{statusInfo.label}</span>
-                  </div>
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-bold text-text-primary">{clientName}</h2>
+                  <div className="h-[1px] flex-1 bg-[rgb(var(--border))]" />
+                  <span className="text-sm text-text-tertiary">{clientProposals.length} propostas</span>
                 </div>
-
-                {/* Content */}
-                <div className="mt-8">
-                  <h3 className="text-lg font-bold text-text-primary line-clamp-2">
-                    {proposal.title}
-                  </h3>
-
-                  {proposal.clients && (
-                    <p className="mt-2 text-sm text-text-tertiary">
-                      {proposal.clients.name}
-                    </p>
-                  )}
-
-                  {/* Values */}
-                  <div className="mt-4 space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-text-tertiary">Valor Base</span>
-                      <span className="font-medium text-text-secondary">
-                        {formatCurrency(Number(proposal.base_value))}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-text-tertiary">Valor Total</span>
-                      <span className="text-lg font-bold text-success">
-                        {formatCurrency(Number(proposal.total_value))}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Date */}
-                  <div className="mt-4 pt-4 border-t border-[rgb(var(--border))]">
-                    <span className="text-xs text-text-tertiary">
-                      Criada em{' '}
-                      {new Date(proposal.created_at).toLocaleDateString('pt-BR', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </span>
-                  </div>
-
-                  {/* Edit Button */}
-                  <div className="mt-4 flex items-center gap-2">
-                    <button
-                      onClick={() => router.push(`/proposals/${proposal.id}/edit`)}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-secondary border border-[rgb(var(--border))] text-text-primary hover:bg-bg-hover transition-all text-sm font-medium"
-                      title="Editar"
-                    >
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only lg:not-sr-only lg:inline">Editar</span>
-                    </button>
-
-                    {proposal.status !== 'ACCEPTED' && (
-                      <button
-                        onClick={() => handleAccept(proposal)}
-                        className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 hover:bg-green-500/20 transition-all text-sm font-medium"
-                        title="Aceitar Proposta e Gerar Projeto"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => window.open(`/p/${proposal.token}`, '_blank')}
-                      className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-500 hover:bg-blue-500/20 transition-all text-sm font-medium"
-                      title="Visualizar Preview"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(proposal.id)}
-                      className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 transition-all text-sm font-medium"
-                      title="Excluir"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {clientProposals.map((proposal) => (
+                    <ProposalCard key={proposal.id} proposal={proposal} />
+                  ))}
                 </div>
               </motion.div>
-            )
-          })}
-        </div>
+            ))}
+          </div>
+        )
       ) : (
         <motion.div
           initial={{ opacity: 0 }}

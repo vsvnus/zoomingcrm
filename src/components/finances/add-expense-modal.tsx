@@ -61,16 +61,22 @@ export function AddExpenseModal({ projectId, onClose }: AddExpenseModalProps) {
   ]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-2xl rounded-2xl border border-white/10 bg-zinc-900 p-6 shadow-xl"
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-zinc-900 p-6 shadow-xl my-4"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-white">Adicionar Despesa</h2>
+        <div className="mb-4 flex items-center justify-between sticky top-0 bg-zinc-900 pb-2 -mt-2 pt-2 -mx-6 px-6 border-b border-white/5">
+          <h2 className="text-xl font-bold text-white">Adicionar Despesa</h2>
           <button
             onClick={onClose}
             className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
@@ -85,7 +91,7 @@ export function AddExpenseModal({ projectId, onClose }: AddExpenseModalProps) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Category Selection */}
           <div>
             <label className="mb-3 block text-sm font-medium text-zinc-300">
@@ -109,11 +115,10 @@ export function AddExpenseModal({ projectId, onClose }: AddExpenseModalProps) {
                           | 'LOGISTICS',
                       })
                     }
-                    className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-all ${
-                      isSelected
+                    className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-all ${isSelected
                         ? 'border-white/20 bg-white/10 text-white'
                         : 'border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <Icon className="h-6 w-6" />
                     <span className="text-sm font-medium">{category.label}</span>

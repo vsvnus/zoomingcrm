@@ -12,6 +12,7 @@ import { DatesManager } from './dates-manager'
 interface EditProjectModalProps {
   isOpen: boolean
   onClose: () => void
+  onDelete?: () => void
   project: ProjectWithRelations
 }
 
@@ -44,7 +45,7 @@ interface LocalDeliveryDate {
   isNew?: boolean
 }
 
-export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalProps) {
+export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditProjectModalProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [clients, setClients] = useState<Client[]>([])
@@ -481,6 +482,15 @@ export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalP
 
         {/* Buttons */}
         <div className="flex gap-3 pt-4 sticky bottom-0 bg-zinc-900 py-4 -mx-2 px-2">
+          {onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-500 transition-all hover:bg-red-500/20"
+            >
+              Excluir Projeto
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}

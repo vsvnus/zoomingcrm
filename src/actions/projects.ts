@@ -62,6 +62,7 @@ export async function getProjectsForKanban(): Promise<KanbanBoardData> {
   const projectIds = projects?.map(p => p.id) || []
 
   let shootingDatesMap: Record<string, string> = {}
+  let taskProgressMap: Record<string, { total: number; completed: number }> = {}
 
   if (projectIds.length > 0) {
     const { data: nextShoots } = await supabase
@@ -78,6 +79,37 @@ export async function getProjectsForKanban(): Promise<KanbanBoardData> {
         shootingDatesMap[shoot.projectId] = shoot.date
       }
     })
+
+    // 3. Buscar contagem de tarefas por projeto
+    const { data: allTasks, error: tasksError } = await supabase
+      .from('project_tasks')
+      .select('project_id, title, completed, order')
+      .in('project_id', projectIds)
+      .order('order', { ascending: true })
+
+    if (tasksError) {
+      console.error('Error fetching tasks for kanban:', tasksError)
+    }
+
+    // Map de próxima tarefa pendente por projeto
+    let nextTaskMap: Record<string, string> = {}
+
+    if (allTasks) {
+      allTasks.forEach((task) => {
+        if (!taskProgressMap[task.project_id]) {
+          taskProgressMap[task.project_id] = { total: 0, completed: 0 }
+        }
+        taskProgressMap[task.project_id].total++
+        if (task.completed) {
+          taskProgressMap[task.project_id].completed++
+        } else {
+          // Primeira tarefa não completa = próxima tarefa
+          if (!nextTaskMap[task.project_id]) {
+            nextTaskMap[task.project_id] = task.title
+          }
+        }
+      })
+    }
   }
 
   const columns: KanbanBoardData['columns'] = [
@@ -89,11 +121,34 @@ export async function getProjectsForKanban(): Promise<KanbanBoardData> {
     { id: 'DONE', title: 'Concluído', projects: [] },
   ]
 
+  // Precisamos acessar nextTaskMap fora do if
+  let nextTaskMap: Record<string, string> = {}
+
+  if (projectIds.length > 0) {
+    const { data: allTasks } = await supabase
+      .from('project_tasks')
+      .select('project_id, title, completed, order')
+      .in('project_id', projectIds)
+      .order('order', { ascending: true })
+
+    if (allTasks) {
+      allTasks.forEach((task) => {
+        if (!task.completed && !nextTaskMap[task.project_id]) {
+          nextTaskMap[task.project_id] = task.title
+        }
+      })
+    }
+  }
+
   projects?.forEach((project) => {
-    // Injetar próxima gravação no objeto do projeto (extensão dinâmica)
+    // Injetar próxima gravação e progresso de tarefas no objeto do projeto
+    const taskProgress = taskProgressMap[project.id] || { total: 0, completed: 0 }
     const projectWithEvent = {
       ...project,
-      next_shooting: shootingDatesMap[project.id] || null
+      next_shooting: shootingDatesMap[project.id] || null,
+      tasks_total: taskProgress.total,
+      tasks_completed: taskProgress.completed,
+      next_task: nextTaskMap[project.id] || null,
     }
 
     const column = columns.find((col) => col.id === project.status)
@@ -200,11 +255,28 @@ export async function getProject(projectId: string): Promise<ProjectWithRelation
     // Tabela pode não existir ainda
   }
 
+  // Buscar project_tasks (To-Do List)
+  let tasks: any[] = []
+  try {
+    const { data: tasksData, error: tasksError } = await supabase
+      .from('project_tasks')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('order', { ascending: true })
+
+    if (!tasksError && tasksData) {
+      tasks = tasksData
+    }
+  } catch (e) {
+    // Tabela pode não existir ainda
+  }
+
   return {
     ...data,
     shooting_dates: shootingDates,
     delivery_dates: deliveryDates,
     items: items,
+    tasks: tasks,
   }
 }
 
@@ -855,6 +927,147 @@ export async function deleteProjectItem(itemId: string, projectId: string) {
   if (error) {
     console.error('Error deleting project item:', error)
     throw new Error('Erro ao deletar item')
+  }
+
+  revalidatePath(`/projects/${projectId}`)
+}
+
+// ============================================
+// PROJECT TASKS (TO-DO LIST)
+// ============================================
+
+const DEFAULT_TASKS = [
+  'Briefing',
+  'Roteiro',
+  'Preparação de Setup',
+  'Produção',
+]
+
+export async function getProjectTasks(projectId: string) {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('project_tasks')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('order', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching project tasks:', error)
+    return []
+  }
+
+  return data || []
+}
+
+export async function addProjectTask(projectId: string, title: string) {
+  const supabase = await createClient()
+
+  // Buscar último order
+  const { data: lastTask } = await supabase
+    .from('project_tasks')
+    .select('order')
+    .eq('project_id', projectId)
+    .order('order', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const nextOrder = lastTask ? (lastTask.order || 0) + 1 : 1
+
+  const { data, error } = await supabase
+    .from('project_tasks')
+    .insert({
+      project_id: projectId,
+      title: title.trim(),
+      completed: false,
+      order: nextOrder,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error adding project task:', error)
+    throw new Error('Erro ao adicionar tarefa')
+  }
+
+  revalidatePath(`/projects/${projectId}`)
+  return data
+}
+
+export async function toggleProjectTask(taskId: string, projectId: string, completed: boolean) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('project_tasks')
+    .update({ completed })
+    .eq('id', taskId)
+
+  if (error) {
+    console.error('Error toggling project task:', error)
+    throw new Error('Erro ao atualizar tarefa')
+  }
+
+  revalidatePath(`/projects/${projectId}`)
+}
+
+export async function deleteProjectTask(taskId: string, projectId: string) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('project_tasks')
+    .delete()
+    .eq('id', taskId)
+
+  if (error) {
+    console.error('Error deleting project task:', error)
+    throw new Error('Erro ao remover tarefa')
+  }
+
+  revalidatePath(`/projects/${projectId}`)
+}
+
+export async function updateProjectTask(taskId: string, projectId: string, title: string) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('project_tasks')
+    .update({ title: title.trim() })
+    .eq('id', taskId)
+
+  if (error) {
+    console.error('Error updating project task:', error)
+    throw new Error('Erro ao atualizar tarefa')
+  }
+
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/projects') // Refresh kanban too
+}
+
+export async function initializeDefaultTasks(projectId: string) {
+  const supabase = await createClient()
+
+  // Verificar se já tem tarefas
+  const { count } = await supabase
+    .from('project_tasks')
+    .select('*', { count: 'exact', head: true })
+    .eq('project_id', projectId)
+
+  if (count && count > 0) {
+    return // Já tem tarefas, não precisa criar padrão
+  }
+
+  // Criar tarefas padrão
+  const tasksToCreate = DEFAULT_TASKS.map((title, index) => ({
+    project_id: projectId,
+    title,
+    completed: false,
+    order: index + 1,
+  }))
+
+  const { error } = await supabase.from('project_tasks').insert(tasksToCreate)
+
+  if (error) {
+    console.error('Error initializing default tasks:', error)
   }
 
   revalidatePath(`/projects/${projectId}`)

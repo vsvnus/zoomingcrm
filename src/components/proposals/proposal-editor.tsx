@@ -19,6 +19,8 @@ import {
   ArrowLeft,
   Palette,
   Image,
+  Repeat,
+  Truck,
 } from 'lucide-react'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { formatCurrency } from '@/lib/utils'
@@ -34,6 +36,7 @@ import {
   updateProposal,
   acceptProposalManual,
   deleteProposal,
+  getProposalLinkedProject,
 } from '@/actions/proposals'
 import { useRouter } from 'next/navigation'
 
@@ -47,6 +50,9 @@ type ProposalData = {
   status: string
   primary_color?: string | null
   cover_image?: string | null
+  payment_date?: string | null
+  installments?: number
+  is_recurring?: boolean
   clients?: {
     id: string
     name: string
@@ -59,7 +65,9 @@ type ProposalData = {
     unit_price: number
     total: number
     order: number
-    date?: string | null // SPRINT 2: Data opcional do item
+    date?: string | null
+    recording_date?: string | null
+    delivery_date?: string | null
   }>
   optionals: Array<{
     id: string
@@ -95,6 +103,11 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
     valid_until: proposal.valid_until
       ? new Date(proposal.valid_until).toISOString().split('T')[0]
       : '',
+    payment_date: proposal.payment_date
+      ? new Date(proposal.payment_date).toISOString().split('T')[0]
+      : '',
+    installments: proposal.installments || 1,
+    is_recurring: proposal.is_recurring || false,
   })
   const [origin, setOrigin] = useState('')
 
@@ -185,6 +198,9 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
         description: editForm.description,
         discount: editForm.discount,
         valid_until: editForm.valid_until || undefined,
+        payment_date: editForm.payment_date || undefined,
+        installments: editForm.installments,
+        is_recurring: editForm.is_recurring,
       })
       setProposal({
         ...proposal,
@@ -192,6 +208,9 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
         description: editForm.description,
         discount: editForm.discount,
         valid_until: editForm.valid_until || null,
+        payment_date: editForm.payment_date || null,
+        installments: editForm.installments,
+        is_recurring: editForm.is_recurring,
       })
       setIsEditing(false)
       alert('Proposta atualizada!')
@@ -245,7 +264,21 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
     if (!confirm('Tem certeza que deseja excluir esta proposta? Esta ação não pode ser desfeita.')) return
 
     try {
+      // Verificar se existe projeto associado
+      const linkedProject = await getProposalLinkedProject(proposal.id)
+      let shouldDeleteProject = false
+
+      if (linkedProject) {
+        shouldDeleteProject = confirm(`Existe um projeto "${linkedProject.title}" associado a esta proposta. Deseja excluí-lo também?`)
+      }
+
+      if (shouldDeleteProject && linkedProject) {
+        const { deleteProject } = await import('@/actions/projects')
+        await deleteProject(linkedProject.id)
+      }
+
       await deleteProposal(proposal.id)
+
       router.push('/proposals')
     } catch (error: any) {
       alert(error?.message || 'Erro ao excluir proposta')
@@ -307,6 +340,42 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                       onChange={(e) => setEditForm({ ...editForm, valid_until: e.target.value })}
                       className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-white/20 focus:outline-none"
                     />
+                  </div>
+                </div>
+
+                {/* Financial & Recurrence Settings */}
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="mb-1 block text-sm text-zinc-400">Data Pagamento</label>
+                    <input
+                      type="date"
+                      value={editForm.payment_date}
+                      onChange={(e) => setEditForm({ ...editForm, payment_date: e.target.value })}
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-white/20 focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="mb-1 block text-sm text-zinc-400">Parcelas</label>
+                    <select
+                      value={editForm.installments}
+                      onChange={(e) => setEditForm({ ...editForm, installments: parseInt(e.target.value) })}
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-white/20 focus:outline-none"
+                    >
+                      <option value={1}>À vista (1x)</option>
+                      <option value={2}>Parcelado (2x)</option>
+                      <option value={3}>Parcelado (3x)</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center pt-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editForm.is_recurring}
+                        onChange={(e) => setEditForm({ ...editForm, is_recurring: e.target.checked })}
+                        className="rounded border-white/10 bg-white/5 text-purple-500 focus:ring-purple-500"
+                      />
+                      <span className="text-sm text-zinc-300">Recorrente?</span>
+                    </label>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -453,6 +522,18 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                               <span className="flex items-center gap-1 text-purple-400">
                                 <Calendar className="h-3 w-3" />
                                 {new Date(item.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                              </span>
+                            )}
+                            {item.recording_date && (
+                              <span className="flex items-center gap-1 text-blue-400" title="Gravação">
+                                <Video className="h-3 w-3" />
+                                {new Date(item.recording_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                              </span>
+                            )}
+                            {item.delivery_date && (
+                              <span className="flex items-center gap-1 text-green-400" title="Entrega">
+                                <Truck className="h-3 w-3" />
+                                {new Date(item.delivery_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                               </span>
                             )}
                           </div>
@@ -703,44 +784,73 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                   </div>
                 </div>
 
-                {/* Info cards */}
-                <div className="mt-6 space-y-3">
+              </div>
+
+              {/* Info cards */}
+              <div className="mt-6 space-y-3">
+                <div className="rounded-lg border border-white/5 bg-white/5 p-3">
+                  <p className="text-xs text-zinc-500">Status</p>
+                  <p className="mt-1 font-medium text-white">
+                    {proposal.status === 'DRAFT'
+                      ? 'Rascunho'
+                      : proposal.status === 'SENT'
+                        ? 'Enviada'
+                        : proposal.status === 'VIEWED'
+                          ? 'Visualizada'
+                          : proposal.status === 'ACCEPTED'
+                            ? 'Aceita'
+                            : 'Rejeitada'}
+                  </p>
+                </div>
+
+                {proposal.valid_until && (
                   <div className="rounded-lg border border-white/5 bg-white/5 p-3">
-                    <p className="text-xs text-zinc-500">Status</p>
+                    <p className="text-xs text-zinc-500">Válido até</p>
                     <p className="mt-1 font-medium text-white">
-                      {proposal.status === 'DRAFT'
-                        ? 'Rascunho'
-                        : proposal.status === 'SENT'
-                          ? 'Enviada'
-                          : proposal.status === 'VIEWED'
-                            ? 'Visualizada'
-                            : proposal.status === 'ACCEPTED'
-                              ? 'Aceita'
-                              : 'Rejeitada'}
+                      {new Date(proposal.valid_until).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                     </p>
                   </div>
+                )}
 
-                  {proposal.valid_until && (
-                    <div className="rounded-lg border border-white/5 bg-white/5 p-3">
-                      <p className="text-xs text-zinc-500">Válido até</p>
-                      <p className="mt-1 font-medium text-white">
-                        {new Date(proposal.valid_until).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
-                      </p>
-                    </div>
+                {/* Payment Info */}
+                <div className="rounded-lg border border-white/5 bg-white/5 p-3">
+                  <p className="text-xs text-zinc-500">Condições de Pagamento</p>
+                  <p className="mt-1 font-medium text-white">
+                    {proposal.installments && proposal.installments > 1
+                      ? `${proposal.installments}x Parcelado`
+                      : 'À Vista'}
+                  </p>
+                  {proposal.payment_date && (
+                    <p className="text-sm text-zinc-400 mt-1">
+                      Vencimento: {new Date(proposal.payment_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                    </p>
                   )}
+                </div>
 
-                  <div className="rounded-lg border border-white/5 bg-white/5 p-3">
-                    <p className="text-xs text-zinc-500">Link Público</p>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(publicUrl)
-                        alert('Link copiado!')
-                      }}
-                      className="mt-1 w-full truncate text-left text-sm font-medium text-blue-400 hover:underline"
-                    >
-                      {publicUrl}
-                    </button>
+                {/* Recurrence Badge */}
+                {proposal.is_recurring && (
+                  <div className="rounded-lg border border-purple-500/20 bg-purple-500/10 p-3">
+                    <div className="flex items-center gap-2 text-purple-400">
+                      <Repeat className="h-4 w-4" />
+                      <span className="text-sm font-medium">Projeto Recorrente</span>
+                    </div>
+                    <p className="mt-1 text-xs text-purple-300/80">
+                      Renova automaticamente após entrega.
+                    </p>
                   </div>
+                )}
+
+                <div className="rounded-lg border border-white/5 bg-white/5 p-3">
+                  <p className="text-xs text-zinc-500">Link Público</p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(publicUrl)
+                      alert('Link copiado!')
+                    }}
+                    className="mt-1 w-full truncate text-left text-sm font-medium text-blue-400 hover:underline"
+                  >
+                    {publicUrl}
+                  </button>
                 </div>
               </div>
             </motion.div>

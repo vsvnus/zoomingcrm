@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Plus, Clock, Calendar, AlertCircle, Eye, GripVertical } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { updateProjectStatus } from '@/actions/projects'
 import { ProjectFormModal } from './project-form-modal'
 import Link from 'next/link'
@@ -48,6 +48,11 @@ export function ProjectsKanban({ initialProjects }: ProjectsKanbanProps) {
   const [projects, setProjects] = useState(initialProjects)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -193,7 +198,7 @@ export function ProjectsKanban({ initialProjects }: ProjectsKanbanProps) {
         </div>
 
         {/* Overlay para o card sendo arrastado */}
-        {createPortal(
+        {isMounted && createPortal(
           <DragOverlay>
             {activeProject ? (
               <ProjectCard project={activeProject} isOverlay />
@@ -415,6 +420,40 @@ function ProjectCard({
             <span>
               Entrega: {new Date(project.deadline_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
             </span>
+          </div>
+        )}
+
+        {/* Task Progress - Show next task */}
+        {(project as any).tasks_total > 0 && (
+          <div className="mb-2 rounded-lg bg-secondary/50 p-2 border border-[rgb(var(--border))]">
+            {(project as any).next_task ? (
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                <span className="text-xs font-medium text-text-primary truncate">
+                  {(project as any).next_task}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-400 shrink-0" />
+                <span className="text-xs font-medium text-green-400">
+                  Todas concluídas!
+                </span>
+              </div>
+            )}
+            <div className="mt-2 flex items-center gap-2">
+              <div className="flex-1 h-1 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-300"
+                  style={{
+                    width: `${((project as any).tasks_completed / (project as any).tasks_total) * 100}%`,
+                  }}
+                />
+              </div>
+              <span className="text-[10px] text-text-quaternary font-medium">
+                {(project as any).tasks_completed}/{(project as any).tasks_total}
+              </span>
+            </div>
           </div>
         )}
       </div>
