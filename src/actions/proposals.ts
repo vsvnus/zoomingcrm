@@ -338,32 +338,33 @@ export async function sendProposal(proposalId: string) {
 
 /**
  * Aprovar proposta (ação interna)
- * IMPORTANTE: Ao aprovar, o trigger SQL criará automaticamente uma receita em financial_transactions
+ * Agora usa RPC blindada para garantir consistência
  */
 export async function approveProposal(proposalId: string) {
   const supabase = await createClient()
+  const user = (await supabase.auth.getUser()).data.user
 
-  const { data, error } = await supabase
-    .from('proposals')
-    .update({
-      status: 'ACCEPTED',
-      accepted_at: new Date().toISOString(),
-    })
-    .eq('id', proposalId)
-    .select('*, clients(id, name, company)')
-    .single()
+  // Se não tiver user (edge case), passa null, mas idealmente internal action tem user
+  const userId = user?.id || null
+
+  const { data, error } = await supabase.rpc('accept_proposal_v1', {
+    p_proposal_id: proposalId,
+    p_user_id: userId
+  })
 
   if (error) {
-    console.error('Error approving proposal:', error)
+    console.error('Error approving proposal (RPC):', error)
     throw new Error('Erro ao aprovar proposta: ' + error.message)
   }
 
-  // 🔔 TRIGGER SQL cria receita automaticamente aqui
-  const result = await processProposalToProject(proposalId)
+  // 🔔 RPC já cria projeto, finanças e transações
 
   revalidatePath('/proposals')
+  revalidatePath('/projects')
   revalidatePath('/financeiro')
-  return result
+  return {
+    projectId: data.project_id
+  }
 }
 
 /**
@@ -652,8 +653,21 @@ export async function acceptProposalPublic(token: string) {
     throw new Error('Esta proposta já foi aceita')
   }
 
-  // Aprovar usando o fluxo unificado
-  const result = await processProposalToProject(proposal.id)
+  // Aprovar usando o fluxo unificado via RPC (Blindada)
+  // Como é público, não temos user logged in para 'assigned_to', enviamos null (que é o default na RPC agora)
+  const { data, error } = await supabase.rpc('accept_proposal_v1', {
+    p_proposal_id: proposal.id,
+    p_user_id: null
+  })
+
+  if (error) {
+    console.error('Erro RPC accept_proposal_v1 (Public):', error)
+    throw new Error(error.message)
+  }
+
+  const result = {
+    projectId: data.project_id
+  }
 
   // Notificar Dono da Organização (Assumindo admin)
   const { data: orgUsers } = await supabase
@@ -1077,274 +1091,35 @@ export async function reorderProposalVideos(proposalId: string, videoIds: string
 
 /**
  * Aceitar proposta manualmente (pelo produtor)
- * Cria projeto, eventos no calendário e transações financeiras
+ * MIGRADO PARA RPC (accept_proposal_v1) PARA GARANTIR INTEGRIDADE ATÔMICA
  */
 export async function acceptProposalManual(proposalId: string) {
   const supabase = await createClient()
-  const organizationId = await getUserOrganization()
+  const user = (await supabase.auth.getUser()).data.user
 
-  // 1. Buscar proposta completa
-  const { data: proposal, error: proposalError } = await supabase
-    .from('proposals')
-    .select(`
-      *,
-      items:proposal_items (*),
-      clients (id, name)
-    `)
-    .eq('id', proposalId)
-    .single()
-
-
-
-  if (proposalError || !proposal) {
-    throw new Error('Proposta não encontrada')
+  if (!user) {
+    throw new Error('Usuário não autenticado')
   }
 
-  // 2. Atualizar status da proposta para ACCEPTED
-  const { error: updateError } = await supabase
-    .from('proposals')
-    .update({
-      status: 'ACCEPTED',
-      accepted_at: new Date().toISOString(),
-    })
-    .eq('id', proposalId)
-    .eq('organization_id', organizationId)
+  // Chamar RPC blindada
+  const { data, error } = await supabase.rpc('accept_proposal_v1', {
+    p_proposal_id: proposalId,
+    p_user_id: user.id
+  })
 
-  if (updateError) {
-    throw new Error('Erro ao atualizar status da proposta: ' + updateError.message)
+  if (error) {
+    console.error('Erro RPC accept_proposal_v1:', error)
+    throw new Error(error.message)
   }
-
-  // Usar helper para processar tudo
-  const result = await processProposalToProject(proposalId, (await supabase.auth.getUser()).data.user?.id)
 
   revalidatePath('/proposals')
   revalidatePath('/projects')
   revalidatePath('/calendar')
   revalidatePath('/financeiro')
 
-  return result
-}
-
-// =============================================
-// HELPER: Processar conversão de proposta para projeto
-// =============================================
-async function processProposalToProject(proposalId: string, userId?: string) {
-  const supabase = await createClient()
-
-  // 1. Buscar proposta completa
-  const { data: proposal, error: proposalError } = await supabase
-    .from('proposals')
-    .select(`
-      *,
-      items:proposal_items (*),
-      clients (id, name, organization_id)
-    `)
-    .eq('id', proposalId)
-    .single()
-
-  if (proposalError || !proposal) {
-    throw new Error('Proposta não encontrada')
-  }
-
-  const organizationId = proposal.organization_id
-
-  // 2. Criar Projeto com origin = 'proposal'
-  const { data: project, error: projectError } = await supabase
-    .from('projects')
-    .insert({
-      title: proposal.title,
-      description: proposal.description,
-      client_id: proposal.client_id,
-      organization_id: organizationId,
-      assigned_to_id: userId || null,
-      status: 'PRE_PROD',
-      origin: 'proposal', // Marca que veio de proposta aprovada
-      budget: proposal.total_value,
-      deadline_date: proposal.valid_until,
-      created_at: new Date().toISOString(),
-      is_recurring: proposal.is_recurring || false,
-      proposal_id: proposal.id, // VINCULAR PROJETO A PROPOSTA
-    })
-    .select()
-    .single()
-
-  if (projectError) {
-    throw new Error('Erro ao criar projeto: ' + projectError.message)
-  }
-
-  // 2b. Inicializar Project Finances
-  const { error: financesError } = await supabase.from('project_finances').insert({
-    project_id: project.id,
-    organization_id: organizationId,
-    approved_value: proposal.total_value,
-    target_margin_percent: 30,
-  })
-
-  if (financesError) {
-    console.error('Erro ao criar finanças do projeto:', financesError)
-  }
-
-  // 3. Criar Eventos no Calendário
-  let calendarEventsCreated = 0
-  if (proposal.items && proposal.items.length > 0) {
-    const eventsToCreate: any[] = []
-
-    proposal.items.forEach((item: any) => {
-      // Evento da Data Base (Legacy)
-      if (item.date) {
-        eventsToCreate.push({
-          title: `${item.description} - ${proposal.title}`,
-          description: `Item da proposta: ${item.description}`,
-          start_date: new Date(item.date).toISOString(),
-          end_date: new Date(new Date(item.date).setHours(new Date(item.date).getHours() + 1)).toISOString(),
-          project_id: project.id,
-          organization_id: organizationId,
-          type: 'shooting',
-          created_by: userId || null,
-        })
-      }
-
-      // Evento de Gravação
-      if (item.recording_date) {
-        eventsToCreate.push({
-          title: `GRAVAÇÃO: ${item.description}`,
-          description: `Gravação referente ao projeto: ${proposal.title}`,
-          start_date: new Date(item.recording_date).toISOString(),
-          end_date: new Date(
-            new Date(item.recording_date).setHours(new Date(item.recording_date).getHours() + 4)
-          ).toISOString(), // Assume 4h duration
-          project_id: project.id,
-          organization_id: organizationId,
-          type: 'shooting',
-          created_by: userId || null,
-        })
-      }
-
-      // Evento de Entrega
-      if (item.delivery_date) {
-        eventsToCreate.push({
-          title: `ENTREGA: ${item.description}`,
-          description: `Entrega referente ao projeto: ${proposal.title}`,
-          start_date: new Date(item.delivery_date).toISOString(),
-          end_date: new Date(item.delivery_date).toISOString(), // Start = End for deadline
-          project_id: project.id,
-          organization_id: organizationId,
-          type: 'delivery', // Assuming type 'delivery' exists or fallback to 'meeting'/'other'
-          created_by: userId || null,
-        })
-      }
-    })
-
-    if (eventsToCreate.length > 0) {
-      const { error: eventsError } = await supabase.from('calendar_events').insert(eventsToCreate)
-      if (!eventsError) {
-        calendarEventsCreated = eventsToCreate.length
-      }
-    }
-  }
-
-  // 4. Criar Transações Financeiras (Receita Prevista)
-  // NOTA: Trigger foi removido na migration 11 para evitar duplicação
-  const installments = proposal.installments || 1
-  const installmentValue = proposal.total_value / installments
-  const firstDueDate = proposal.payment_date ? new Date(proposal.payment_date) : new Date(proposal.valid_until || Date.now())
-
-  const transactionsToCreate = Array.from({ length: installments }).map((_, index) => {
-    const dueDate = new Date(firstDueDate)
-    dueDate.setMonth(dueDate.getMonth() + index)
-
-    return {
-      organization_id: organizationId,
-      type: 'INCOME',
-      category: 'CLIENT_PAYMENT',
-      description: `Pagamento Proposta: ${proposal.title} (${index + 1}/${installments})`,
-      amount: installmentValue,
-      status: 'PENDING',
-      project_id: project.id,
-      proposal_id: proposal.id,
-      client_id: proposal.client_id,
-      due_date: dueDate.toISOString(),
-      created_by: userId || null
-    }
-  })
-
-  const { error: financeError } = await supabase.from('financial_transactions').insert(transactionsToCreate)
-
-  // 4a. Copiar itens da proposta para project_items e mapear IDs
-  const itemsMapping: Array<{ proposalItemId: string; projectItemId: string }> = []
-
-  if (proposal.items && proposal.items.length > 0) {
-    for (const item of proposal.items) {
-      const { data: projectItem, error: itemError } = await supabase
-        .from('project_items')
-        .insert({
-          project_id: project.id,
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          total_price: item.total,
-          status: 'PENDING',
-          due_date: item.date || null,
-          recording_date: item.recording_date || null,
-          delivery_date: item.delivery_date || null,
-          order: item.order
-        })
-        .select('id')
-        .single()
-
-      if (!itemError && projectItem) {
-        itemsMapping.push({
-          proposalItemId: item.id,
-          projectItemId: projectItem.id
-        })
-      }
-    }
-
-    // 4b. Copiar assignments dos itens (freelancers vinculados)
-    if (itemsMapping.length > 0) {
-      for (const mapping of itemsMapping) {
-        const { data: proposalAssignments } = await supabase
-          .from('item_assignments')
-          .select('*')
-          .eq('proposal_item_id', mapping.proposalItemId)
-          .eq('organization_id', organizationId)
-
-        if (proposalAssignments && proposalAssignments.length > 0) {
-          const projectAssignments = proposalAssignments.map((assignment: any) => ({
-            freelancer_id: assignment.freelancer_id,
-            proposal_item_id: assignment.proposal_item_id,
-            project_item_id: mapping.projectItemId,
-            role: assignment.role,
-            agreed_fee: assignment.agreed_fee,
-            estimated_hours: assignment.estimated_hours,
-            scheduled_date: assignment.scheduled_date,
-            status: 'PENDING',
-            notes: assignment.notes,
-            organization_id: organizationId,
-          }))
-
-          await supabase.from('item_assignments').insert(projectAssignments)
-        }
-      }
-    }
-  }
-
-  // 5. Atualizar status da proposta
-  await supabase
-    .from('proposals')
-    .update({
-      status: 'ACCEPTED',
-      accepted_at: new Date().toISOString(),
-    })
-    .eq('id', proposalId)
-
   return {
-    success: true,
-    projectId: project.id,
-    calendarEventsCreated,
-    financialTransactionsCreated: financeError ? 0 : 1,
-    itemsCopied: itemsMapping.length,
+    projectId: data.project_id,
+    calendarEventsCreated: 0,
+    financialTransactionsCreated: 0
   }
 }
-
-
