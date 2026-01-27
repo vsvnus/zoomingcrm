@@ -749,11 +749,108 @@ export async function addProposalItem(
     throw new Error('Erro ao adicionar item: ' + error.message)
   }
 
+  // Se a proposta já estiver ACEITA, precisamos sincronizar com o projeto e calendário
+  const { data: proposal } = await supabase
+    .from('proposals')
+    .select('status, organization_id, title')
+    .eq('id', proposalId)
+    .single()
+
+  if (proposal?.status === 'ACCEPTED') {
+    // Buscar projeto vinculado
+    const { data: project } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('proposal_id', proposalId)
+      .single()
+
+    if (project) {
+      // 1. Criar Item do Projeto
+      const { data: projectItem } = await supabase
+        .from('project_items')
+        .insert({
+          project_id: project.id,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.quantity * item.unit_price,
+          status: 'PENDING',
+          proposal_item_id: data.id // Linkar com o item da proposta
+        })
+        .select()
+        .single()
+
+      // 2. Criar Eventos no Calendário (se houver datas)
+      const { data: { user } } = await supabase.auth.getUser()
+      const eventsToCreate = []
+
+      // 2a. Data Genérica (Shooting) (+12h offset fix)
+      if (item.date) {
+        const startDate = new Date(item.date)
+        startDate.setHours(startDate.getHours() + 12)
+
+        eventsToCreate.push({
+          organization_id: proposal.organization_id,
+          title: `${item.description} - ${proposal.title}`,
+          description: `Item da proposta: ${item.description}`,
+          start_date: startDate.toISOString(),
+          end_date: new Date(startDate.getTime() + 60 * 60 * 1000).toISOString(), // +1h
+          project_id: project.id,
+          type: 'shooting',
+          created_by: user?.id || null,
+          all_day: false
+        })
+      }
+
+      // 2b. Data de Gravação (Shooting) (+12h offset fix)
+      if (item.recording_date) {
+        const recDate = new Date(item.recording_date)
+        recDate.setHours(recDate.getHours() + 12)
+
+        eventsToCreate.push({
+          organization_id: proposal.organization_id,
+          title: `GRAVAÇÃO: ${item.description}`,
+          description: `Gravação referente ao projeto: ${proposal.title}`,
+          start_date: recDate.toISOString(),
+          end_date: new Date(recDate.getTime() + 4 * 60 * 60 * 1000).toISOString(), // +4h
+          project_id: project.id,
+          type: 'shooting',
+          created_by: user?.id || null,
+          all_day: false
+        })
+      }
+
+      // 2c. Data de Entrega (Delivery) (+12h offset fix + Force All Day)
+      if (item.delivery_date) {
+        const delDate = new Date(item.delivery_date)
+        delDate.setHours(delDate.getHours() + 12)
+
+        eventsToCreate.push({
+          organization_id: proposal.organization_id,
+          title: `ENTREGA: ${item.description}`,
+          description: `Entrega referente ao projeto: ${proposal.title}`,
+          start_date: delDate.toISOString(),
+          end_date: delDate.toISOString(),
+          project_id: project.id,
+          type: 'delivery',
+          created_by: user?.id || null,
+          all_day: true
+        })
+      }
+
+      if (eventsToCreate.length > 0) {
+        await supabase.from('calendar_events').insert(eventsToCreate)
+      }
+    }
+  }
+
   // Recalcular valores
   await recalculateProposalValues(proposalId)
 
   revalidatePath(`/proposals/${proposalId}/edit`)
   revalidatePath('/proposals')
+  revalidatePath('/projects')
+  revalidatePath('/calendar')
   return data
 }
 
