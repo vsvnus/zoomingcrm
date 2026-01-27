@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { X, Users, Box, Truck } from 'lucide-react'
+import { X, Users, Box, Truck, Utensils, MoreHorizontal } from 'lucide-react'
 import { addExpense } from '@/actions/finances'
 
 interface AddExpenseModalProps {
@@ -12,7 +12,7 @@ interface AddExpenseModalProps {
 
 export function AddExpenseModal({ projectId, onClose }: AddExpenseModalProps) {
   const [formData, setFormData] = useState({
-    category: 'CREW_TALENT' as 'CREW_TALENT' | 'EQUIPMENT' | 'LOGISTICS',
+    category: 'LOGISTICS' as 'LOGISTICS' | 'FOOD' | 'OTHER',
     description: '',
     estimated_cost: '',
     actual_cost: '',
@@ -55,9 +55,9 @@ export function AddExpenseModal({ projectId, onClose }: AddExpenseModalProps) {
   }
 
   const categories = [
-    { value: 'CREW_TALENT', label: 'Crew & Talents', icon: Users },
-    { value: 'EQUIPMENT', label: 'Equipamentos', icon: Box },
     { value: 'LOGISTICS', label: 'Logística', icon: Truck },
+    { value: 'FOOD', label: 'Alimentação', icon: Utensils },
+    { value: 'OTHER', label: 'Outros', icon: MoreHorizontal },
   ]
 
   return (
@@ -110,9 +110,9 @@ export function AddExpenseModal({ projectId, onClose }: AddExpenseModalProps) {
                       setFormData({
                         ...formData,
                         category: category.value as
-                          | 'CREW_TALENT'
-                          | 'EQUIPMENT'
-                          | 'LOGISTICS',
+                          | 'LOGISTICS'
+                          | 'FOOD'
+                          | 'OTHER',
                       })
                     }
                     className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-all ${isSelected

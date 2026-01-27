@@ -27,6 +27,9 @@ import {
   TrendingDown,
   Receipt,
   AlertCircle,
+  Truck,
+  Utensils,
+  MoreHorizontal,
 } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -257,7 +260,16 @@ export function ProjectDetailTabs({
     0
   ) || 0
 
-  const totalCosts = teamCosts + manualExpensesTotal
+  const equipmentCosts = equipmentBookings?.reduce((acc, booking) => {
+    if (!booking.equipments?.daily_rate || !booking.start_date || !booking.end_date) return acc
+    const start = new Date(booking.start_date)
+    const end = new Date(booking.end_date)
+    const diffTime = Math.abs(end.getTime() - start.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+    return acc + (Number(booking.equipments.daily_rate) * diffDays)
+  }, 0) || 0
+
+  const totalCosts = teamCosts + manualExpensesTotal + equipmentCosts
   // Usar total_revenue do financialSummary (approved_value + additives)
   const projectValue = financialSummary?.total_revenue || financialSummary?.approved_value || Number(project.budget) || 0
   const profitMargin = projectValue > 0 ? ((projectValue - totalCosts) / projectValue) * 100 : 0
@@ -1274,15 +1286,23 @@ export function ProjectDetailTabs({
                                 ? 'bg-purple-500/10 text-purple-400'
                                 : expense.category === 'EQUIPMENT'
                                   ? 'bg-blue-500/10 text-blue-400'
-                                  : 'bg-orange-500/10 text-orange-400'
+                                  : expense.category === 'LOGISTICS'
+                                    ? 'bg-orange-500/10 text-orange-400'
+                                    : expense.category === 'FOOD'
+                                      ? 'bg-red-500/10 text-red-400'
+                                      : 'bg-zinc-500/10 text-zinc-400'
                                 }`}
                             >
                               {expense.category === 'CREW_TALENT' ? (
                                 <Users className="h-5 w-5" />
                               ) : expense.category === 'EQUIPMENT' ? (
                                 <Package className="h-5 w-5" />
+                              ) : expense.category === 'LOGISTICS' ? (
+                                <Truck className="h-5 w-5" />
+                              ) : expense.category === 'FOOD' ? (
+                                <Utensils className="h-5 w-5" />
                               ) : (
-                                <Receipt className="h-5 w-5" />
+                                <MoreHorizontal className="h-5 w-5" />
                               )}
                             </div>
                             <div>
@@ -1294,7 +1314,11 @@ export function ProjectDetailTabs({
                                   ? 'Crew & Talents'
                                   : expense.category === 'EQUIPMENT'
                                     ? 'Equipamento'
-                                    : 'Logística'}
+                                    : expense.category === 'LOGISTICS'
+                                      ? 'Logística'
+                                      : expense.category === 'FOOD'
+                                        ? 'Alimentação'
+                                        : 'Outros'}
                                 {expense.freelancers?.name &&
                                   ` • ${expense.freelancers.name}`}
                               </p>
@@ -1366,6 +1390,12 @@ export function ProjectDetailTabs({
                     <span className="text-zinc-400">(-) Custos da Equipe</span>
                     <span className="font-medium text-red-400">
                       {formatCurrency(teamCosts)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-zinc-400">(-) Custos de Equipamento</span>
+                    <span className="font-medium text-red-400">
+                      {formatCurrency(equipmentCosts)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">

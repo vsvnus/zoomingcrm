@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   Dialog,
@@ -83,7 +83,7 @@ export function EquipmentFormModal({
     reset,
     formState: { errors },
   } = useForm<Equipment>({
-    defaultValues: equipment || {
+    defaultValues: {
       name: '',
       brand: '',
       model: '',
@@ -97,6 +97,37 @@ export function EquipmentFormModal({
       notes: '',
     },
   })
+
+  // Update form when equipment changes or modal opens
+  useEffect(() => {
+    if (open) {
+      if (equipment) {
+        reset({
+          ...equipment,
+          purchase_date: equipment.purchase_date ? equipment.purchase_date.split('T')[0] : '',
+          brand: equipment.brand || '',
+          model: equipment.model || '',
+          serial_number: equipment.serial_number || '',
+          photo_url: equipment.photo_url || '',
+          notes: equipment.notes || '',
+        })
+      } else {
+        reset({
+          name: '',
+          brand: '',
+          model: '',
+          category: 'CAMERA',
+          status: 'AVAILABLE',
+          serial_number: '',
+          purchase_date: '',
+          purchase_price: undefined,
+          daily_rate: undefined,
+          photo_url: '',
+          notes: '',
+        })
+      }
+    }
+  }, [equipment, open, reset])
 
   const selectedCategory = watch('category')
   const selectedStatus = watch('status')

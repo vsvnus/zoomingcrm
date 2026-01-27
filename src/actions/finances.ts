@@ -45,7 +45,7 @@ export async function getProjectExpenses(projectId: string) {
 // Adicionar despesa
 export async function addExpense(formData: {
   project_id: string
-  category: 'CREW_TALENT' | 'EQUIPMENT' | 'LOGISTICS'
+  category: 'CREW_TALENT' | 'EQUIPMENT' | 'LOGISTICS' | 'FOOD' | 'OTHER'
   description: string
   estimated_cost: number
   actual_cost?: number

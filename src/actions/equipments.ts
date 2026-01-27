@@ -426,7 +426,7 @@ export async function getProjectEquipmentBookings(projectId: string) {
     .select(
       `
       *,
-      equipments:equipment_id(id, name, category, status, serial_number)
+      equipments:equipment_id(id, name, category, status, serial_number, daily_rate)
     `
     )
     .eq('project_id', projectId)
