@@ -78,12 +78,12 @@ const PROPOSAL_STATUS_LABELS: Record<string, string> = {
 }
 
 const PROPOSAL_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  DRAFT: { bg: 'bg-slate-500/10', text: 'text-slate-400' },
-  SENT: { bg: 'bg-blue-500/10', text: 'text-blue-400' },
-  VIEWED: { bg: 'bg-purple-500/10', text: 'text-purple-400' },
-  ACCEPTED: { bg: 'bg-green-500/10', text: 'text-green-400' },
-  REJECTED: { bg: 'bg-red-500/10', text: 'text-red-400' },
-  EXPIRED: { bg: 'bg-orange-500/10', text: 'text-orange-400' },
+  DRAFT: { bg: 'bg-slate-500/10', text: 'text-slate-500' },
+  SENT: { bg: 'bg-blue-500/10', text: 'text-blue-500' },
+  VIEWED: { bg: 'bg-purple-500/10', text: 'text-purple-500' },
+  ACCEPTED: { bg: 'bg-green-500/10', text: 'text-green-500' },
+  REJECTED: { bg: 'bg-red-500/10', text: 'text-red-500' },
+  EXPIRED: { bg: 'bg-orange-500/10', text: 'text-orange-500' },
 }
 
 export function ClientDetailTabs({
@@ -285,11 +285,10 @@ export function ClientDetailTabs({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`relative flex flex-1 items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-medium transition-all ${
-                isActive
+              className={`relative flex flex-1 items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-medium transition-all ${isActive
                   ? 'text-text-primary'
                   : 'text-text-tertiary hover:text-text-primary hover:bg-bg-hover'
-              }`}
+                }`}
             >
               {isActive && (
                 <motion.div
@@ -384,9 +383,8 @@ export function ClientDetailTabs({
                         <p className="text-xs text-text-tertiary">{formatDate(project.created_at)}</p>
                       </div>
                       <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          PROJECT_STATUS_COLORS[project.status]?.bg || 'bg-slate-100'
-                        } ${PROJECT_STATUS_COLORS[project.status]?.text || 'text-slate-700'}`}
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${PROJECT_STATUS_COLORS[project.status]?.bg || 'bg-slate-100'
+                          } ${PROJECT_STATUS_COLORS[project.status]?.text || 'text-slate-700'}`}
                       >
                         {PROJECT_STATUS_LABELS[project.status] || project.status}
                       </span>
@@ -428,9 +426,8 @@ export function ClientDetailTabs({
                           </span>
                         )}
                         <span
-                          className={`rounded-full px-2 py-1 text-xs font-medium ${
-                            PROPOSAL_STATUS_COLORS[proposal.status]?.bg || 'bg-slate-500/10'
-                          } ${PROPOSAL_STATUS_COLORS[proposal.status]?.text || 'text-slate-400'}`}
+                          className={`rounded-full px-2 py-1 text-xs font-medium ${PROPOSAL_STATUS_COLORS[proposal.status]?.bg || 'bg-slate-500/10'
+                            } ${PROPOSAL_STATUS_COLORS[proposal.status]?.text || 'text-slate-400'}`}
                         >
                           {PROPOSAL_STATUS_LABELS[proposal.status] || proposal.status}
                         </span>
@@ -492,9 +489,8 @@ export function ClientDetailTabs({
                         </span>
                       )}
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${
-                          PROJECT_STATUS_COLORS[project.status]?.bg || 'bg-slate-100'
-                        } ${PROJECT_STATUS_COLORS[project.status]?.text || 'text-slate-700'}`}
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${PROJECT_STATUS_COLORS[project.status]?.bg || 'bg-slate-100'
+                          } ${PROJECT_STATUS_COLORS[project.status]?.text || 'text-slate-700'}`}
                       >
                         {PROJECT_STATUS_LABELS[project.status] || project.status}
                       </span>
@@ -553,9 +549,8 @@ export function ClientDetailTabs({
                         </span>
                       )}
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${
-                          PROPOSAL_STATUS_COLORS[proposal.status]?.bg || 'bg-slate-500/10'
-                        } ${PROPOSAL_STATUS_COLORS[proposal.status]?.text || 'text-slate-400'}`}
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${PROPOSAL_STATUS_COLORS[proposal.status]?.bg || 'bg-slate-500/10'
+                          } ${PROPOSAL_STATUS_COLORS[proposal.status]?.text || 'text-slate-400'}`}
                       >
                         {PROPOSAL_STATUS_LABELS[proposal.status] || proposal.status}
                       </span>
@@ -626,11 +621,10 @@ export function ClientDetailTabs({
                     >
                       <div className="flex items-center gap-4">
                         <div
-                          className={`rounded-lg p-2 ${
-                            transaction.type === 'INCOME'
+                          className={`rounded-lg p-2 ${transaction.type === 'INCOME'
                               ? 'bg-green-500/10'
                               : 'bg-red-500/10'
-                          }`}
+                            }`}
                         >
                           {transaction.type === 'INCOME' ? (
                             <TrendingUp className="h-5 w-5 text-green-400" />
@@ -649,11 +643,10 @@ export function ClientDetailTabs({
                       </div>
                       <div className="text-right">
                         <p
-                          className={`font-medium ${
-                            transaction.type === 'INCOME'
+                          className={`font-medium ${transaction.type === 'INCOME'
                               ? 'text-green-500'
                               : 'text-red-500'
-                          }`}
+                            }`}
                         >
                           {transaction.type === 'INCOME' ? '+' : '-'}
                           {formatCurrency(transaction.amount)}

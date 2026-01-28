@@ -62,28 +62,28 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black p-4" >
+    <div className="flex min-h-screen items-center justify-center bg-bg-primary p-4" >
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-black to-black opacity-50" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-zinc-800/20 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-br from-bg-secondary via-bg-primary to-bg-primary opacity-50" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-bg-secondary/20 via-transparent to-transparent" />
 
       {/* Login card */}
       <div className="relative w-full max-w-md">
-        <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-8 backdrop-blur-xl">
+        <div className="rounded-2xl border border-border bg-card/50 p-8 backdrop-blur-xl">
           {/* Logo */}
           <div className="mb-8 flex items-center justify-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-100 to-zinc-400">
-              <Play className="h-6 w-6 text-black" fill="black" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-bg-secondary to-bg-tertiary border border-border">
+              <Play className="h-6 w-6 text-text-primary" fill="currentColor" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Zooming</h1>
+            <h1 className="text-2xl font-bold text-text-primary">Zooming</h1>
           </div>
 
           {/* Title */}
           <div className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-white">
+            <h2 className="text-2xl font-bold text-text-primary">
               {isSignUp ? 'Criar Conta' : 'Bem-vindo de volta'}
             </h2>
-            <p className="mt-2 text-sm text-zinc-400">
+            <p className="mt-2 text-sm text-text-tertiary">
               {isSignUp
                 ? 'Preencha os dados para começar'
                 : 'Entre na sua conta para continuar'}
@@ -95,7 +95,7 @@ export default function LoginPage() {
             {isSignUp && (
               <>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-300">
+                  <label className="mb-2 block text-sm font-medium text-text-secondary">
                     Nome
                   </label>
                   <div className="relative">
@@ -106,14 +106,14 @@ export default function LoginPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
                       }
-                      className="w-full rounded-lg border border-white/10 bg-white/5 py-3 pl-4 pr-4 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                      className="w-full rounded-lg border border-border bg-secondary py-3 pl-4 pr-4 text-text-primary placeholder-text-quaternary transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
                       placeholder="Seu nome"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-300">
+                  <label className="mb-2 block text-sm font-medium text-text-secondary">
                     Nome da Empresa/Produtora
                   </label>
                   <div className="relative">
@@ -124,18 +124,18 @@ export default function LoginPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, companyName: e.target.value })
                       }
-                      className="w-full rounded-lg border border-white/10 bg-white/5 py-3 pl-4 pr-4 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                      className="w-full rounded-lg border border-border bg-secondary py-3 pl-4 pr-4 text-text-primary placeholder-text-quaternary transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
                       placeholder="Ex: Minha Produtora"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-300">
+                  <label className="mb-2 block text-sm font-medium text-text-secondary">
                     Celular
                   </label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-500" />
+                    <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-text-tertiary" />
                     <input
                       type="tel"
                       required={isSignUp}
@@ -143,18 +143,18 @@ export default function LoginPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, whatsapp: e.target.value })
                       }
-                      className="w-full rounded-lg border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                      className="w-full rounded-lg border border-border bg-secondary py-3 pl-11 pr-4 text-text-primary placeholder-text-quaternary transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
                       placeholder="(11) 99999-9999"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-300">
-                    Capital Inicial (R$) <span className="text-zinc-500 font-normal">- Opcional</span>
+                  <label className="mb-2 block text-sm font-medium text-text-secondary">
+                    Capital Inicial (R$) <span className="text-text-tertiary font-normal">- Opcional</span>
                   </label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-500" />
+                    <DollarSign className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-text-tertiary" />
                     <input
                       type="number"
                       step="0.01"
@@ -163,11 +163,11 @@ export default function LoginPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, capitalInicial: e.target.value })
                       }
-                      className="w-full rounded-lg border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                      className="w-full rounded-lg border border-border bg-secondary py-3 pl-11 pr-4 text-text-primary placeholder-text-quaternary transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
                       placeholder="50000.00"
                     />
                   </div>
-                  <p className="mt-2 text-xs text-zinc-500">
+                  <p className="mt-2 text-xs text-text-tertiary">
                     Informe o saldo atual da sua conta bancária empresarial
                   </p>
                 </div>
@@ -175,11 +175,11 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-text-secondary">
                 Email
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-500" />
+                <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-text-tertiary" />
                 <input
                   type="email"
                   required
@@ -187,18 +187,18 @@ export default function LoginPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
-                  className="w-full rounded-lg border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                  className="w-full rounded-lg border border-border bg-secondary py-3 pl-11 pr-4 text-text-primary placeholder-text-quaternary transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="seu@email.com"
                 />
               </div>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-text-secondary">
                 Senha
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-500" />
+                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-text-tertiary" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
@@ -206,13 +206,13 @@ export default function LoginPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
                   }
-                  className="w-full rounded-lg border border-white/10 bg-white/5 py-3 pl-11 pr-12 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                  className="w-full rounded-lg border border-border bg-secondary py-3 pl-11 pr-12 text-text-primary placeholder-text-quaternary transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary transition-colors"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
@@ -226,12 +226,12 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative w-full overflow-hidden rounded-lg bg-white py-3 font-medium text-black transition-all hover:bg-zinc-200 disabled:opacity-50"
+              className="group relative w-full overflow-hidden rounded-lg bg-text-primary py-3 font-medium text-bg-primary transition-all hover:bg-text-secondary disabled:opacity-50"
             >
               <span className="flex items-center justify-center gap-2">
                 {isLoading ? (
                   <>
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-bg-primary border-t-transparent" />
                     Carregando...
                   </>
                 ) : (
@@ -252,17 +252,17 @@ export default function LoginPage() {
                 setIsSignUp(!isSignUp)
                 setFormData({ email: '', password: '', name: '', companyName: '', whatsapp: '', capitalInicial: '' })
               }}
-              className="text-sm text-zinc-400 transition-colors hover:text-white"
+              className="text-sm text-text-tertiary transition-colors hover:text-text-primary"
             >
               {isSignUp ? (
                 <>
                   Já tem uma conta?{' '}
-                  <span className="font-medium text-white">Fazer login</span>
+                  <span className="font-medium text-text-primary">Fazer login</span>
                 </>
               ) : (
                 <>
                   Não tem uma conta?{' '}
-                  <span className="font-medium text-white">Criar conta</span>
+                  <span className="font-medium text-text-primary">Criar conta</span>
                 </>
               )}
             </button>
@@ -274,7 +274,7 @@ export default function LoginPage() {
               <p className="text-xs font-medium text-blue-400">
                 💡 Credenciais de teste
               </p>
-              <p className="mt-1 text-xs text-zinc-400">
+              <p className="mt-1 text-xs text-text-tertiary">
                 Email: demo@zooming.com
                 <br />
                 Senha: demo123456

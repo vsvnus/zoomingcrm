@@ -96,7 +96,7 @@ export function AddTeamMemberModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Buscar Freelancer */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
+          <label className="mb-2 block text-sm font-medium text-text-secondary">
             Freelancer *
           </label>
 
@@ -104,48 +104,48 @@ export function AddTeamMemberModal({
             <>
               {/* Search Input */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-10 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                  className="w-full rounded-lg border border-border bg-secondary px-10 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                   placeholder="Buscar freelancer..."
                 />
               </div>
 
               {/* Search Results */}
               {searchTerm && (
-                <div className="mt-2 max-h-60 overflow-y-auto rounded-lg border border-white/10 bg-black/40">
+                <div className="mt-2 max-h-60 overflow-y-auto rounded-lg border border-border bg-card">
                   {filteredFreelancers.length > 0 ? (
                     filteredFreelancers.map((freelancer) => (
                       <button
                         key={freelancer.id}
                         type="button"
                         onClick={() => handleFreelancerSelect(freelancer.id)}
-                        className="flex w-full items-center gap-3 border-b border-white/5 p-3 text-left transition-all hover:bg-white/5 last:border-0"
+                        className="flex w-full items-center gap-3 border-b border-border p-3 text-left transition-all hover:bg-bg-hover last:border-0"
                       >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-text-primary">
                           {freelancer.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium text-white">{freelancer.name}</p>
-                          <p className="text-xs text-zinc-500">
+                          <p className="font-medium text-text-primary">{freelancer.name}</p>
+                          <p className="text-xs text-text-tertiary">
                             {freelancer.email || freelancer.phone || 'Sem contato'}
                           </p>
                           {freelancer.skills && (
-                            <p className="text-xs text-zinc-600">{freelancer.skills}</p>
+                            <p className="text-xs text-text-secondary">{freelancer.skills}</p>
                           )}
                         </div>
                         {freelancer.daily_rate && (
-                          <p className="text-sm text-zinc-400">
+                          <p className="text-sm text-text-tertiary">
                             R$ {freelancer.daily_rate.toFixed(2)}/dia
                           </p>
                         )}
                       </button>
                     ))
                   ) : (
-                    <div className="p-8 text-center text-zinc-500">
+                    <div className="p-8 text-center text-text-tertiary">
                       Nenhum freelancer encontrado
                     </div>
                   )}
@@ -154,9 +154,9 @@ export function AddTeamMemberModal({
 
               {/* Empty State */}
               {!searchTerm && (
-                <div className="mt-4 flex flex-col items-center justify-center rounded-lg border border-white/5 bg-white/5 p-8 text-center">
-                  <User className="mb-3 h-12 w-12 text-zinc-600" />
-                  <p className="text-sm text-zinc-400">
+                <div className="mt-4 flex flex-col items-center justify-center rounded-lg border border-border bg-secondary p-8 text-center">
+                  <User className="mb-3 h-12 w-12 text-text-quaternary" />
+                  <p className="text-sm text-text-tertiary">
                     Digite para buscar um freelancer
                   </p>
                 </div>
@@ -164,14 +164,14 @@ export function AddTeamMemberModal({
             </>
           ) : (
             // Selected Freelancer
-            <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-text-primary">
                   {selectedFreelancer?.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-medium text-white">{selectedFreelancer?.name}</p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="font-medium text-text-primary">{selectedFreelancer?.name}</p>
+                  <p className="text-xs text-text-secondary">
                     {selectedFreelancer?.email || 'Sem email'}
                   </p>
                 </div>
@@ -179,7 +179,7 @@ export function AddTeamMemberModal({
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, freelancer_id: '' })}
-                className="text-sm text-zinc-400 transition-colors hover:text-white"
+                className="text-sm text-text-tertiary transition-colors hover:text-text-primary"
               >
                 Alterar
               </button>
@@ -189,7 +189,7 @@ export function AddTeamMemberModal({
 
         {/* Role */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
+          <label className="mb-2 block text-sm font-medium text-text-secondary">
             Função no Projeto *
           </label>
           <input
@@ -198,7 +198,7 @@ export function AddTeamMemberModal({
             list="role-suggestions"
             value={formData.role}
             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
             placeholder="Ex: Diretor, Câmera, Editor..."
           />
           <datalist id="role-suggestions">
@@ -210,7 +210,7 @@ export function AddTeamMemberModal({
 
         {/* Agreed Fee */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
+          <label className="mb-2 block text-sm font-medium text-text-secondary">
             Cachê Combinado (R$)
           </label>
           <input
@@ -218,7 +218,7 @@ export function AddTeamMemberModal({
             step="0.01"
             value={formData.agreed_fee}
             onChange={(e) => setFormData({ ...formData, agreed_fee: e.target.value })}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
             placeholder={
               selectedFreelancer?.daily_rate
                 ? `Sugestão: ${selectedFreelancer.daily_rate.toFixed(2)}`
@@ -226,7 +226,7 @@ export function AddTeamMemberModal({
             }
           />
           {selectedFreelancer?.daily_rate && (
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-text-tertiary">
               Diária padrão: R$ {selectedFreelancer.daily_rate.toFixed(2)}
             </p>
           )}
@@ -234,14 +234,14 @@ export function AddTeamMemberModal({
 
         {/* Notes */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
+          <label className="mb-2 block text-sm font-medium text-text-secondary">
             Observações
           </label>
           <textarea
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             rows={2}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
             placeholder="Informações adicionais sobre esta contratação..."
           />
         </div>
@@ -251,7 +251,7 @@ export function AddTeamMemberModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-white/10"
+            className="flex-1 rounded-lg border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-text-primary transition-all hover:bg-bg-hover"
           >
             Cancelar
           </button>
@@ -260,7 +260,7 @@ export function AddTeamMemberModal({
             disabled={isLoading || !formData.freelancer_id || !formData.role}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex-1 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black transition-all hover:bg-zinc-200 disabled:opacity-50"
+            className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
           >
             {isLoading ? 'Adicionando...' : 'Adicionar à Equipe'}
           </motion.button>

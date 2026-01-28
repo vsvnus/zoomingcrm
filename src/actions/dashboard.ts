@@ -17,7 +17,7 @@ export type DashboardStats = {
   newClients: number
   currentBalance: number
   projects: any[]
-  upcomingShoots: any[]
+  upcomingEvents: any[]
   cashFlowData: CashFlowDataPoint[]
   pendingReceivables: number
   pendingPayables: number
@@ -87,82 +87,176 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
     .gte('created_at', dateRange ? dateRange.start.toISOString() : startOfMonth(new Date()).toISOString())
     .lte('created_at', dateRange ? dateRange.end.toISOString() : new Date().toISOString())
 
-  // Buscar próximas gravações (mesma lógica do calendário)
+  // Buscar próximos eventos (unificando lógica do calendário)
   const today = startOfDay(new Date())
-  const shootsStart = dateRange ? dateRange.start : today
-  const shootsEnd = dateRange ? dateRange.end : undefined
 
-  const upcomingShoots: any[] = []
+  // Se tiver dateRange, usa ele, senão pega de hoje pra frente
+  const eventsStart = dateRange ? dateRange.start : today
+  const eventsEnd = dateRange ? dateRange.end : undefined // Se undefined, sem limite superior (ou definimos um limite razoável)
 
-  // 1. Buscar projetos com shooting_date
+  const upcomingEvents: any[] = []
+
+  // 1. Projetos com Shooting Date
   let projectShootsQuery = supabase
     .from('projects')
     .select('id, title, shooting_date, shooting_time, location, clients(name)')
     .eq('organization_id', organizationId)
     .not('shooting_date', 'is', null)
+    .gte('shooting_date', eventsStart.toISOString())
     .order('shooting_date', { ascending: true })
 
-  if (shootsEnd) {
-    projectShootsQuery = projectShootsQuery
-      .gte('shooting_date', shootsStart.toISOString())
-      .lte('shooting_date', shootsEnd.toISOString())
-  } else {
-    projectShootsQuery = projectShootsQuery.gte('shooting_date', shootsStart.toISOString())
+  if (eventsEnd) {
+    projectShootsQuery = projectShootsQuery.lte('shooting_date', eventsEnd.toISOString())
   }
 
-  const { data: projectShoots } = await projectShootsQuery.limit(6)
+  const { data: projectShoots } = await projectShootsQuery.limit(10)
 
   if (projectShoots) {
     projectShoots.forEach((project) => {
-      upcomingShoots.push({
-        id: project.id,
+      upcomingEvents.push({
+        id: `project-${project.id}`,
         title: project.title,
-        shooting_date: project.shooting_date,
-        shooting_time: project.shooting_time,
+        date: project.shooting_date,
+        time: project.shooting_time,
         location: project.location,
-        clients: project.clients,
-        type: 'project'
+        client: (project.clients as any)?.name,
+        type: 'shooting',
+        link_id: project.id,
+        link_type: 'project'
       })
     })
   }
 
-  // 2. Buscar shooting_dates (múltiplas gravações)
+  // 2. Shooting Dates (múltiplas datas)
   let shootingDatesQuery = supabase
     .from('shooting_dates')
     .select('id, date, time, location, notes, project_id, projects(id, title, clients(name))')
     .eq('projects.organization_id', organizationId)
+    .gte('date', eventsStart.toISOString())
     .order('date', { ascending: true })
 
-  if (shootsEnd) {
-    shootingDatesQuery = shootingDatesQuery
-      .gte('date', shootsStart.toISOString())
-      .lte('date', shootsEnd.toISOString())
-  } else {
-    shootingDatesQuery = shootingDatesQuery.gte('date', shootsStart.toISOString())
+  if (eventsEnd) {
+    shootingDatesQuery = shootingDatesQuery.lte('date', eventsEnd.toISOString())
   }
 
-  const { data: shootingDates } = await shootingDatesQuery.limit(6)
+  const { data: shootingDates } = await shootingDatesQuery.limit(10)
 
   if (shootingDates) {
     shootingDates.forEach((sd) => {
       const project = sd.projects as any
       if (project) {
-        upcomingShoots.push({
-          id: project.id,
-          title: project.title,
-          shooting_date: sd.date,
-          shooting_time: sd.time,
+        upcomingEvents.push({
+          id: `shooting-date-${sd.id}`,
+          title: `Gravação: ${project.title}`,
+          date: sd.date,
+          time: sd.time,
           location: sd.location,
-          clients: project.clients,
-          type: 'shooting_date'
+          client: project.clients?.name,
+          type: 'shooting',
+          link_id: project.id,
+          link_type: 'project'
         })
       }
     })
   }
 
-  // Ordenar por data e limitar a 6
-  upcomingShoots.sort((a, b) => new Date(a.shooting_date).getTime() - new Date(b.shooting_date).getTime())
-  const finalUpcomingShoots = upcomingShoots.slice(0, 6)
+  // 3. Prazos de Entrega (Projects Deadline)
+  let deadlineQuery = supabase
+    .from('projects')
+    .select('id, title, deadline, clients(name)')
+    .eq('organization_id', organizationId)
+    .not('deadline', 'is', null)
+    .gte('deadline', eventsStart.toISOString())
+    .order('deadline', { ascending: true })
+
+  if (eventsEnd) {
+    deadlineQuery = deadlineQuery.lte('deadline', eventsEnd.toISOString())
+  }
+
+  const { data: deadlines } = await deadlineQuery.limit(10)
+
+  if (deadlines) {
+    deadlines.forEach((project) => {
+      upcomingEvents.push({
+        id: `deadline-${project.id}`,
+        title: `Entrega: ${project.title}`,
+        date: project.deadline,
+        time: null,
+        location: null,
+        client: (project.clients as any)?.name,
+        type: 'delivery',
+        link_id: project.id,
+        link_type: 'project'
+      })
+    })
+  }
+
+  // 4. Delivery Dates (múltiplas entregas)
+  let deliveryDatesQuery = supabase
+    .from('delivery_dates')
+    .select('id, date, description, project_id, projects(id, title, clients(name))')
+    .eq('projects.organization_id', organizationId)
+    .gte('date', eventsStart.toISOString())
+    .order('date', { ascending: true })
+
+  if (eventsEnd) {
+    deliveryDatesQuery = deliveryDatesQuery.lte('date', eventsEnd.toISOString())
+  }
+
+  const { data: deliveryDates } = await deliveryDatesQuery.limit(10)
+
+  if (deliveryDates) {
+    deliveryDates.forEach((dd) => {
+      const project = dd.projects as any
+      if (project) {
+        upcomingEvents.push({
+          id: `delivery-date-${dd.id}`,
+          title: `Entrega: ${dd.description || project.title}`,
+          date: dd.date,
+          time: null,
+          location: null,
+          client: project.clients?.name,
+          type: 'delivery',
+          link_id: project.id,
+          link_type: 'project'
+        })
+      }
+    })
+  }
+
+  // 5. Eventos Manuais (Calendar Events)
+  let manualEventsQuery = supabase
+    .from('calendar_events')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .gte('start_date', eventsStart.toISOString())
+    .order('start_date', { ascending: true })
+
+  if (eventsEnd) {
+    manualEventsQuery = manualEventsQuery.lte('start_date', eventsEnd.toISOString())
+  }
+
+  const { data: manualEvents } = await manualEventsQuery.limit(10)
+
+  if (manualEvents) {
+    manualEvents.forEach((ev) => {
+      upcomingEvents.push({
+        id: `manual-${ev.id}`,
+        title: ev.title,
+        date: ev.start_date,
+        time: !ev.all_day ? format(new Date(ev.start_date), 'HH:mm') : null,
+        location: ev.location,
+        client: null, // Eventos manuais podem não ter cliente vinculado diretamente aqui, ou poderiam ter
+        type: ev.type || 'other',
+        link_id: null,
+        link_type: 'manual'
+      })
+    })
+  }
+
+  // Ordenar todos por data e pegar os 6 mais próximos
+  upcomingEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  const finalUpcomingEvents = upcomingEvents.slice(0, 6)
 
   // Buscar dados de fluxo de caixa (respeitando o dateRange)
   const cashFlowData = await getCashFlowData(organizationId, dateRange)
@@ -191,7 +285,7 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
     newClients: newClientsCount || 0,
     currentBalance,
     projects: projects || [],
-    upcomingShoots: finalUpcomingShoots || [],
+    upcomingEvents: finalUpcomingEvents || [],
     cashFlowData,
     pendingReceivables,
     pendingPayables,

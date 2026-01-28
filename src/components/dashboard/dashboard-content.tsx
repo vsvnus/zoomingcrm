@@ -14,6 +14,8 @@ import {
   ArrowDownRight,
   BarChart3,
   MapPin,
+  Package,
+  Users,
 } from 'lucide-react'
 import { format, isPast, isToday, differenceInDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -56,7 +58,8 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
     newClients: 0,
     currentBalance: 0,
     projects: [],
-    upcomingShoots: [],
+
+    upcomingEvents: [],
     cashFlowData: [],
     pendingReceivables: 0,
     pendingPayables: 0,
@@ -354,7 +357,7 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
           )}
         </motion.div>
 
-        {/* Próximas Gravações */}
+        {/* Próximos Eventos */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -366,61 +369,87 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
               <Calendar className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-text-primary">Próximas Gravações</h2>
+              <h2 className="text-lg font-semibold text-text-primary">Próximos Eventos</h2>
               <p className="text-xs text-text-tertiary">Agendamentos futuros</p>
             </div>
           </div>
 
-          {stats.upcomingShoots.length > 0 ? (
+          {stats.upcomingEvents && stats.upcomingEvents.length > 0 ? (
             <div className="space-y-3">
-              {stats.upcomingShoots.map((shoot, index) => {
-                const shootDate = shoot.shooting_date ? new Date(shoot.shooting_date) : null
-                const isShootToday = shootDate && isToday(shootDate)
+              {stats.upcomingEvents.map((event, index) => {
+                const eventDate = event.date ? new Date(event.date) : null
+                const isEventToday = eventDate && isToday(eventDate)
+
+                // Definir ícone e cor por tipo
+                let EventIcon = Calendar
+                let iconColorClass = 'from-neutral-600 to-neutral-800'
+
+                if (event.type === 'shooting') {
+                  EventIcon = Film
+                  iconColorClass = 'from-violet-500 to-violet-700'
+                } else if (event.type === 'delivery') {
+                  EventIcon = Package
+                  iconColorClass = 'from-emerald-500 to-emerald-700'
+                } else if (event.type === 'meeting') {
+                  EventIcon = Users
+                  iconColorClass = 'from-blue-500 to-blue-700'
+                } else {
+                  EventIcon = Calendar
+                  iconColorClass = 'from-neutral-500 to-neutral-700'
+                }
+
+                // Definir HREF
+                const href = event.link_id && event.link_type === 'project'
+                  ? `/projects/${event.link_id}`
+                  : '/calendar'
 
                 return (
                   <motion.div
-                    key={shoot.id}
+                    key={event.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.7 + index * 0.05 }}
                   >
                     <Link
-                      href={`/projects/${shoot.id}`}
-                      className={`group block rounded-xl border p-4 transition-all hover:bg-bg-hover ${isShootToday
+                      href={href as any}
+                      className={`group block rounded-xl border p-4 transition-all hover:bg-bg-hover ${isEventToday
                         ? 'border-primary/30 bg-primary/5'
                         : 'border-[rgb(var(--border))] bg-secondary'
                         }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${isShootToday
-                          ? 'bg-primary'
-                          : 'bg-gradient-to-br from-neutral-600 to-neutral-800'
-                          }`}>
-                          <Play className="h-4 w-4 text-white" fill="white" />
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${iconColorClass}`}>
+                          <EventIcon className="h-4 w-4 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium text-text-primary truncate group-hover:text-text-secondary transition-colors">
-                            {shoot.title}
+                            {event.title}
                           </h4>
                           <div className="mt-1 flex items-center gap-1.5 text-xs text-text-tertiary">
                             <Calendar className="h-3 w-3" />
                             <span>
-                              {shootDate && (
-                                shoot.shooting_time
-                                  ? format(shootDate, "dd/MM 'às' HH:mm", { locale: ptBR })
-                                  : format(shootDate, "dd/MM", { locale: ptBR })
+                              {eventDate && (
+                                event.time
+                                  ? format(eventDate, "dd/MM 'às' HH:mm", { locale: ptBR }) // Data fixa, hora do banco
+                                  : format(eventDate, "dd/MM", { locale: ptBR })
                               )}
                             </span>
-                            {isShootToday && (
+                            {isEventToday && (
                               <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
                                 HOJE
                               </span>
                             )}
                           </div>
-                          {shoot.location && (
+                          {(event.location) && (
                             <div className="mt-1 flex items-center gap-1.5 text-xs text-text-quaternary">
                               <MapPin className="h-3 w-3" />
-                              <span className="truncate">{shoot.location}</span>
+                              <span className="truncate">{event.location}</span>
+                            </div>
+                          )}
+                          {(event.client && !event.location) && (
+                            <div className="mt-1 flex items-center gap-1.5 text-xs text-text-quaternary">
+                              <Users className="h-3 w-3" />
+                              <span className="truncate">{event.client}</span>
                             </div>
                           )}
                         </div>
@@ -433,7 +462,7 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Calendar className="h-12 w-12 text-text-quaternary" />
-              <p className="mt-4 text-sm text-text-tertiary">Nenhuma gravação agendada</p>
+              <p className="mt-4 text-sm text-text-tertiary">Nenhum evento agendado</p>
               <Link
                 href="/calendar"
                 className="mt-3 text-sm text-text-secondary hover:text-text-primary"

@@ -255,14 +255,14 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
           <div className="flex bg-secondary rounded-lg p-1 border border-[rgb(var(--border))]">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-primary text-white shadow-sm' : 'text-text-tertiary hover:text-text-primary'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-text-tertiary hover:text-text-primary'}`}
               title="Visualização em Grade"
             >
               <Grid className="h-4 w-4" />
             </button>
             <button
               onClick={() => setViewMode('client')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'client' ? 'bg-primary text-white shadow-sm' : 'text-text-tertiary hover:text-text-primary'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'client' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-text-tertiary hover:text-text-primary'}`}
               title="Agrupar por Cliente"
             >
               <List className="h-4 w-4" />

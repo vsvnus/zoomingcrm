@@ -150,17 +150,17 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-white">Construtor de Orçamento</h2>
-        <p className="mt-1 text-sm text-zinc-400">
+        <h2 className="text-2xl font-bold text-text-primary">Construtor de Orçamento</h2>
+        <p className="mt-1 text-sm text-text-tertiary">
           Monte sua proposta adicionando itens, cronograma e opcionais
         </p>
       </div>
 
       {/* Informações Básicas */}
-      <div className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-4">
+      <div className="space-y-4 rounded-xl border border-border bg-card p-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-text-secondary">
               Título da Proposta *
             </label>
             <input
@@ -168,61 +168,60 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ex: Vídeo Institucional - Empresa XYZ"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+              className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/10"
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-300">
+            <label className="mb-2 block text-sm font-medium text-text-secondary">
               Válido Até
             </label>
             <input
               type="date"
               value={validUntil}
               onChange={(e) => setValidUntil(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+              className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/10"
             />
           </div>
         </div>
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">Descrição</label>
+          <label className="mb-2 block text-sm font-medium text-text-secondary">Descrição</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
             placeholder="Descreva brevemente o projeto..."
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/10"
           />
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-white/10">
+      <div className="flex gap-2 border-b border-border">
         {tabs.map((tab) => {
           const Icon = tab.icon
           return (
             <button
               key={tab.id}
               onClick={() => setCurrentTab(tab.id)}
-              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-                currentTab === tab.id
-                  ? 'border-blue-500 text-white'
-                  : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
+              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${currentTab === tab.id
+                ? 'border-info text-info'
+                : 'border-transparent text-text-tertiary hover:text-text-primary'
+                }`}
             >
               <Icon className="h-4 w-4" />
               {tab.label}
               {tab.id === 'items' && items.length > 0 && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-xs text-blue-400">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-xs text-blue-500">
                   {items.length}
                 </span>
               )}
               {tab.id === 'schedule' && paymentSchedule.length > 0 && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500/20 text-xs text-green-400">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500/20 text-xs text-green-500">
                   {paymentSchedule.length}
                 </span>
               )}
               {tab.id === 'optionals' && optionals.length > 0 && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-500/20 text-xs text-purple-400">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-500/20 text-xs text-purple-500">
                   {optionals.length}
                 </span>
               )}
@@ -237,7 +236,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
         {currentTab === 'items' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Itens da Proposta</h3>
+              <h3 className="text-lg font-semibold text-text-primary">Itens da Proposta</h3>
               <Button
                 onClick={() => setShowItemForm(!showItemForm)}
                 className="h-9 gap-2 rounded-lg bg-blue-600 px-4 text-sm hover:bg-blue-700"
@@ -256,7 +255,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                   className="space-y-3 overflow-hidden rounded-lg border border-blue-500/20 bg-blue-500/5 p-4"
                 >
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+                    <label className="mb-1.5 block text-xs font-medium text-text-secondary">
                       Descrição *
                     </label>
                     <input
@@ -264,12 +263,12 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                       value={newItem.description}
                       onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                       placeholder="Ex: Filmagem e edição de vídeo institucional"
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-zinc-500"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary placeholder-text-quaternary focus:border-primary/50 focus:outline-none"
                     />
                   </div>
                   <div className="grid grid-cols-4 gap-3">
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+                      <label className="mb-1.5 block text-xs font-medium text-text-secondary">
                         Quantidade
                       </label>
                       <input
@@ -279,11 +278,11 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                         onChange={(e) =>
                           setNewItem({ ...newItem, quantity: parseInt(e.target.value) || 1 })
                         }
-                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                        className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary focus:border-primary/50 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+                      <label className="mb-1.5 block text-xs font-medium text-text-secondary">
                         Valor Unit. (R$)
                       </label>
                       <input
@@ -294,22 +293,22 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                         onChange={(e) =>
                           setNewItem({ ...newItem, unitPrice: parseFloat(e.target.value) || 0 })
                         }
-                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                        className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary focus:border-primary/50 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+                      <label className="mb-1.5 block text-xs font-medium text-text-secondary">
                         Total (R$)
                       </label>
                       <input
                         type="number"
                         value={newItem.total.toFixed(2)}
                         disabled
-                        className="w-full rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-zinc-400"
+                        className="w-full rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm text-text-tertiary cursor-not-allowed"
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 flex items-center gap-1 text-xs font-medium text-zinc-400">
+                      <label className="mb-1.5 flex items-center gap-1 text-xs font-medium text-text-secondary">
                         <Calendar className="h-3 w-3" />
                         Data
                       </label>
@@ -319,7 +318,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                         onChange={(e) =>
                           setNewItem({ ...newItem, date: e.target.value || null })
                         }
-                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                        className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary focus:border-primary/50 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -333,7 +332,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                     </Button>
                     <Button
                       onClick={() => setShowItemForm(false)}
-                      className="h-9 rounded-lg bg-white/5 px-4 text-sm hover:bg-white/10"
+                      className="h-9 rounded-lg bg-secondary px-4 text-sm text-text-primary hover:bg-bg-hover border border-border"
                     >
                       Cancelar
                     </Button>
@@ -349,17 +348,17 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                     key={index}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-4"
+                    className="flex items-center justify-between rounded-lg border border-border bg-card p-4 shadow-sm"
                   >
                     <div className="flex-1">
-                      <p className="font-medium text-white">{item.description}</p>
-                      <div className="mt-1 flex items-center gap-3 text-sm text-zinc-400">
+                      <p className="font-medium text-text-primary">{item.description}</p>
+                      <div className="mt-1 flex items-center gap-3 text-sm text-text-tertiary">
                         <span>
                           {item.quantity}x R$ {item.unitPrice.toFixed(2)} = R${' '}
                           {item.total.toFixed(2)}
                         </span>
                         {item.date && (
-                          <span className="flex items-center gap-1 text-purple-400">
+                          <span className="flex items-center gap-1 text-primary">
                             <Calendar className="h-3 w-3" />
                             {new Date(item.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                           </span>
@@ -368,16 +367,16 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                     </div>
                     <button
                       onClick={() => removeItem(index)}
-                      className="ml-4 rounded-lg p-2 text-zinc-400 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                      className="ml-4 rounded-lg p-2 text-text-tertiary transition-colors hover:bg-red-500/10 hover:text-red-500"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </motion.div>
                 ))
               ) : (
-                <div className="rounded-lg border border-dashed border-white/10 bg-white/5 p-12 text-center">
-                  <Package className="mx-auto h-12 w-12 text-zinc-600" />
-                  <p className="mt-3 text-sm text-zinc-500">
+                <div className="rounded-lg border border-dashed border-border bg-secondary/50 p-12 text-center">
+                  <Package className="mx-auto h-12 w-12 text-text-quaternary" />
+                  <p className="mt-3 text-sm text-text-tertiary">
                     Nenhum item adicionado. Clique em "Adicionar Item" para começar.
                   </p>
                 </div>
@@ -390,7 +389,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
         {currentTab === 'schedule' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Cronograma de Recebimento</h3>
+              <h3 className="text-lg font-semibold text-text-primary">Cronograma de Recebimento</h3>
               <Button
                 onClick={() => setShowPaymentForm(!showPaymentForm)}
                 className="h-9 gap-2 rounded-lg bg-green-600 px-4 text-sm hover:bg-green-700"
@@ -401,7 +400,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
             </div>
 
             <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-3">
-              <p className="text-xs text-yellow-300">
+              <p className="text-xs text-yellow-600">
                 💡 <strong>Valor Total:</strong> R$ {totalValue.toFixed(2)} - Use porcentagens
                 para facilitar (ex: 50% entrada, 25% em 30 dias, 25% em 60 dias)
               </p>
@@ -416,7 +415,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                   className="space-y-3 overflow-hidden rounded-lg border border-green-500/20 bg-green-500/5 p-4"
                 >
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+                    <label className="mb-1.5 block text-xs font-medium text-text-secondary">
                       Descrição *
                     </label>
                     <input
@@ -424,23 +423,23 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                       value={newPayment.description}
                       onChange={(e) => setNewPayment({ ...newPayment, description: e.target.value })}
                       placeholder="Ex: Entrada (50%), 30 dias (25%), 60 dias (25%)"
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-zinc-500"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary placeholder-text-quaternary focus:border-primary/50 focus:outline-none"
                     />
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+                      <label className="mb-1.5 block text-xs font-medium text-text-secondary">
                         Data Prevista *
                       </label>
                       <input
                         type="date"
                         value={newPayment.dueDate as string}
                         onChange={(e) => setNewPayment({ ...newPayment, dueDate: e.target.value })}
-                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                        className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary focus:border-primary/50 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+                      <label className="mb-1.5 block text-xs font-medium text-text-secondary">
                         Porcentagem (%)
                       </label>
                       <input
@@ -455,11 +454,11 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                             percentage: parseFloat(e.target.value) || 0,
                           })
                         }
-                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                        className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary focus:border-primary/50 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+                      <label className="mb-1.5 block text-xs font-medium text-text-secondary">
                         Valor (R$) *
                       </label>
                       <input
@@ -470,7 +469,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                         onChange={(e) =>
                           setNewPayment({ ...newPayment, amount: parseFloat(e.target.value) || 0 })
                         }
-                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                        className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary focus:border-primary/50 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -484,7 +483,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                     </Button>
                     <Button
                       onClick={() => setShowPaymentForm(false)}
-                      className="h-9 rounded-lg bg-white/5 px-4 text-sm hover:bg-white/10"
+                      className="h-9 rounded-lg bg-secondary px-4 text-sm text-text-primary hover:bg-bg-hover border border-border"
                     >
                       Cancelar
                     </Button>
@@ -500,11 +499,11 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                     key={index}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-4"
+                    className="flex items-center justify-between rounded-lg border border-border bg-card p-4 shadow-sm"
                   >
                     <div className="flex-1">
-                      <p className="font-medium text-white">{payment.description}</p>
-                      <div className="mt-1 flex items-center gap-3 text-sm text-zinc-400">
+                      <p className="font-medium text-text-primary">{payment.description}</p>
+                      <div className="mt-1 flex items-center gap-3 text-sm text-text-tertiary">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5" />
                           {new Date(payment.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
@@ -523,16 +522,16 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                     </div>
                     <button
                       onClick={() => removePayment(index)}
-                      className="ml-4 rounded-lg p-2 text-zinc-400 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                      className="ml-4 rounded-lg p-2 text-text-tertiary transition-colors hover:bg-red-500/10 hover:text-red-500"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </motion.div>
                 ))
               ) : (
-                <div className="rounded-lg border border-dashed border-white/10 bg-white/5 p-12 text-center">
-                  <Calendar className="mx-auto h-12 w-12 text-zinc-600" />
-                  <p className="mt-3 text-sm text-zinc-500">
+                <div className="rounded-lg border border-dashed border-border bg-secondary/50 p-12 text-center">
+                  <Calendar className="mx-auto h-12 w-12 text-text-quaternary" />
+                  <p className="mt-3 text-sm text-text-tertiary">
                     Nenhuma parcela configurada. Clique em "Adicionar Parcela" para criar o
                     cronograma.
                   </p>
@@ -546,7 +545,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
         {currentTab === 'optionals' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Serviços Opcionais</h3>
+              <h3 className="text-lg font-semibold text-text-primary">Serviços Opcionais</h3>
               <Button
                 onClick={() => setShowOptionalForm(!showOptionalForm)}
                 className="h-9 gap-2 rounded-lg bg-purple-600 px-4 text-sm hover:bg-purple-700"
@@ -565,7 +564,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                   className="space-y-3 overflow-hidden rounded-lg border border-purple-500/20 bg-purple-500/5 p-4"
                 >
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+                    <label className="mb-1.5 block text-xs font-medium text-text-secondary">
                       Título *
                     </label>
                     <input
@@ -573,11 +572,11 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                       value={newOptional.title}
                       onChange={(e) => setNewOptional({ ...newOptional, title: e.target.value })}
                       placeholder="Ex: Filmagem com Drone"
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-zinc-500"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary placeholder-text-quaternary focus:border-primary/50 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+                    <label className="mb-1.5 block text-xs font-medium text-text-secondary">
                       Descrição
                     </label>
                     <textarea
@@ -587,11 +586,11 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                       }
                       rows={2}
                       placeholder="Detalhes do serviço opcional..."
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-zinc-500"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary placeholder-text-quaternary focus:border-primary/50 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+                    <label className="mb-1.5 block text-xs font-medium text-text-secondary">
                       Preço (R$) *
                     </label>
                     <input
@@ -602,7 +601,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                       onChange={(e) =>
                         setNewOptional({ ...newOptional, price: parseFloat(e.target.value) || 0 })
                       }
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary focus:border-primary/50 focus:outline-none"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -615,7 +614,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                     </Button>
                     <Button
                       onClick={() => setShowOptionalForm(false)}
-                      className="h-9 rounded-lg bg-white/5 px-4 text-sm hover:bg-white/10"
+                      className="h-9 rounded-lg bg-secondary px-4 text-sm text-text-primary hover:bg-bg-hover border border-border"
                     >
                       Cancelar
                     </Button>
@@ -631,29 +630,29 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
                     key={index}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-4"
+                    className="flex items-center justify-between rounded-lg border border-border bg-card p-4 shadow-sm"
                   >
                     <div className="flex-1">
-                      <p className="font-medium text-white">{optional.title}</p>
+                      <p className="font-medium text-text-primary">{optional.title}</p>
                       {optional.description && (
-                        <p className="mt-1 text-sm text-zinc-400">{optional.description}</p>
+                        <p className="mt-1 text-sm text-text-tertiary">{optional.description}</p>
                       )}
-                      <p className="mt-2 text-sm font-medium text-green-400">
+                      <p className="mt-2 text-sm font-medium text-green-500">
                         + R$ {optional.price.toFixed(2)}
                       </p>
                     </div>
                     <button
                       onClick={() => removeOptional(index)}
-                      className="ml-4 rounded-lg p-2 text-zinc-400 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                      className="ml-4 rounded-lg p-2 text-text-tertiary transition-colors hover:bg-red-500/10 hover:text-red-500"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </motion.div>
                 ))
               ) : (
-                <div className="rounded-lg border border-dashed border-white/10 bg-white/5 p-12 text-center">
-                  <FileText className="mx-auto h-12 w-12 text-zinc-600" />
-                  <p className="mt-3 text-sm text-zinc-500">
+                <div className="rounded-lg border border-dashed border-border bg-secondary/50 p-12 text-center">
+                  <FileText className="mx-auto h-12 w-12 text-text-quaternary" />
+                  <p className="mt-3 text-sm text-text-tertiary">
                     Nenhum opcional adicionado. Opcionais permitem que o cliente escolha serviços
                     extras.
                   </p>
@@ -665,33 +664,33 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
       </div>
 
       {/* Resumo Financeiro */}
-      <div className="rounded-xl border border-white/10 bg-gradient-to-br from-blue-500/10 to-purple-500/10 p-6">
-        <h3 className="mb-4 text-lg font-semibold text-white">Resumo Financeiro</h3>
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        <h3 className="mb-4 text-lg font-semibold text-text-primary">Resumo Financeiro</h3>
         <div className="space-y-3">
-          <div className="flex items-center justify-between text-zinc-300">
+          <div className="flex items-center justify-between text-text-secondary">
             <span>Valor Base:</span>
             <span className="font-mono">R$ {baseValue.toFixed(2)}</span>
           </div>
-          <div className="flex items-center justify-between text-zinc-300">
+          <div className="flex items-center justify-between text-text-secondary">
             <span>Desconto ({discount}%):</span>
-            <span className="font-mono text-red-400">- R$ {discountAmount.toFixed(2)}</span>
+            <span className="font-mono text-red-500">- R$ {discountAmount.toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Percent className="h-4 w-4 text-zinc-400" />
+            <Percent className="h-4 w-4 text-text-tertiary" />
             <input
               type="number"
               min="0"
               max="100"
               value={discount}
               onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-              className="w-24 rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-sm text-white"
+              className="w-24 rounded-lg border border-border bg-secondary px-3 py-1 text-sm text-text-primary focus:border-primary/50 focus:outline-none"
             />
-            <span className="text-xs text-zinc-500">Ajuste o desconto (%)</span>
+            <span className="text-xs text-text-tertiary">Ajuste o desconto (%)</span>
           </div>
-          <div className="border-t border-white/10 pt-3">
-            <div className="flex items-center justify-between text-xl font-bold text-white">
+          <div className="border-t border-border pt-3">
+            <div className="flex items-center justify-between text-xl font-bold text-text-primary">
               <span>Valor Total:</span>
-              <span className="font-mono text-green-400">R$ {totalValue.toFixed(2)}</span>
+              <span className="font-mono text-green-500">R$ {totalValue.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -701,7 +700,7 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
       <div className="flex gap-3">
         <Button
           onClick={onCancel}
-          className="flex-1 h-12 rounded-lg border border-white/10 bg-white/5 text-white hover:bg-white/10"
+          className="flex-1 h-12 rounded-lg border border-border bg-secondary text-text-primary hover:bg-bg-hover"
         >
           Cancelar
         </Button>

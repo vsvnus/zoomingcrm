@@ -101,7 +101,7 @@ export function ManageProjectItemModal({
             <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Descrição */}
                 <div>
-                    <label className="mb-2 block text-sm font-medium text-zinc-300">
+                    <label className="mb-2 block text-sm font-medium text-text-secondary">
                         Descrição *
                     </label>
                     <input
@@ -109,7 +109,7 @@ export function ManageProjectItemModal({
                         required
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                        className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                         placeholder="Ex: Vídeo Institucional 30s"
                     />
                 </div>
@@ -117,7 +117,7 @@ export function ManageProjectItemModal({
                 <div className="grid grid-cols-2 gap-4">
                     {/* Quantidade */}
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-zinc-300">
+                        <label className="mb-2 block text-sm font-medium text-text-secondary">
                             Quantidade *
                         </label>
                         <input
@@ -126,13 +126,13 @@ export function ManageProjectItemModal({
                             min="1"
                             value={formData.quantity}
                             onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
-                            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                            className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                         />
                     </div>
 
                     {/* Valor Unitário */}
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-zinc-300">
+                        <label className="mb-2 block text-sm font-medium text-text-secondary">
                             Valor Unitário (R$) *
                         </label>
                         <input
@@ -142,28 +142,28 @@ export function ManageProjectItemModal({
                             step="0.01"
                             value={formData.unit_price}
                             onChange={(e) => setFormData({ ...formData, unit_price: Number(e.target.value) })}
-                            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                            className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                         />
                     </div>
                 </div>
 
                 {/* Prazo */}
                 <div>
-                    <label className="mb-2 block text-sm font-medium text-zinc-300">
+                    <label className="mb-2 block text-sm font-medium text-text-secondary">
                         Prazo de Entrega (Opcional)
                     </label>
                     <input
                         type="date"
                         value={formData.due_date}
                         onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                        className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                        className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                     />
                 </div>
 
                 {/* Total Preview */}
-                <div className="rounded-lg bg-white/5 p-4 text-right">
-                    <p className="text-sm text-zinc-400">Total Estimado</p>
-                    <p className="text-xl font-bold text-white">
+                <div className="rounded-lg bg-secondary p-4 text-right border border-border">
+                    <p className="text-sm text-text-tertiary">Total Estimado</p>
+                    <p className="text-xl font-bold text-text-primary">
                         {new Intl.NumberFormat('pt-BR', {
                             style: 'currency',
                             currency: 'BRL',
@@ -176,14 +176,14 @@ export function ManageProjectItemModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-white/10"
+                        className="flex-1 rounded-lg border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-text-primary transition-all hover:bg-bg-hover"
                     >
                         Cancelar
                     </button>
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="flex-1 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black transition-all hover:bg-zinc-200 disabled:opacity-50"
+                        className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
                     >
                         {isLoading ? 'Salvando...' : isEditing ? 'Atualizar Item' : 'Adicionar Item'}
                     </button>

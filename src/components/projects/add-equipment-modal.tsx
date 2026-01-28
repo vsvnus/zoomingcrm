@@ -128,18 +128,18 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Seleção de Equipamento */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
+          <label className="mb-2 block text-sm font-medium text-text-secondary">
             Equipamento *
           </label>
           <select
             required
             value={formData.equipmentId}
             onChange={(e) => setFormData({ ...formData, equipmentId: e.target.value })}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
           >
             <option value="">Selecione um equipamento</option>
             {equipments.map((equipment) => (
-              <option key={equipment.id} value={equipment.id} className="bg-zinc-900">
+              <option key={equipment.id} value={equipment.id} className="bg-card">
                 {equipment.name} ({categoryLabels[equipment.category] || equipment.category})
               </option>
             ))}
@@ -152,11 +152,11 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
           <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20">
-                <Package className="h-5 w-5 text-purple-400" />
+                <Package className="h-5 w-5 text-purple-500" />
               </div>
               <div>
-                <p className="font-medium text-white">{selectedEquipment.name}</p>
-                <p className="text-xs text-zinc-400">
+                <p className="font-medium text-text-primary">{selectedEquipment.name}</p>
+                <p className="text-xs text-text-tertiary">
                   {categoryLabels[selectedEquipment.category] || selectedEquipment.category}
                   {selectedEquipment.serial_number && ` • S/N: ${selectedEquipment.serial_number}`}
                 </p>
@@ -167,7 +167,7 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
 
         {/* Seleção de Datas (Checklist) */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
+          <label className="mb-2 block text-sm font-medium text-text-secondary">
             Dias de Uso (Datas de Gravação) *
           </label>
 
@@ -182,13 +182,13 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
                     className={cn(
                       "cursor-pointer rounded-lg border px-3 py-2 transition-all flex items-center gap-3",
                       isSelected
-                        ? "border-purple-500 bg-purple-500/10 text-white"
-                        : "border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10"
+                        ? "border-purple-500 bg-purple-500/10 text-purple-700 dark:text-purple-300"
+                        : "border-border bg-secondary text-text-secondary hover:bg-bg-hover"
                     )}
                   >
                     <div className={cn(
                       "flex h-5 w-5 items-center justify-center rounded border transition-colors",
-                      isSelected ? "border-purple-500 bg-purple-500 text-white" : "border-zinc-600 bg-transparent"
+                      isSelected ? "border-purple-500 bg-purple-500 text-white" : "border-text-quaternary bg-transparent"
                     )}>
                       {isSelected && <Check className="h-3 w-3" />}
                     </div>
@@ -208,16 +208,16 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-yellow-500/30 bg-yellow-500/5 p-4 text-center">
-              <Calendar className="mx-auto h-6 w-6 text-yellow-500/50 mb-2" />
-              <p className="text-sm text-yellow-200/80">Este projeto não possui datas de gravação cadastradas.</p>
-              <p className="text-xs text-yellow-200/50 mt-1">Adicione datas de gravação na aba "Detalhes" primeiro.</p>
+              <Calendar className="mx-auto h-6 w-6 text-yellow-500 mb-2" />
+              <p className="text-sm text-text-secondary">Este projeto não possui datas de gravação cadastradas.</p>
+              <p className="text-xs text-text-tertiary mt-1">Adicione datas de gravação na aba "Detalhes" primeiro.</p>
             </div>
           )}
         </div>
 
         {/* Observações */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
+          <label className="mb-2 block text-sm font-medium text-text-secondary">
             Observações
           </label>
           <textarea
@@ -225,7 +225,7 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             rows={2} // Reduced rows
             placeholder="Ex: Trazer baterias extras..."
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
           />
         </div>
 
@@ -234,7 +234,7 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-white/10"
+            className="flex-1 rounded-lg border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-text-primary transition-all hover:bg-bg-hover"
           >
             Cancelar
           </button>

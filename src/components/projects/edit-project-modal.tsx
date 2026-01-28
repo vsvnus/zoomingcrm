@@ -216,13 +216,13 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
     <Modal isOpen={isOpen} onClose={onClose} title="Editar Projeto">
       <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
         {/* Abas de navegação */}
-        <div className="flex gap-2 rounded-lg border border-white/10 bg-white/5 p-1">
+        <div className="flex gap-2 rounded-lg border border-border bg-secondary p-1">
           <button
             type="button"
             onClick={() => setActiveSection('basic')}
             className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${activeSection === 'basic'
-              ? 'bg-white text-black'
-              : 'text-zinc-400 hover:text-white'
+              ? 'bg-card text-text-primary shadow-sm'
+              : 'text-text-tertiary hover:text-text-primary'
               }`}
           >
             Informações Básicas
@@ -231,8 +231,8 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
             type="button"
             onClick={() => setActiveSection('dates')}
             className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${activeSection === 'dates'
-              ? 'bg-white text-black'
-              : 'text-zinc-400 hover:text-white'
+              ? 'bg-card text-text-primary shadow-sm'
+              : 'text-text-tertiary hover:text-text-primary'
               }`}
           >
             Cronograma
@@ -243,7 +243,7 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
           <>
             {/* Título */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-text-secondary">
                 Título do Projeto *
               </label>
               <input
@@ -251,25 +251,25 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                 placeholder="Vídeo Institucional"
               />
             </div>
 
             {/* Cliente */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-text-secondary">
                 Cliente *
               </label>
               <select
                 required
                 value={formData.client_id}
                 onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
               >
                 <option value="">Selecione um cliente</option>
                 {clients.map((client) => (
-                  <option key={client.id} value={client.id} className="bg-zinc-900">
+                  <option key={client.id} value={client.id} className="bg-card">
                     {client.name} {client.company && `- ${client.company}`}
                   </option>
                 ))}
@@ -278,17 +278,17 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
 
             {/* Responsável */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-text-secondary">
                 Responsável
               </label>
               <select
                 value={formData.assigned_to_id}
                 onChange={(e) => setFormData({ ...formData, assigned_to_id: e.target.value })}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
               >
                 <option value="">Selecione um responsável</option>
                 {users.map((user) => (
-                  <option key={user.id} value={user.id} className="bg-zinc-900">
+                  <option key={user.id} value={user.id} className="bg-card">
                     {user.name} ({user.email})
                   </option>
                 ))}
@@ -297,28 +297,28 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
 
             {/* Descrição */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-text-secondary">
                 Descrição
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                 placeholder="Detalhes do projeto..."
               />
             </div>
 
             {/* Localização */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-text-secondary">
                 Localização
               </label>
               <input
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                 placeholder="São Paulo, SP"
               />
             </div>
@@ -326,46 +326,46 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
             {/* Especificações Técnicas */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                <label className="mb-2 block text-sm font-medium text-text-secondary">
                   Formato de Vídeo
                 </label>
                 <select
                   value={formData.video_format}
                   onChange={(e) => setFormData({ ...formData, video_format: e.target.value })}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                  className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                 >
                   <option value="">Selecione</option>
-                  <option value="16:9" className="bg-zinc-900">
+                  <option value="16:9" className="bg-card">
                     16:9 (Horizontal)
                   </option>
-                  <option value="9:16" className="bg-zinc-900">
+                  <option value="9:16" className="bg-card">
                     9:16 (Vertical)
                   </option>
-                  <option value="1:1" className="bg-zinc-900">
+                  <option value="1:1" className="bg-card">
                     1:1 (Quadrado)
                   </option>
-                  <option value="4:5" className="bg-zinc-900">
+                  <option value="4:5" className="bg-card">
                     4:5 (Instagram)
                   </option>
                 </select>
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                <label className="mb-2 block text-sm font-medium text-text-secondary">
                   Resolução
                 </label>
                 <select
                   value={formData.resolution}
                   onChange={(e) => setFormData({ ...formData, resolution: e.target.value })}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                  className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                 >
                   <option value="">Selecione</option>
-                  <option value="1080p" className="bg-zinc-900">
+                  <option value="1080p" className="bg-card">
                     1080p (Full HD)
                   </option>
-                  <option value="4K" className="bg-zinc-900">
+                  <option value="4K" className="bg-card">
                     4K (Ultra HD)
                   </option>
-                  <option value="8K" className="bg-zinc-900">
+                  <option value="8K" className="bg-card">
                     8K
                   </option>
                 </select>
@@ -374,7 +374,7 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
 
             {/* Links */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-text-secondary">
                 Link da Pasta do Drive
               </label>
               <input
@@ -383,20 +383,20 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
                 onChange={(e) =>
                   setFormData({ ...formData, drive_folder_link: e.target.value })
                 }
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                 placeholder="https://drive.google.com/..."
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-300">
+              <label className="mb-2 block text-sm font-medium text-text-secondary">
                 Link do Roteiro
               </label>
               <input
                 type="url"
                 value={formData.script_link}
                 onChange={(e) => setFormData({ ...formData, script_link: e.target.value })}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                 placeholder="https://docs.google.com/..."
               />
             </div>
@@ -406,25 +406,25 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
         {activeSection === 'dates' && (
           <>
             {/* Data Principal (para compatibilidade) */}
-            <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-4">
-              <h4 className="text-sm font-medium text-white">Data Principal do Projeto</h4>
-              <p className="text-xs text-zinc-500">
+            <div className="rounded-lg border border-border bg-secondary p-4 space-y-4">
+              <h4 className="text-sm font-medium text-text-primary">Data Principal do Projeto</h4>
+              <p className="text-xs text-text-tertiary">
                 Defina a data de gravação e prazo principal. Para projetos com múltiplas datas, adicione abaixo.
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-300">
+                  <label className="mb-2 block text-sm font-medium text-text-secondary">
                     Início da Gravação
                   </label>
                   <input
                     type="date"
                     value={formData.shooting_date}
                     onChange={(e) => setFormData({ ...formData, shooting_date: e.target.value })}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                    className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-300">
+                  <label className="mb-2 block text-sm font-medium text-text-secondary">
                     Fim da Gravação
                   </label>
                   <input
@@ -433,32 +433,32 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
                     onChange={(e) =>
                       setFormData({ ...formData, shooting_end_date: e.target.value })
                     }
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                    className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-300">
+                  <label className="mb-2 block text-sm font-medium text-text-secondary">
                     Horário
                   </label>
                   <input
                     type="time"
                     value={formData.shooting_time}
                     onChange={(e) => setFormData({ ...formData, shooting_time: e.target.value })}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                    className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-300">
+                  <label className="mb-2 block text-sm font-medium text-text-secondary">
                     Prazo de Entrega
                   </label>
                   <input
                     type="date"
                     value={formData.deadline_date}
                     onChange={(e) => setFormData({ ...formData, deadline_date: e.target.value })}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                    className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
                   />
                 </div>
               </div>
@@ -466,8 +466,8 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
 
             {/* Datas Adicionais */}
             <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
-              <h4 className="mb-3 text-sm font-medium text-white">Cronograma Detalhado</h4>
-              <p className="mb-4 text-xs text-zinc-500">
+              <h4 className="mb-3 text-sm font-medium text-text-primary">Cronograma Detalhado</h4>
+              <p className="mb-4 text-xs text-text-tertiary">
                 Adicione múltiplas datas de gravação e prazos de entrega para cada entregável.
               </p>
               <DatesManager
@@ -481,7 +481,7 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
         )}
 
         {/* Buttons */}
-        <div className="flex gap-3 pt-4 sticky bottom-0 bg-zinc-900 py-4 -mx-2 px-2">
+        <div className="sticky bottom-0 -mx-2 flex gap-3 bg-bg-primary px-2 py-4 pt-4 border-t border-border">
           {onDelete && (
             <button
               type="button"
@@ -494,7 +494,7 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-white/10"
+            className="flex-1 rounded-lg border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-text-primary transition-all hover:bg-bg-hover"
           >
             Cancelar
           </button>
@@ -503,7 +503,7 @@ export function EditProjectModal({ isOpen, onClose, onDelete, project }: EditPro
             disabled={isLoading}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex-1 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black transition-all hover:bg-zinc-200 disabled:opacity-50"
+            className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
           >
             {isLoading ? 'Salvando...' : 'Salvar Alterações'}
           </motion.button>

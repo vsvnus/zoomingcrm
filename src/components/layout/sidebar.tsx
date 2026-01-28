@@ -123,14 +123,14 @@ export function Sidebar() {
                     className={cn(
                       'group relative flex items-center gap-3 rounded-md px-3 h-11 transition-colors duration-150',
                       isActive
-                        ? 'bg-primary/15 text-primary dark:bg-white/10 dark:text-white font-semibold'
+                        ? 'bg-primary/10 text-primary font-semibold'
                         : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                     )}
                   >
                     {/* Indicador ativo */}
                     {isActive && (
                       <div
-                        className="absolute left-0 h-6 w-1 rounded-r-full bg-primary dark:bg-white"
+                        className="absolute left-0 h-6 w-1 rounded-r-full bg-primary"
                       />
                     )}
 
@@ -143,7 +143,7 @@ export function Sidebar() {
                         item.badgeColor
                           ? item.badgeColor
                           : isActive
-                            ? "bg-primary text-primary-foreground dark:bg-white dark:text-black"
+                            ? "bg-primary text-primary-foreground"
                             : "bg-bg-tertiary text-text-secondary"
                       )}>
                         {item.badge}

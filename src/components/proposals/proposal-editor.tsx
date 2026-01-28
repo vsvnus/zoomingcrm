@@ -287,12 +287,12 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
   const publicUrl = `${origin}/p/${proposal.token}`
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 p-8">
+    <div className="min-h-screen bg-bg-primary p-8">
       <div className="mx-auto max-w-7xl">
         {/* Back Button */}
         <button
           onClick={() => router.push('/proposals')}
-          className="mb-6 flex items-center gap-2 text-sm text-zinc-400 transition-colors hover:text-white"
+          className="mb-6 flex items-center gap-2 text-sm text-text-tertiary transition-colors hover:text-text-primary"
         >
           <ArrowLeft className="h-4 w-4" />
           Voltar para Propostas
@@ -307,18 +307,18 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                   type="text"
                   value={editForm.title}
                   onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-3xl font-bold text-white placeholder-zinc-500 focus:border-white/20 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-secondary px-4 py-2 text-3xl font-bold text-text-primary placeholder-text-quaternary focus:border-border focus:outline-none"
                 />
                 <textarea
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-zinc-300 placeholder-zinc-500 focus:border-white/20 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-secondary px-4 py-2 text-text-secondary placeholder-text-quaternary focus:border-border focus:outline-none"
                   rows={3}
                   placeholder="Descrição da proposta..."
                 />
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <label className="mb-1 block text-sm text-zinc-400">Desconto (%)</label>
+                    <label className="mb-1 block text-sm text-text-secondary">Desconto (%)</label>
                     <input
                       type="number"
                       min="0"
@@ -328,16 +328,16 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                       onChange={(e) =>
                         setEditForm({ ...editForm, discount: parseFloat(e.target.value) || 0 })
                       }
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-white/20 focus:outline-none"
+                      className="w-full rounded-lg border border-border bg-secondary px-4 py-2 text-text-primary focus:border-border focus:outline-none"
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="mb-1 block text-sm text-zinc-400">Válido até</label>
+                    <label className="mb-1 block text-sm text-text-secondary">Válido até</label>
                     <input
                       type="date"
                       value={editForm.valid_until}
                       onChange={(e) => setEditForm({ ...editForm, valid_until: e.target.value })}
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-white/20 focus:outline-none"
+                      className="w-full rounded-lg border border-border bg-secondary px-4 py-2 text-text-primary focus:border-border focus:outline-none"
                     />
                   </div>
                 </div>
@@ -345,20 +345,20 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                 {/* Financial & Recurrence Settings */}
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <label className="mb-1 block text-sm text-zinc-400">Data Pagamento</label>
+                    <label className="mb-1 block text-sm text-text-secondary">Data Pagamento</label>
                     <input
                       type="date"
                       value={editForm.payment_date}
                       onChange={(e) => setEditForm({ ...editForm, payment_date: e.target.value })}
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-white/20 focus:outline-none"
+                      className="w-full rounded-lg border border-border bg-secondary px-4 py-2 text-text-primary focus:border-border focus:outline-none"
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="mb-1 block text-sm text-zinc-400">Parcelas</label>
+                    <label className="mb-1 block text-sm text-text-secondary">Parcelas</label>
                     <select
                       value={editForm.installments}
                       onChange={(e) => setEditForm({ ...editForm, installments: parseInt(e.target.value) })}
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-white/20 focus:outline-none"
+                      className="w-full rounded-lg border border-border bg-secondary px-4 py-2 text-text-primary focus:border-border focus:outline-none"
                     >
                       <option value={1}>À vista (1x)</option>
                       <option value={2}>Parcelado (2x)</option>
@@ -371,9 +371,9 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                         type="checkbox"
                         checked={editForm.is_recurring}
                         onChange={(e) => setEditForm({ ...editForm, is_recurring: e.target.checked })}
-                        className="rounded border-white/10 bg-white/5 text-purple-500 focus:ring-purple-500"
+                        className="rounded border-border bg-secondary text-purple-500 focus:ring-purple-500"
                       />
-                      <span className="text-sm text-zinc-300">Recorrente?</span>
+                      <span className="text-sm text-text-secondary">Recorrente?</span>
                     </label>
                   </div>
                 </div>
@@ -386,7 +386,7 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                   </button>
                   <button
                     onClick={() => setIsEditing(false)}
-                    className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+                    className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-hover"
                   >
                     Cancelar
                   </button>
@@ -398,23 +398,23 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                   <motion.h1
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-3xl font-bold text-white"
+                    className="text-3xl font-bold text-text-primary"
                   >
                     {proposal.title}
                   </motion.h1>
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white"
+                    className="rounded-lg p-2 text-text-tertiary hover:bg-bg-hover hover:text-text-primary"
                   >
                     <Edit className="h-5 w-5" />
                   </button>
                 </div>
                 {proposal.description && (
-                  <p className="mt-2 text-zinc-400">{proposal.description}</p>
+                  <p className="mt-2 text-text-tertiary">{proposal.description}</p>
                 )}
                 {proposal.clients && (
-                  <p className="mt-1 text-sm text-zinc-500">
-                    Cliente: <span className="text-zinc-300">{proposal.clients.name}</span>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    Cliente: <span className="text-text-primary">{proposal.clients.name}</span>
                   </p>
                 )}
               </>
@@ -428,14 +428,14 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                 if (origin) window.open(publicUrl, '_blank')
               }}
               disabled={!origin}
-              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/10 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition-all hover:bg-bg-hover disabled:opacity-50"
             >
               <Eye className="h-4 w-4" />
               Preview
             </button>
             <button
               onClick={handleDuplicate}
-              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/10"
+              className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition-all hover:bg-bg-hover"
             >
               <Copy className="h-4 w-4" />
               Duplicar
@@ -443,7 +443,7 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
             {proposal.status !== 'ACCEPTED' && (
               <button
                 onClick={handleSendProposal}
-                className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition-all hover:bg-zinc-200"
+                className="flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 text-sm font-medium text-bg-primary transition-all hover:bg-text-secondary"
               >
                 <Send className="h-4 w-4" />
                 Enviar para Cliente
@@ -484,16 +484,16 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl"
+              className="rounded-2xl border border-border bg-card p-6 backdrop-blur-xl"
             >
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Package className="h-5 w-5 text-green-400" />
-                  <h2 className="text-xl font-bold text-white">Itens da Proposta</h2>
+                  <h2 className="text-xl font-bold text-text-primary">Itens da Proposta</h2>
                 </div>
                 <button
                   onClick={() => setIsItemModalOpen(true)}
-                  className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-zinc-200"
+                  className="flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 text-sm font-medium text-bg-primary hover:bg-text-secondary"
                 >
                   <Plus className="h-4 w-4" />
                   Adicionar Item
@@ -507,12 +507,12 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                     .map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/5 p-4"
+                        className="flex items-center gap-3 rounded-lg border border-border bg-card p-4"
                       >
-                        <GripVertical className="h-5 w-5 cursor-grab text-zinc-500" />
+                        <GripVertical className="h-5 w-5 cursor-grab text-text-tertiary" />
                         <div className="flex-1">
-                          <p className="font-medium text-white">{item.description}</p>
-                          <div className="flex items-center gap-3 text-sm text-zinc-400">
+                          <p className="font-medium text-text-primary">{item.description}</p>
+                          <div className="flex items-center gap-3 text-sm text-text-secondary">
                             <span>
                               {item.quantity}x {formatCurrency(Number(item.unit_price))} ={' '}
                               {formatCurrency(Number(item.total))}
@@ -539,7 +539,7 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                         </div>
                         <button
                           onClick={() => handleDeleteItem(item.id)}
-                          className="rounded-lg p-2 text-zinc-400 hover:bg-red-500/10 hover:text-red-400"
+                          className="rounded-lg p-2 text-text-tertiary hover:bg-red-500/10 hover:text-red-400"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -547,9 +547,9 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                     ))}
                 </div>
               ) : (
-                <div className="rounded-lg border border-white/5 bg-white/5 p-8 text-center">
-                  <Package className="mx-auto h-12 w-12 text-zinc-600" />
-                  <p className="mt-2 text-sm text-zinc-500">Nenhum item adicionado</p>
+                <div className="rounded-lg border border-border bg-card p-8 text-center">
+                  <Package className="mx-auto h-12 w-12 text-text-quaternary" />
+                  <p className="mt-2 text-sm text-text-secondary">Nenhum item adicionado</p>
                 </div>
               )}
             </motion.div>
@@ -559,16 +559,16 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl"
+              className="rounded-2xl border border-border bg-card p-6 backdrop-blur-xl"
             >
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <DollarSign className="h-5 w-5 text-purple-400" />
-                  <h2 className="text-xl font-bold text-white">Opcionais</h2>
+                  <h2 className="text-xl font-bold text-text-primary">Opcionais</h2>
                 </div>
                 <button
                   onClick={() => setIsOptionalModalOpen(true)}
-                  className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-zinc-200"
+                  className="flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 text-sm font-medium text-bg-primary hover:bg-text-secondary"
                 >
                   <Plus className="h-4 w-4" />
                   Adicionar Opcional
@@ -582,13 +582,13 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                     .map((optional) => (
                       <div
                         key={optional.id}
-                        className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/5 p-4"
+                        className="flex items-center gap-3 rounded-lg border border-border bg-card p-4"
                       >
-                        <GripVertical className="h-5 w-5 cursor-grab text-zinc-500" />
+                        <GripVertical className="h-5 w-5 cursor-grab text-text-tertiary" />
                         <div className="flex-1">
-                          <p className="font-medium text-white">{optional.title}</p>
+                          <p className="font-medium text-text-primary">{optional.title}</p>
                           {optional.description && (
-                            <p className="text-sm text-zinc-400">{optional.description}</p>
+                            <p className="text-sm text-text-secondary">{optional.description}</p>
                           )}
                           <p className="mt-1 text-sm font-medium text-purple-400">
                             {formatCurrency(Number(optional.price))}
@@ -596,7 +596,7 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                         </div>
                         <button
                           onClick={() => handleDeleteOptional(optional.id)}
-                          className="rounded-lg p-2 text-zinc-400 hover:bg-red-500/10 hover:text-red-400"
+                          className="rounded-lg p-2 text-text-tertiary hover:bg-red-500/10 hover:text-red-400"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -604,9 +604,9 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                     ))}
                 </div>
               ) : (
-                <div className="rounded-lg border border-white/5 bg-white/5 p-8 text-center">
-                  <DollarSign className="mx-auto h-12 w-12 text-zinc-600" />
-                  <p className="mt-2 text-sm text-zinc-500">Nenhum opcional adicionado</p>
+                <div className="rounded-lg border border-border bg-card p-8 text-center">
+                  <DollarSign className="mx-auto h-12 w-12 text-text-quaternary" />
+                  <p className="mt-2 text-sm text-text-tertiary">Nenhum opcional adicionado</p>
                 </div>
               )}
             </motion.div>
@@ -616,16 +616,16 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl"
+              className="rounded-2xl border border-border bg-card p-6 backdrop-blur-xl"
             >
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Video className="h-5 w-5 text-blue-400" />
-                  <h2 className="text-xl font-bold text-white">Vídeos Portfolio</h2>
+                  <h2 className="text-xl font-bold text-text-primary">Vídeos Portfolio</h2>
                 </div>
                 <button
                   onClick={() => setIsVideoModalOpen(true)}
-                  className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-zinc-200"
+                  className="flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 text-sm font-medium text-bg-primary hover:bg-text-secondary"
                 >
                   <Plus className="h-4 w-4" />
                   Adicionar Vídeo
@@ -639,11 +639,11 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                     .map((video) => (
                       <div
                         key={video.id}
-                        className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/5 p-4"
+                        className="flex items-center gap-3 rounded-lg border border-border bg-card p-4"
                       >
-                        <GripVertical className="h-5 w-5 cursor-grab text-zinc-500" />
+                        <GripVertical className="h-5 w-5 cursor-grab text-text-tertiary" />
                         <div className="flex-1">
-                          <p className="font-medium text-white">{video.title}</p>
+                          <p className="font-medium text-text-primary">{video.title}</p>
                           <a
                             href={video.video_url}
                             target="_blank"
@@ -655,7 +655,7 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                         </div>
                         <button
                           onClick={() => handleDeleteVideo(video.id)}
-                          className="rounded-lg p-2 text-zinc-400 hover:bg-red-500/10 hover:text-red-400"
+                          className="rounded-lg p-2 text-text-tertiary hover:bg-red-500/10 hover:text-red-400"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -663,9 +663,9 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                     ))}
                 </div>
               ) : (
-                <div className="rounded-lg border border-white/5 bg-white/5 p-8 text-center">
-                  <Video className="mx-auto h-12 w-12 text-zinc-600" />
-                  <p className="mt-2 text-sm text-zinc-500">Nenhum vídeo adicionado</p>
+                <div className="rounded-lg border border-border bg-card p-8 text-center">
+                  <Video className="mx-auto h-12 w-12 text-text-quaternary" />
+                  <p className="mt-2 text-sm text-text-secondary">Nenhum vídeo adicionado</p>
                 </div>
               )}
             </motion.div>
@@ -675,19 +675,19 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl"
+              className="rounded-2xl border border-border bg-card p-6 backdrop-blur-xl"
             >
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Palette className="h-5 w-5 text-pink-400" />
-                  <h2 className="text-xl font-bold text-white">Design & Branding</h2>
+                  <h2 className="text-xl font-bold text-text-primary">Design & Branding</h2>
                 </div>
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-4">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-zinc-400">
+                    <label className="mb-2 block text-sm font-medium text-text-secondary">
                       Cor de Destaque
                     </label>
                     <div className="flex items-center gap-3">
@@ -705,13 +705,13 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                         }}
                         className="h-10 w-20 cursor-pointer rounded bg-transparent p-1"
                       />
-                      <span className="text-sm text-zinc-500">{proposal.primary_color || 'Padrão'}</span>
+                      <span className="text-sm text-text-tertiary">{proposal.primary_color || 'Padrão'}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <label className="mb-2 block text-sm font-medium text-zinc-400">
+                  <label className="mb-2 block text-sm font-medium text-text-secondary">
                     Imagem de Capa
                   </label>
                   <ImageUpload
@@ -737,24 +737,24 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="sticky top-8 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl"
+              className="sticky top-8 rounded-2xl border border-border bg-card p-6 backdrop-blur-xl"
             >
               <div className="mb-4 flex items-center gap-3">
                 <FileText className="h-5 w-5 text-green-400" />
-                <h2 className="text-xl font-bold text-white">Resumo Financeiro</h2>
+                <h2 className="text-xl font-bold text-text-primary">Resumo Financeiro</h2>
               </div>
 
               <div className="space-y-4">
                 {/* Base Value */}
-                <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                  <span className="text-sm text-zinc-400">Valor Base</span>
-                  <span className="font-medium text-white">{formatCurrency(baseValue)}</span>
+                <div className="flex items-center justify-between border-b border-border pb-3">
+                  <span className="text-sm text-text-secondary">Valor Base</span>
+                  <span className="font-medium text-text-primary">{formatCurrency(baseValue)}</span>
                 </div>
 
                 {/* Discount */}
                 {proposal.discount > 0 && (
-                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                    <span className="text-sm text-zinc-400">
+                  <div className="flex items-center justify-between border-b border-border pb-3">
+                    <span className="text-sm text-text-secondary">
                       Desconto ({proposal.discount}%)
                     </span>
                     <span className="font-medium text-red-400">
@@ -765,8 +765,8 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
 
                 {/* Optionals */}
                 {optionalsValue > 0 && (
-                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                    <span className="text-sm text-zinc-400">Opcionais Selecionados</span>
+                  <div className="flex items-center justify-between border-b border-border pb-3">
+                    <span className="text-sm text-text-secondary">Opcionais Selecionados</span>
                     <span className="font-medium text-purple-400">
                       + {formatCurrency(optionalsValue)}
                     </span>
@@ -776,7 +776,7 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                 {/* Total */}
                 <div className="rounded-lg bg-green-500/10 p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-zinc-300">Valor Total</span>
+                    <span className="text-sm font-medium text-text-secondary">Valor Total</span>
                     <span className="text-2xl font-bold text-green-400">
                       {formatCurrency(totalValue)}
                     </span>
@@ -787,9 +787,9 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
 
               {/* Info cards */}
               <div className="mt-6 space-y-3">
-                <div className="rounded-lg border border-white/5 bg-white/5 p-3">
-                  <p className="text-xs text-zinc-500">Status</p>
-                  <p className="mt-1 font-medium text-white">
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-xs text-text-tertiary">Status</p>
+                  <p className="mt-1 font-medium text-text-primary">
                     {proposal.status === 'DRAFT'
                       ? 'Rascunho'
                       : proposal.status === 'SENT'
@@ -803,24 +803,24 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                 </div>
 
                 {proposal.valid_until && (
-                  <div className="rounded-lg border border-white/5 bg-white/5 p-3">
-                    <p className="text-xs text-zinc-500">Válido até</p>
-                    <p className="mt-1 font-medium text-white">
+                  <div className="rounded-lg border border-border bg-card p-3">
+                    <p className="text-xs text-text-tertiary">Válido até</p>
+                    <p className="mt-1 font-medium text-text-primary">
                       {new Date(proposal.valid_until).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                     </p>
                   </div>
                 )}
 
                 {/* Payment Info */}
-                <div className="rounded-lg border border-white/5 bg-white/5 p-3">
-                  <p className="text-xs text-zinc-500">Condições de Pagamento</p>
-                  <p className="mt-1 font-medium text-white">
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-xs text-text-tertiary">Condições de Pagamento</p>
+                  <p className="mt-1 font-medium text-text-primary">
                     {proposal.installments && proposal.installments > 1
                       ? `${proposal.installments}x Parcelado`
                       : 'À Vista'}
                   </p>
                   {proposal.payment_date && (
-                    <p className="text-sm text-zinc-400 mt-1">
+                    <p className="text-sm text-text-secondary mt-1">
                       Vencimento: {new Date(proposal.payment_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                     </p>
                   )}
@@ -839,8 +839,8 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                   </div>
                 )}
 
-                <div className="rounded-lg border border-white/5 bg-white/5 p-3">
-                  <p className="text-xs text-zinc-500">Link Público</p>
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-xs text-text-tertiary">Link Público</p>
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(publicUrl)

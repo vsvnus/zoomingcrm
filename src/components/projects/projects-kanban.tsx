@@ -441,7 +441,7 @@ function ProjectCard({
               </div>
             )}
             <div className="mt-2 flex items-center gap-2">
-              <div className="flex-1 h-1 rounded-full bg-white/10 overflow-hidden">
+              <div className="flex-1 h-1 rounded-full bg-secondary overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-300"
                   style={{
