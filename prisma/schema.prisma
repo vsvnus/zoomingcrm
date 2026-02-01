@@ -620,19 +620,21 @@ enum MaintenanceStatus {
 // ============================================
 
 model AuditLog {
-  id        String   @id @default(cuid())
-  action    String   // Ex: "PROPOSAL_ACCEPTED", "EQUIPMENT_BOOKED"
-  entityType String  // Ex: "Proposal", "Project"
-  entityId  String
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  tableName      String   @map("table_name")
+  recordId       String   @map("record_id")
+  action         String
+  oldData        Json?    @map("old_data")
+  newData        Json?    @map("new_data")
+  changedBy      String?  @map("changed_by")
+  
+  createdAt      DateTime @default(now()) @map("created_at")
 
-  metadata  Json?    // Dados adicionais
-
-  userId    String?  // Quem fez a ação
-  ipAddress String?
-
-  createdAt DateTime @default(now())
-
-  @@index([entityType, entityId])
+  @@index([organizationId])
+  @@index([recordId])
   @@map("audit_logs")
 }
 

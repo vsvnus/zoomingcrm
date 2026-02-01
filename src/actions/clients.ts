@@ -23,7 +23,7 @@ export async function getClients() {
 
 export async function addClient(formData: {
   name: string
-  email: string
+  email?: string
   phone?: string
   company?: string
   notes?: string

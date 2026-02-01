@@ -38,6 +38,7 @@ import {
   deleteProposal,
   getProposalLinkedProject,
 } from '@/actions/proposals'
+import { PaymentScheduleEditor } from './payment-schedule-editor'
 import { useRouter } from 'next/navigation'
 
 type ProposalData = {
@@ -83,6 +84,16 @@ type ProposalData = {
     video_url: string
     order: number
   }>
+  paymentSchedule?: Array<{
+    id?: string
+    description: string
+    due_date: string // From DB map to this
+    amount: number
+    percentage: number
+    order: number
+    paid: boolean
+    paidAt?: string
+  }>
 }
 
 interface ProposalEditorProps {
@@ -108,6 +119,10 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
       : '',
     installments: proposal.installments || 1,
     is_recurring: proposal.is_recurring || false,
+    paymentSchedule: proposal.paymentSchedule ? proposal.paymentSchedule.map(p => ({
+      ...p,
+      due_date: p.due_date ? new Date(p.due_date).toISOString().split('T')[0] : '', // Format date
+    })) : []
   })
   const [origin, setOrigin] = useState('')
 
@@ -201,6 +216,11 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
         payment_date: editForm.payment_date || undefined,
         installments: editForm.installments,
         is_recurring: editForm.is_recurring,
+        paymentSchedule: editForm.paymentSchedule?.map((item: any) => ({
+          ...item,
+          dueDate: item.due_date,
+          paidAt: item.paid_at
+        }))
       })
       setProposal({
         ...proposal,
@@ -211,6 +231,7 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
         payment_date: editForm.payment_date || null,
         installments: editForm.installments,
         is_recurring: editForm.is_recurring,
+        paymentSchedule: editForm.paymentSchedule as any
       })
       setIsEditing(false)
       alert('Proposta atualizada!')
@@ -355,15 +376,14 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                   </div>
                   <div className="flex-1">
                     <label className="mb-1 block text-sm text-text-secondary">Parcelas</label>
-                    <select
+                    <input
+                      type="number"
+                      min="1"
+                      max="48"
                       value={editForm.installments}
-                      onChange={(e) => setEditForm({ ...editForm, installments: parseInt(e.target.value) })}
+                      onChange={(e) => setEditForm({ ...editForm, installments: parseInt(e.target.value) || 1 })}
                       className="w-full rounded-lg border border-border bg-secondary px-4 py-2 text-text-primary focus:border-border focus:outline-none"
-                    >
-                      <option value={1}>À vista (1x)</option>
-                      <option value={2}>Parcelado (2x)</option>
-                      <option value={3}>Parcelado (3x)</option>
-                    </select>
+                    />
                   </div>
                   <div className="flex items-center pt-6">
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -377,6 +397,27 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                     </label>
                   </div>
                 </div>
+
+                {/* Custom Payment Schedule Editor */}
+                {editForm.installments >= 1 && (
+                  <PaymentScheduleEditor
+                    totalValue={totalValue}
+                    installments={editForm.installments}
+                    initialSchedule={editForm.paymentSchedule as any[]} // Type casting to avoid strict issues
+                    onScheduleChange={(newSchedule) => {
+                      setEditForm(prev => ({
+                        ...prev,
+                        installments: newSchedule.length,
+                        paymentSchedule: newSchedule.map(item => ({
+                          ...item,
+                          paid: false, // Default for new schedule items
+                          paidAt: undefined
+                        }))
+                      }))
+                    }}
+                  />
+                )}
+
                 <div className="flex gap-2">
                   <button
                     onClick={handleSaveEdit}

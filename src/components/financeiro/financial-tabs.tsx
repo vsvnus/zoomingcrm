@@ -6,6 +6,7 @@ import { OverviewTab } from './overview-tab'
 import { PayablesTab } from './payables-tab'
 import { ReceivablesTab } from './receivables-tab'
 import { InitialCapitalDialog } from './initial-capital-dialog'
+import { FinancialDateFilter } from './financial-date-filter'
 import { Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -60,12 +61,15 @@ export function FinancialTabs({ initialData, organizationId, defaultTab = 'overv
           </TabsTrigger>
         </TabsList>
 
-        <InitialCapitalDialog organizationId={organizationId}>
-          <Button variant="secondary" size="sm">
-            <Wallet className="mr-2 h-4 w-4" />
-            Capital Inicial
-          </Button>
-        </InitialCapitalDialog>
+        <div className="flex items-center gap-2">
+          <FinancialDateFilter />
+          <InitialCapitalDialog organizationId={organizationId}>
+            <Button variant="secondary" size="sm">
+              <Wallet className="mr-2 h-4 w-4" />
+              Capital Inicial
+            </Button>
+          </InitialCapitalDialog>
+        </div>
       </div>
 
       <TabsContent value="overview" className="space-y-4">

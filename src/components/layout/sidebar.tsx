@@ -16,7 +16,6 @@ import {
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { useEffect, useState } from 'react'
 import { getSidebarBadges } from '@/actions/financeiro'
 
@@ -167,7 +166,6 @@ export function Sidebar() {
             <Building2 className="h-5 w-5" strokeWidth={2} />
             <span className="text-sm font-medium">Minha Empresa</span>
           </Link>
-          <ThemeToggle />
         </div>
       </div>
     </aside>

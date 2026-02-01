@@ -28,10 +28,12 @@ import {
   XCircle,
   Clock,
   FileWarning,
+  Edit,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { AddExpenseDialog } from './add-expense-dialog'
+import { EditExpenseDialog } from './edit-expense-dialog'
 import { markAsPaid, cancelTransaction, updateTransaction } from '@/actions/financeiro'
 
 interface PayablesTabProps {
@@ -99,6 +101,19 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
     setPayables(data)
   }, [data])
   const [isLoading, setIsLoading] = useState<string | null>(null)
+
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingTransaction, setEditingTransaction] = useState<any>(null)
+
+  const handleEdit = (transaction: any) => {
+    if (transaction.status === 'PAID') {
+      if (!confirm('Esta conta já foi PAGA. Alterar o valor ou data pode afetar o fechamento de caixa e relatórios financeiros. Deseja continuar?')) {
+        return
+      }
+    }
+    setEditingTransaction(transaction)
+    setEditDialogOpen(true)
+  }
 
   const handleMarkAsPaid = async (id: string) => {
     if (!confirm('Confirmar pagamento desta despesa?')) return
@@ -185,7 +200,9 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
             {payables.length} despesa{payables.length !== 1 ? 's' : ''} pendente{payables.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <AddExpenseDialog organizationId={organizationId} />
+        <div className="flex gap-2">
+          <AddExpenseDialog organizationId={organizationId} />
+        </div>
       </div>
 
       <div className="rounded-md border">
@@ -207,6 +224,7 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
               const isOverdue = payable.is_overdue || false
               const isFixed = !payable.project_id
               const isPending = payable.status === 'PENDING' || payable.status === 'SCHEDULED'
+              const isPaid = payable.status === 'PAID'
               const hasValidProject = payable.project_id && payable.projects?.title
 
               return (
@@ -262,43 +280,52 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
                     {getStatusBadge(payable.status, isOverdue)}
                   </TableCell>
                   <TableCell>
-                    {isPending && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            disabled={isLoading === payable.id}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleMarkAsPaid(payable.id)}
-                            className="text-green-600"
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Marcar como Pago
-                          </DropdownMenuItem>
-                          {payable.status === 'PENDING' && (
-                            <DropdownMenuItem onClick={() => handleSchedule(payable.id)}>
-                              <Clock className="mr-2 h-4 w-4" />
-                              Agendar Pagamento
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          disabled={isLoading === payable.id}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => handleEdit(payable)}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+
+                        {isPending && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => handleMarkAsPaid(payable.id)}
+                              className="text-green-600"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Marcar como Pago
                             </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => handleCancel(payable.id)}
-                            className="text-red-600"
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Cancelar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+                            {payable.status === 'PENDING' && (
+                              <DropdownMenuItem onClick={() => handleSchedule(payable.id)}>
+                                <Clock className="mr-2 h-4 w-4" />
+                                Agendar Pagamento
+                              </DropdownMenuItem>
+                            )}
+                          </>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleCancel(payable.id)}
+                          className="text-red-600"
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Cancelar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               )
@@ -306,6 +333,13 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
           </TableBody>
         </Table>
       </div>
+
+      <EditExpenseDialog
+        organizationId={organizationId}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        transaction={editingTransaction}
+      />
     </div>
   )
 }

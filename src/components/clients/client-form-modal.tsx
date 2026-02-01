@@ -58,11 +58,10 @@ export function ClientFormModal({ isOpen, onClose, onSuccess }: ClientFormModalP
         {/* Email */}
         <div>
           <label className="mb-2 block text-sm font-medium text-zinc-300">
-            Email *
+            Email
           </label>
           <input
             type="email"
-            required
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-zinc-500 transition-all focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"

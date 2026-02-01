@@ -196,7 +196,22 @@ export async function addTransaction(transaction: Transaction) {
 export async function updateTransaction(id: string, updates: Partial<Transaction>) {
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
+  const { data: { user } } = await supabase.auth.getUser()
 
+  // 1. Fetch current data for audit log
+  const { data: oldData, error: fetchError } = await supabase
+    .from('financial_transactions')
+    .select('*')
+    .eq('id', id)
+    .eq('organization_id', organizationId)
+    .single()
+
+  if (fetchError) {
+    console.error('Error fetching original transaction for update:', fetchError)
+    throw new Error('Erro ao buscar transação original')
+  }
+
+  // 2. Perform Update
   const { data, error } = await supabase
     .from('financial_transactions')
     .update(updates)
@@ -208,6 +223,22 @@ export async function updateTransaction(id: string, updates: Partial<Transaction
   if (error) {
     console.error('Error updating transaction:', error)
     throw new Error('Erro ao atualizar transação: ' + error.message)
+  }
+
+  // 3. Create Audit Log (Fire and forget or await? Await is safer)
+  try {
+    await supabase.from('audit_logs').insert({
+      organization_id: organizationId,
+      table_name: 'financial_transactions',
+      record_id: id,
+      action: 'UPDATE',
+      old_data: oldData,
+      new_data: data,
+      changed_by: user?.id,
+    })
+  } catch (auditError) {
+    console.error('Error creating audit log:', auditError)
+    // Don't fail the transaction update if audit fails, but log it critical
   }
 
   revalidatePath('/financeiro')

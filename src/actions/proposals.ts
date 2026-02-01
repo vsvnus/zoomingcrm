@@ -112,7 +112,8 @@ export async function getProposal(proposalId: string) {
       organizations (id, name, logo, email, phone, website, max_discount),
       items:proposal_items (*),
       optionals:proposal_optionals (*),
-      videos:proposal_videos (*)
+      videos:proposal_videos (*),
+      paymentSchedule:payment_schedule (*)
     `)
     .eq('id', proposalId)
     .eq('organization_id', organizationId)
@@ -266,6 +267,7 @@ export async function updateProposal(
     payment_date?: string
     installments?: number
     is_recurring?: boolean
+    paymentSchedule?: any[]
   }
 ) {
   const supabase = await createClient()
@@ -284,6 +286,38 @@ export async function updateProposal(
 
   // Recalcular valores (caso desconto tenha mudado)
   await recalculateProposalValues(proposalId)
+
+  // Save Payment Schedule if provided
+  if (formData.paymentSchedule) {
+    // 1. Delete existing schedule
+    await supabase
+      .from('payment_schedule')
+      .delete()
+      .eq('proposal_id', proposalId)
+
+    // 2. Insert new schedule
+    if (formData.paymentSchedule.length > 0) {
+      const scheduleToInsert = formData.paymentSchedule.map((item: any) => ({
+        proposal_id: proposalId,
+        description: item.description,
+        due_date: item.dueDate,
+        amount: item.amount,
+        percentage: item.percentage,
+        order: item.order,
+        paid: item.paid || false,
+        paid_at: item.paidAt || null
+      }))
+
+      const { error: scheduleError } = await supabase
+        .from('payment_schedule')
+        .insert(scheduleToInsert)
+
+      if (scheduleError) {
+        console.error('Error saving payment schedule:', scheduleError)
+        // Non-critical: don't throw, just log
+      }
+    }
+  }
 
   // SINCRO: Se o titulo mudou, atualizar o nome do projeto vinculado (se existir)
   if (formData.title) {

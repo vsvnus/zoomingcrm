@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
     Dialog,
@@ -36,17 +36,28 @@ interface AddIncomeDialogProps {
     children?: React.ReactNode
 }
 
+import { getClients } from '@/actions/clients'
+
 export function AddIncomeDialog({ organizationId, children }: AddIncomeDialogProps) {
     const router = useRouter()
     const [open, setOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [clients, setClients] = useState<any[]>([])
     const [formData, setFormData] = useState({
         description: '',
         category: '',
         amount: '',
         dueDate: '',
         notes: '',
+        clientId: '',
     })
+
+    // Fetch clients when dialog opens
+    useEffect(() => {
+        if (open) {
+            getClients().then(setClients)
+        }
+    }, [open])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -66,6 +77,12 @@ export function AddIncomeDialog({ organizationId, children }: AddIncomeDialogPro
                 return
             }
 
+            if (formData.category === 'CLIENT_PAYMENT' && !formData.clientId) {
+                alert('Selecione um cliente para esta receita')
+                setIsLoading(false)
+                return
+            }
+
             await addTransaction({
                 organization_id: organizationId,
                 type: 'INCOME', // Fixed as INCOME
@@ -75,6 +92,7 @@ export function AddIncomeDialog({ organizationId, children }: AddIncomeDialogPro
                 status: 'PENDING',
                 due_date: formData.dueDate || undefined,
                 notes: formData.notes || undefined,
+                client_id: formData.clientId || undefined,
             })
 
             // Reset form
@@ -84,6 +102,7 @@ export function AddIncomeDialog({ organizationId, children }: AddIncomeDialogPro
                 amount: '',
                 dueDate: '',
                 notes: '',
+                clientId: '',
             })
             setOpen(false)
             router.refresh()
@@ -134,6 +153,29 @@ export function AddIncomeDialog({ organizationId, children }: AddIncomeDialogPro
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {/* Cliente (Condicional) */}
+                        {formData.category === 'CLIENT_PAYMENT' && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="client">Cliente</Label>
+                                <Select
+                                    value={formData.clientId}
+                                    onValueChange={(value) => setFormData({ ...formData, clientId: value })}
+                                    required
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione o cliente" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {clients.map((client) => (
+                                            <SelectItem key={client.id} value={client.id}>
+                                                {client.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
                         {/* Descrição */}
                         <div className="grid gap-2">
