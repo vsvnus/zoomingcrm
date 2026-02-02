@@ -8,7 +8,7 @@ import { motion } from 'framer-motion'
 interface ClientFormModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (newClient?: any) => void
 }
 
 export function ClientFormModal({ isOpen, onClose, onSuccess }: ClientFormModalProps) {
@@ -26,9 +26,9 @@ export function ClientFormModal({ isOpen, onClose, onSuccess }: ClientFormModalP
     setIsLoading(true)
 
     try {
-      await addClient(formData)
+      const newClient = await addClient(formData)
       setFormData({ name: '', email: '', phone: '', company: '', notes: '' })
-      onSuccess()
+      onSuccess(newClient)
       onClose()
     } catch (error) {
       alert('Erro ao criar cliente')

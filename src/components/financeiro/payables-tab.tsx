@@ -29,6 +29,7 @@ import {
   Clock,
   FileWarning,
   Edit,
+  Repeat,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -222,7 +223,9 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
           <TableBody>
             {payables.map((payable) => {
               const isOverdue = payable.is_overdue || false
-              const isFixed = !payable.project_id
+              const VARIABLE_CATEGORIES = ['CREW_TALENT', 'EQUIPMENT_RENTAL', 'LOCATION', 'LOGISTICS', 'POST_PRODUCTION', 'PRODUCTION']
+              // Se a categoria for variável, NÃO é fixo, mesmo se não tiver projeto (isso é um erro)
+              const isFixed = !VARIABLE_CATEGORIES.includes(payable.category)
               const isPending = payable.status === 'PENDING' || payable.status === 'SCHEDULED'
               const isPaid = payable.status === 'PAID'
               const hasValidProject = payable.project_id && payable.projects?.title
@@ -230,7 +233,12 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
               return (
                 <TableRow key={payable.id}>
                   <TableCell className="font-medium">
-                    {payable.description}
+                    <div className="flex items-center gap-2">
+                      {payable.description}
+                      {payable.is_recurring && (
+                        <Repeat className="h-3 w-3 text-blue-500" title="Despesa Recorrente" />
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">
@@ -251,9 +259,9 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
                         <ExternalLink className="h-3 w-3" />
                       </Link>
                     ) : (
-                      <span className="flex items-center gap-1 text-sm text-amber-600">
-                        <FileWarning className="h-3 w-3" />
-                        Projeto removido
+                      <span className="flex items-center gap-1 text-sm text-muted-foreground" title="Despesa sem projeto vinculado (Custo Geral)">
+                        <span className="w-2 h-2 rounded-full bg-slate-400" />
+                        Geral / Avulso
                       </span>
                     )}
                   </TableCell>

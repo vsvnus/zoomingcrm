@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { motion } from 'framer-motion'
-import { Package, Calendar, Check } from 'lucide-react'
+import { Package, Calendar, Check, X } from 'lucide-react'
 import { getEquipments, addEquipmentBooking } from '@/actions/equipments'
 import { getProjectShootingDates } from '@/actions/projects'
 import { useRouter } from 'next/navigation'
@@ -144,7 +144,6 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
               </option>
             ))}
           </select>
-          {/* Removido display de preço (diária) conforme solicitado */}
         </div>
 
         {/* Preview do equipamento selecionado */}
@@ -165,54 +164,86 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
           </div>
         )}
 
-        {/* Seleção de Datas (Checklist) */}
+        {/* Seleção de Datas */}
         <div>
           <label className="mb-2 block text-sm font-medium text-text-secondary">
-            Dias de Uso (Datas de Gravação) *
+            Datas de Uso *
           </label>
 
-          {shootingDates.length > 0 ? (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-              {shootingDates.map((shoot) => {
-                const isSelected = formData.selectedDates.includes(shoot.date)
-                return (
-                  <div
-                    key={shoot.id}
-                    onClick={() => toggleDate(shoot.date)}
-                    className={cn(
-                      "cursor-pointer rounded-lg border px-3 py-2 transition-all flex items-center gap-3",
-                      isSelected
-                        ? "border-purple-500 bg-purple-500/10 text-purple-700 dark:text-purple-300"
-                        : "border-border bg-secondary text-text-secondary hover:bg-bg-hover"
-                    )}
-                  >
-                    <div className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded border transition-colors",
-                      isSelected ? "border-purple-500 bg-purple-500 text-white" : "border-text-quaternary bg-transparent"
-                    )}>
-                      {isSelected && <Check className="h-3 w-3" />}
-                    </div>
-                    <div>
-                      <span className="block text-sm font-medium">
-                        {new Date(shoot.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                      </span>
-                      {shoot.location && (
-                        <span className="block text-xs opacity-70 truncate max-w-[120px]">
-                          {shoot.location}
-                        </span>
+          {/* Opção 1: Datas de Gravação (Checklist) */}
+          {shootingDates.length > 0 && (
+            <div className="mb-4">
+              <p className="mb-2 text-xs text-text-tertiary">Datas de Gravação do Projeto</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                {shootingDates.map((shoot) => {
+                  const isSelected = formData.selectedDates.includes(shoot.date)
+                  return (
+                    <div
+                      key={shoot.id}
+                      onClick={() => toggleDate(shoot.date)}
+                      className={cn(
+                        "cursor-pointer rounded-lg border px-3 py-2 transition-all flex items-center gap-3",
+                        isSelected
+                          ? "border-purple-500 bg-purple-500/10 text-purple-700 dark:text-purple-300"
+                          : "border-border bg-secondary text-text-secondary hover:bg-bg-hover"
                       )}
+                    >
+                      <div className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded border transition-colors",
+                        isSelected ? "border-purple-500 bg-purple-500 text-white" : "border-text-quaternary bg-transparent"
+                      )}>
+                        {isSelected && <Check className="h-3 w-3" />}
+                      </div>
+                      <div>
+                        <span className="block text-sm font-medium">
+                          {new Date(shoot.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                        </span>
+                        {shoot.location && (
+                          <span className="block text-xs opacity-70 truncate max-w-[120px]">
+                            {shoot.location}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="rounded-lg border border-dashed border-yellow-500/30 bg-yellow-500/5 p-4 text-center">
-              <Calendar className="mx-auto h-6 w-6 text-yellow-500 mb-2" />
-              <p className="text-sm text-text-secondary">Este projeto não possui datas de gravação cadastradas.</p>
-              <p className="text-xs text-text-tertiary mt-1">Adicione datas de gravação na aba "Detalhes" primeiro.</p>
+                  )
+                })}
+              </div>
             </div>
           )}
+
+          {/* Opção 2: Data Manual */}
+          <div>
+            <p className="mb-2 text-xs text-text-tertiary">Adicionar Data Manualmente</p>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                className="flex-1 rounded-lg border border-border bg-secondary px-4 py-2 text-sm text-text-primary focus:outline-none focus:border-primary/50"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    toggleDate(e.target.value)
+                    e.target.value = '' // Reset input
+                  }
+                }}
+              />
+            </div>
+            {/* Lista de datas selecionadas que não estão no shootingProjects (manuais) */}
+            <div className="mt-2 flex flex-wrap gap-2">
+              {formData.selectedDates
+                .filter(date => !shootingDates.find(sd => sd.date === date))
+                .map(date => (
+                  <div key={date} className="flex items-center gap-2 rounded-full border border-purple-500/20 bg-purple-500/10 px-3 py-1 text-xs text-purple-400">
+                    <span>{new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleDate(date)}
+                      className="rounded-full p-0.5 hover:bg-purple-500/20"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </div>
         </div>
 
         {/* Observações */}
@@ -223,7 +254,7 @@ export function AddEquipmentModal({ isOpen, onClose, projectId }: AddEquipmentMo
           <textarea
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            rows={2} // Reduced rows
+            rows={2}
             placeholder="Ex: Trazer baterias extras..."
             className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary placeholder-text-quaternary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
           />

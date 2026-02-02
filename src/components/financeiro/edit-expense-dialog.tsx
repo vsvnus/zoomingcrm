@@ -10,6 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
     Select,
     SelectContent,
@@ -24,6 +25,7 @@ import { updateTransaction } from '@/actions/financeiro'
 import { useRouter } from 'next/navigation'
 import { Transaction } from '@/actions/financeiro' // Add this export to actions/financeiro.ts if not present, otherwise generic any
 import { format } from 'date-fns'
+import { getProjects } from '@/actions/projects'
 
 // Categorias de despesas (Same as AddExpenseDialog)
 const EXPENSE_CATEGORIES = {
@@ -58,13 +60,21 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [expenseType, setExpenseType] = useState<'fixed' | 'variable'>('variable')
+    const [isRecurring, setIsRecurring] = useState(false)
+    const [projects, setProjects] = useState<any[]>([])
     const [formData, setFormData] = useState({
         description: '',
         category: '',
         amount: '',
         dueDate: '',
         notes: '',
+        projectId: '',
     })
+
+    // Fetch projects
+    useEffect(() => {
+        getProjects().then(setProjects)
+    }, [])
 
     useEffect(() => {
         if (transaction) {
@@ -72,6 +82,7 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
             // Simple heuristic: if category is in fixed list, set fixed.
             const isFixed = EXPENSE_CATEGORIES.fixed.some(c => c.value === transaction.category)
             setExpenseType(isFixed ? 'fixed' : 'variable')
+            setIsRecurring(transaction.is_recurring || false)
 
             setFormData({
                 description: transaction.description || '',
@@ -79,6 +90,7 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
                 amount: transaction.amount?.toString() || '',
                 dueDate: transaction.due_date ? format(new Date(transaction.due_date), 'yyyy-MM-dd') : '',
                 notes: transaction.notes || '',
+                projectId: transaction.project_id || '',
             })
         }
     }, [transaction])
@@ -101,12 +113,19 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
                 return
             }
 
+            if (expenseType === 'variable' && !formData.projectId) {
+                alert('Selecione um projeto para despesa variável')
+                setIsLoading(false)
+                return
+            }
+
             await updateTransaction(transaction.id, {
                 category: formData.category as any,
                 description: formData.description,
                 amount: amount,
                 due_date: formData.dueDate || undefined,
                 notes: formData.notes || undefined,
+                project_id: formData.projectId || undefined, // Allow clearing project if switching types
             })
 
             onOpenChange(false)
@@ -145,7 +164,7 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
                                 value={expenseType}
                                 onValueChange={(value: 'fixed' | 'variable') => {
                                     setExpenseType(value)
-                                    setFormData({ ...formData, category: '' })
+                                    setFormData({ ...formData, category: '', projectId: '' })
                                 }}
                             >
                                 <SelectTrigger id="edit-expenseType">
@@ -157,6 +176,29 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {/* Projeto (Apenas para Variável) */}
+                        {expenseType === 'variable' && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-project">Projeto</Label>
+                                <Select
+                                    value={formData.projectId}
+                                    onValueChange={(value) => setFormData({ ...formData, projectId: value })}
+                                    required
+                                >
+                                    <SelectTrigger id="edit-project">
+                                        <SelectValue placeholder="Selecione o projeto" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {projects.map((project) => (
+                                            <SelectItem key={project.id} value={project.id}>
+                                                {project.title}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
                         {/* Categoria */}
                         <div className="grid gap-2">
@@ -215,6 +257,18 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
                                 value={formData.dueDate}
                                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                             />
+                        </div>
+
+                        {/* Recorrência */}
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="edit-recurring"
+                                checked={isRecurring}
+                                onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
+                            />
+                            <Label htmlFor="edit-recurring" className="cursor-pointer">
+                                Despesa Recorrente (Mensal)
+                            </Label>
                         </div>
 
                         {/* Observações */}

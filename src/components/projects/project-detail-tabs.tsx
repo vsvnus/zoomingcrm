@@ -270,8 +270,19 @@ export function ProjectDetailTabs({
   }, 0) || 0
 
   const totalCosts = teamCosts + manualExpensesTotal + equipmentCosts
-  // Usar total_revenue do financialSummary (approved_value + additives)
-  const projectValue = financialSummary?.total_revenue || financialSummary?.approved_value || Number(project.budget) || 0
+
+  // Calcular total do escopo (itens)
+  const scopeTotal = project.items?.reduce(
+    (acc, item) => acc + Number(item.total_price),
+    0
+  ) || 0
+
+  // Se houver itens no escopo, usamos a soma deles como valor do projeto
+  // Caso contrário, usamos o valor aprovado/budget
+  const projectValue = scopeTotal > 0
+    ? scopeTotal
+    : (financialSummary?.total_revenue || financialSummary?.approved_value || Number(project.budget) || 0)
+
   const profitMargin = projectValue > 0 ? ((projectValue - totalCosts) / projectValue) * 100 : 0
   const profit = projectValue - totalCosts
 
@@ -1107,10 +1118,13 @@ export function ProjectDetailTabs({
                     <DollarSign className="h-4 w-4" />
                     <span className="text-sm">Valor do Projeto</span>
                   </div>
+
+
                   <p className="mt-2 text-2xl font-bold text-text-primary">
                     {formatCurrency(projectValue)}
                   </p>
                 </div>
+
 
                 {/* Total de Custos */}
                 <div className="rounded-xl border border-border bg-card p-4 backdrop-blur-sm">

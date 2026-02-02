@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -24,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Plus } from 'lucide-react'
 import { addTransaction } from '@/actions/financeiro'
 import { useRouter } from 'next/navigation'
+import { getProjects } from '@/actions/projects'
 
 // SPRINT 1: Categorias de despesas - Fixo e Variável
 const EXPENSE_CATEGORIES = {
@@ -57,13 +59,21 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [expenseType, setExpenseType] = useState<'fixed' | 'variable'>('variable')
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [projects, setProjects] = useState<any[]>([])
   const [formData, setFormData] = useState({
     description: '',
     category: '',
     amount: '',
     dueDate: '',
     notes: '',
+    projectId: '',
   })
+
+  // Fetch projects on mount
+  useEffect(() => {
+    getProjects().then(setProjects)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,6 +93,12 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
         return
       }
 
+      if (expenseType === 'variable' && !formData.projectId) {
+        alert('Selecione um projeto para despesa variável')
+        setIsLoading(false)
+        return
+      }
+
       await addTransaction({
         organization_id: organizationId,
         type: 'EXPENSE',
@@ -91,7 +107,11 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
         amount: amount,
         status: 'PENDING',
         due_date: formData.dueDate || undefined,
+        due_date: formData.dueDate || undefined,
         notes: formData.notes || undefined,
+        project_id: formData.projectId || undefined,
+        is_recurring: isRecurring,
+        recurrence_period: isRecurring ? 'MONTHLY' : undefined,
       })
 
       // Reset form
@@ -101,7 +121,9 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
         amount: '',
         dueDate: '',
         notes: '',
+        projectId: '',
       })
+      setIsRecurring(false)
       setOpen(false)
       router.refresh()
     } catch (error: any) {
@@ -141,7 +163,7 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
                 value={expenseType}
                 onValueChange={(value: 'fixed' | 'variable') => {
                   setExpenseType(value)
-                  setFormData({ ...formData, category: '' })
+                  setFormData({ ...formData, category: '', projectId: '' })
                 }}
               >
                 <SelectTrigger>
@@ -153,6 +175,29 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Projeto (Apenas para Variável) */}
+            {expenseType === 'variable' && (
+              <div className="grid gap-2">
+                <Label htmlFor="project">Projeto</Label>
+                <Select
+                  value={formData.projectId}
+                  onValueChange={(value) => setFormData({ ...formData, projectId: value })}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o projeto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Categoria */}
             <div className="grid gap-2">
@@ -211,6 +256,18 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
               />
+            </div>
+
+            {/* Recorrência */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="recurring"
+                checked={isRecurring}
+                onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
+              />
+              <Label htmlFor="recurring" className="cursor-pointer">
+                Despesa Recorrente (Mensal)
+              </Label>
             </div>
 
             {/* Observações */}

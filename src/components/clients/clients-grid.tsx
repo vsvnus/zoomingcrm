@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Plus, Search, Mail, Phone, Building, MoreVertical, Trash2, Calendar, Edit, ChevronRight } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { deleteClient } from '@/actions/clients'
 import { ClientFormModal } from './client-form-modal'
 import { ClientTransferModal } from './client-transfer-modal'
@@ -26,6 +26,10 @@ export function ClientsGrid({ initialClients }: ClientsGridProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [clients, setClients] = useState(initialClients)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
+
+  useEffect(() => {
+    setClients(initialClients)
+  }, [initialClients])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [clientToTransfer, setClientToTransfer] = useState<Client | null>(null)
 
@@ -286,7 +290,12 @@ export function ClientsGrid({ initialClients }: ClientsGridProps) {
       <ClientFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={() => router.refresh()}
+        onSuccess={(newClient) => {
+          if (newClient) {
+            setClients((prev) => [newClient, ...prev])
+          }
+          router.refresh()
+        }}
       />
 
       <ClientTransferModal

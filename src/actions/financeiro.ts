@@ -2,6 +2,7 @@
 
 import { createClient, getUserOrganization } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { addMonths, format } from 'date-fns'
 
 // ============================================
 // TIPOS - SPRINT 0
@@ -58,6 +59,10 @@ export interface Transaction {
   invoice_number?: string
   notes?: string
   created_by?: string
+  // Recorrência
+  is_recurring?: boolean
+  recurrence_period?: 'MONTHLY' | 'YEARLY' | 'WEEKLY'
+  parent_transaction_id?: string
 }
 
 // ============================================
@@ -267,6 +272,41 @@ export async function markAsPaid(id: string, paymentDate?: string, paymentMethod
   if (error) {
     console.error('Error marking transaction as paid:', error)
     throw new Error('Erro ao marcar como pago: ' + error.message)
+  }
+
+  // ===========================================
+  // LÓGICA DE RECORRÊNCIA AUTOMÁTICA
+  // ===========================================
+  try {
+    const transaction = data
+    if (transaction?.is_recurring && transaction?.recurrence_period === 'MONTHLY') {
+      // Calcular próxima data (1 mês depois da data de vencimento original ou da data de pagamento?)
+      // Geralmente é baseado no due_date original para manter o dia do vencimento.
+      const currentDueDate = transaction.due_date ? new Date(transaction.due_date) : new Date()
+      // Se não tiver due_date, usa hoje. 
+      // IMPORTANTE: addMonths do date-fns lida com virada de ano.
+      const nextDueDate = addMonths(currentDueDate, 1)
+
+      // Criar a próxima transação
+      await supabase.from('financial_transactions').insert({
+        organization_id: organizationId,
+        type: transaction.type,
+        category: transaction.category,
+        description: transaction.description, // Pode adicionar "(Mês X)" se quiser, mas simples é melhor
+        amount: transaction.amount,
+        status: 'PENDING',
+        due_date: format(nextDueDate, 'yyyy-MM-dd'),
+        is_recurring: true,
+        recurrence_period: transaction.recurrence_period,
+        parent_transaction_id: transaction.parent_transaction_id || transaction.id, // Encadeia ou aponta pro original? Apontar pro pai original é bom pra agrupamento. Mas se o pai for o atual, usa o ID atual.
+        project_id: transaction.project_id, // Mantém vínculo
+        created_by: transaction.created_by,
+        notes: transaction.notes
+      })
+    }
+  } catch (recError) {
+    console.error('Erro ao processar recorrência:', recError)
+    // Não lança erro pro usuário, pois o pagamento já foi confirmado. Apenas loga.
   }
 
   revalidatePath('/financeiro')
