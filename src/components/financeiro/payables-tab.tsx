@@ -236,7 +236,9 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
                     <div className="flex items-center gap-2">
                       {payable.description}
                       {payable.is_recurring && (
-                        <Repeat className="h-3 w-3 text-blue-500" title="Despesa Recorrente" />
+                        <span title="Despesa Recorrente">
+                          <Repeat className="h-3 w-3 text-blue-500" />
+                        </span>
                       )}
                     </div>
                   </TableCell>

@@ -107,7 +107,6 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
         amount: amount,
         status: 'PENDING',
         due_date: formData.dueDate || undefined,
-        due_date: formData.dueDate || undefined,
         notes: formData.notes || undefined,
         project_id: formData.projectId || undefined,
         is_recurring: isRecurring,
