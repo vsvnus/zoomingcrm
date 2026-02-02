@@ -268,19 +268,7 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Demo credentials */}
-          {!isSignUp && (
-            <div className="mt-6 rounded-lg border border-blue-500/20 bg-blue-500/10 p-4">
-              <p className="text-xs font-medium text-blue-400">
-                💡 Credenciais de teste
-              </p>
-              <p className="mt-1 text-xs text-text-tertiary">
-                Email: demo@zooming.com
-                <br />
-                Senha: demo123456
-              </p>
-            </div>
-          )}
+
         </div>
       </div>
     </div>
