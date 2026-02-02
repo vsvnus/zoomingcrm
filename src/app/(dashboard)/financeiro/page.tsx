@@ -58,7 +58,9 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
   if (transactions) {
     transactions.forEach((t) => {
       const amount = Number(t.amount || 0)
-      const tDate = new Date(t.date)
+      // Fix: 'date' column doesn't exist. Use payment_date (if paid), due_date (if pending), or fallback to created_at
+      const dateStr = t.payment_date || t.due_date || t.created_at
+      const tDate = dateStr ? new Date(dateStr) : new Date()
 
       // Para saldo atual: considerar todas as transações até a data final selecionada
       // Isso reflete o "Saldo ao final do período"
