@@ -17,6 +17,7 @@ import type {
   KanbanBoardData,
   ProjectStats,
 } from '@/types/projects'
+import { upsertFreelancerPayable, deleteTransaction } from '@/actions/financeiro'
 
 // ============================================
 // PROJECTS CRUD
@@ -398,8 +399,39 @@ export async function updateProject(projectId: string, formData: UpdateProjectDa
     .single()
 
   if (error) {
-    console.error('Error updating project:', error)
     throw new Error('Erro ao atualizar projeto')
+  }
+
+  // ============================================
+  // SINCRONIZAÇÃO FINANCEIRA
+  // ============================================
+  // Se o budget foi atualizado, atualizar project_finances e a transação de receita
+  if (formData.budget !== undefined) {
+    // 1. Atualizar project_finances
+    await supabase
+      .from('project_finances')
+      .update({ approved_value: formData.budget })
+      .eq('project_id', projectId)
+      .eq('organization_id', organizationId)
+
+    // 2. Atualizar transação de receita (se existir e estiver PENDENTE)
+    // Busca a transação principal do projeto (CLIENT_PAYMENT)
+    const { data: transaction } = await supabase
+      .from('financial_transactions')
+      .select('id, status')
+      .eq('project_id', projectId)
+      .eq('category', 'CLIENT_PAYMENT')
+      .eq('type', 'INCOME')
+      .eq('organization_id', organizationId)
+      .limit(1)
+      .single()
+
+    if (transaction && transaction.status !== 'PAID') {
+      await supabase
+        .from('financial_transactions')
+        .update({ amount: formData.budget })
+        .eq('id', transaction.id)
+    }
   }
 
   revalidatePath('/projects')
@@ -510,6 +542,31 @@ export async function addProjectMember(formData: AddProjectMemberData) {
   }
 
   revalidatePath(`/projects/${formData.project_id}`)
+
+  // INTEGRAÇÃO FINANCEIRA: Criar despesa se houver valor acordado
+  if (formData.agreed_fee && formData.agreed_fee > 0) {
+    const { data: freelancer } = await supabase
+      .from('freelancers')
+      .select('name')
+      .eq('id', formData.freelancer_id)
+      .single()
+
+    if (freelancer) {
+      // Data de vencimento padrão: 30 dias após hoje, ou data do projeto?
+      // Por enquanto usamos hoje como placeholder para ser editado depois no financeiro
+      const defaultDate = new Date().toISOString().split('T')[0]
+
+      await upsertFreelancerPayable({
+        projectId: formData.project_id,
+        freelancerId: formData.freelancer_id,
+        freelancerName: freelancer.name,
+        amount: formData.agreed_fee,
+        date: defaultDate,
+        organizationId
+      })
+    }
+  }
+
   return data
 }
 
@@ -541,6 +598,37 @@ export async function updateProjectMember(
   }
 
   revalidatePath('/projects')
+
+  // INTEGRAÇÃO FINANCEIRA: Atualizar ou criar despesa
+  if (formData.agreed_fee !== undefined) {
+    // Buscar freelancer info e project_id do member atual (pois updateProjectMember recebe memberId)
+    const { data: member } = await supabase
+      .from('project_members')
+      .select('project_id, freelancer_id, freelancers(name)')
+      .eq('id', memberId)
+      .single()
+
+    if (member && member.freelancers) {
+      const amount = formData.agreed_fee || 0
+      if (amount > 0) {
+        const defaultDate = new Date().toISOString().split('T')[0]
+        // Safety check for freelancers relation type (single vs array)
+        const freelancerName = Array.isArray(member.freelancers)
+          ? member.freelancers[0]?.name
+          : (member.freelancers as any)?.name
+
+        await upsertFreelancerPayable({
+          projectId: member.project_id,
+          freelancerId: member.freelancer_id,
+          freelancerName: freelancerName || 'Freelancer',
+          amount: amount,
+          date: defaultDate,
+          organizationId
+        })
+      }
+    }
+  }
+
   return data
 }
 
@@ -548,11 +636,36 @@ export async function removeProjectMember(memberId: string) {
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
 
+  // Buscar dados antes de excluir para remover transação financeira
+  const { data: memberToDelete } = await supabase
+    .from('project_members')
+    .select('project_id, freelancer_id')
+    .eq('id', memberId)
+    .single()
+
   const { error } = await supabase
     .from('project_members')
     .delete()
     .eq('id', memberId)
     .eq('organization_id', organizationId)
+
+  // Remover transação financeira se existir
+  if (!error && memberToDelete) {
+    const { data: transaction } = await supabase
+      .from('financial_transactions')
+      .select('id')
+      .eq('project_id', memberToDelete.project_id)
+      .eq('freelancer_id', memberToDelete.freelancer_id)
+      .eq('type', 'EXPENSE')
+      .single()
+
+    if (transaction) {
+      await supabase
+        .from('financial_transactions')
+        .delete()
+        .eq('id', transaction.id)
+    }
+  }
 
   if (error) {
     console.error('Error removing project member:', error)
@@ -560,6 +673,14 @@ export async function removeProjectMember(memberId: string) {
   }
 
   revalidatePath('/projects')
+
+  // INTEGRAÇÃO FINANCEIRA: Remover despesa associada
+  // Buscar transação associada ao freelancer neste projeto
+  // Como removeProjectMember recebe memberId, precisamos primeiro saber quem é o freelancer
+  // O código original JÁ DELETOU o membro, então não conseguimos buscar o freelancer_id dele.
+  // CORREÇÃO: Mover a deleção para o final ou fazer select antes. 
+  // Na ordem atual original (linhas 582-587) já deletou. 
+  // Alteração necessária: Buscar antes de deletar.
 }
 
 // ============================================
@@ -875,6 +996,89 @@ export async function toggleProjectItemStatus(itemId: string, projectId: string,
   revalidatePath(`/projects/${projectId}`)
 }
 
+/**
+ * Recalcular Receita do Projeto com base nos Itens do Escopo
+ * Sincroniza: project_items sum -> projects.budget -> project_finances.approved_value -> financial_transactions (Income)
+ */
+async function recalculateProjectRevenue(projectId: string, organizationId: string) {
+  const supabase = await createClient()
+
+  // 1. Calcular soma dos itens
+  const { data: items } = await supabase
+    .from('project_items')
+    .select('total_price')
+    .eq('project_id', projectId)
+
+  const totalValue = items?.reduce((sum, item) => sum + (item.total_price || 0), 0) || 0
+
+  if (totalValue > 0) {
+    // 2. Atualizar Budget no Projeto
+    await supabase.from('projects')
+      .update({ budget: totalValue })
+      .eq('id', projectId)
+
+    // 3. Atualizar Project Finances
+    // Verifica se existe registro primeiro
+    const { data: finance } = await supabase
+      .from('project_finances')
+      .select('id')
+      .eq('project_id', projectId)
+      .maybeSingle()
+
+    if (finance) {
+      await supabase.from('project_finances')
+        .update({ approved_value: totalValue })
+        .eq('project_id', projectId)
+    } else {
+      await supabase.from('project_finances').insert({
+        project_id: projectId,
+        organization_id: organizationId,
+        approved_value: totalValue,
+        target_margin_percent: 30
+      })
+    }
+
+    // 4. Atualizar ou Criar Transação de Receita
+    const { data: existingTx } = await supabase
+      .from('financial_transactions')
+      .select('id, status')
+      .eq('project_id', projectId)
+      .eq('category', 'CLIENT_PAYMENT')
+      .eq('type', 'INCOME')
+      .eq('organization_id', organizationId)
+      .limit(1)
+      .maybeSingle()
+
+    if (existingTx) {
+      if (existingTx.status !== 'PAID') {
+        await supabase.from('financial_transactions')
+          .update({ amount: totalValue })
+          .eq('id', existingTx.id)
+      }
+    } else {
+      // Criar transação se não existir
+      const { data: project } = await supabase.from('projects')
+        .select('title, client_id')
+        .eq('id', projectId).single()
+
+      if (project) {
+        await supabase.from('financial_transactions').insert({
+          organization_id: organizationId,
+          project_id: projectId,
+          client_id: project.client_id,
+          type: 'INCOME',
+          category: 'CLIENT_PAYMENT',
+          status: 'PENDING',
+          description: `Receita: ${project.title}`,
+          amount: totalValue,
+          // Data de vencimento hoje ou null? Vamos por null e deixar user definir, ou hoje.
+          due_date: new Date().toISOString().split('T')[0]
+        })
+      }
+    }
+  }
+}
+
 export async function addProjectItem(projectId: string, item: {
   description: string
   quantity: number
@@ -911,6 +1115,10 @@ export async function addProjectItem(projectId: string, item: {
   }
 
   revalidatePath(`/projects/${projectId}`)
+
+  // INTEGRAÇÃO FINANCEIRA
+  const organizationId = await getUserOrganization()
+  await recalculateProjectRevenue(projectId, organizationId)
 }
 
 export async function updateProjectItem(itemId: string, projectId: string, updates: {
@@ -954,6 +1162,10 @@ export async function updateProjectItem(itemId: string, projectId: string, updat
   }
 
   revalidatePath(`/projects/${projectId}`)
+
+  // INTEGRAÇÃO FINANCEIRA
+  const organizationId = await getUserOrganization()
+  await recalculateProjectRevenue(projectId, organizationId)
 }
 
 export async function deleteProjectItem(itemId: string, projectId: string) {
@@ -970,6 +1182,10 @@ export async function deleteProjectItem(itemId: string, projectId: string) {
   }
 
   revalidatePath(`/projects/${projectId}`)
+
+  // INTEGRAÇÃO FINANCEIRA
+  const organizationId = await getUserOrganization()
+  await recalculateProjectRevenue(projectId, organizationId)
 }
 
 // ============================================
