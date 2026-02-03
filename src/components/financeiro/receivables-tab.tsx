@@ -210,7 +210,8 @@ export function ReceivablesTab({ data, onUpdate, organizationId }: ReceivablesTa
                     {receivable.description}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    {/* Fixed visuals for dark mode: transparent background with colored text */}
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
                       {getCategoryLabel(receivable.category)}
                     </Badge>
                   </TableCell>
@@ -258,7 +259,7 @@ export function ReceivablesTab({ data, onUpdate, organizationId }: ReceivablesTa
                   </TableCell>
                   <TableCell>
                     {receivable.due_date ? (
-                      <span className={isOverdue ? 'text-red-600 font-medium' : ''}>
+                      <span className={isOverdue ? 'text-red-500 font-medium' : ''}>
                         {format(new Date(receivable.due_date), 'dd/MM/yyyy', {
                           locale: ptBR,
                         })}
@@ -267,50 +268,53 @@ export function ReceivablesTab({ data, onUpdate, organizationId }: ReceivablesTa
                       <span className="text-sm text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="font-semibold text-green-600">
+                  <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">
                     {formatCurrency(receivable.amount)}
                   </TableCell>
                   <TableCell>
                     {getStatusBadge(receivable.status, isOverdue)}
                   </TableCell>
                   <TableCell>
-                    {isPending && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            disabled={isLoading === receivable.id}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleMarkAsReceived(receivable.id)}
-                            className="text-green-600"
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Marcar como Recebido
-                          </DropdownMenuItem>
-                          {receivable.status === 'PENDING' && (
-                            <DropdownMenuItem onClick={() => handleSchedule(receivable.id)}>
-                              <Clock className="mr-2 h-4 w-4" />
-                              Agendar Recebimento
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          disabled={isLoading === receivable.id}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {isPending && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => handleMarkAsReceived(receivable.id)}
+                              className="text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-900/20"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Marcar como Recebido
                             </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => handleCancel(receivable.id)}
-                            className="text-red-600"
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Cancelar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+                            {receivable.status === 'PENDING' && (
+                              <DropdownMenuItem onClick={() => handleSchedule(receivable.id)}>
+                                <Clock className="mr-2 h-4 w-4" />
+                                Agendar Recebimento
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
+
+                        <DropdownMenuItem
+                          onClick={() => handleCancel(receivable.id)}
+                          className="text-red-600 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-900/20"
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          {isPending ? 'Cancelar' : 'Deletar Transação'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               )
