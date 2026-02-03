@@ -646,42 +646,52 @@ export async function upsertFreelancerPayable(data: {
  * Busca contadores para os badges do menu lateral
  */
 export async function getSidebarBadges() {
-  const supabase = await createClient()
-  const organizationId = await getUserOrganization()
-  const today = new Date().toISOString().split('T')[0]
+  try {
+    const supabase = await createClient()
+    const organizationId = await getUserOrganization()
+    const today = new Date().toISOString().split('T')[0]
 
-  // Executar queries em paralelo para performance
-  const [proposalsResult, projectsResult, financialResult] = await Promise.all([
-    // 1. Propostas pendentes (Rascunho ou Aguardando Aprovação - status SENT)
-    supabase
-      .from('proposals')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .in('status', ['DRAFT', 'SENT']),
+    // Executar queries em paralelo para performance
+    const [proposalsResult, projectsResult, financialResult] = await Promise.all([
+      // 1. Propostas pendentes (Rascunho ou Aguardando Aprovação - status SENT)
+      supabase
+        .from('proposals')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+        .in('status', ['DRAFT', 'SENT']),
 
-    // 2. Projetos ativos (Em andamento - ex: não DONE nem ARCHIVED)
-    supabase
-      .from('projects')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .neq('status', 'DONE')
-      .neq('status', 'ARCHIVED')
-      .neq('status', 'REVIEW'), // Opcional: considerar REVIEW como ativo ou não? Geralmente sim. Vamos manter ativo.
+      // 2. Projetos ativos (Em andamento - ex: não DONE nem ARCHIVED)
+      supabase
+        .from('projects')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+        .neq('status', 'DONE')
+        .neq('status', 'ARCHIVED')
+        .neq('status', 'REVIEW'), // Opcional: considerar REVIEW como ativo ou não? Geralmente sim. Vamos manter ativo.
 
-    // 3. Financeiro: Contas a PAGAR vencidas
-    supabase
-      .from('financial_transactions')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .eq('type', 'EXPENSE')
-      .neq('status', 'PAID')
-      .neq('status', 'CANCELLED')
-      .lt('due_date', today)
-  ])
+      // 3. Financeiro: Contas a PAGAR vencidas
+      supabase
+        .from('financial_transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+        .eq('type', 'EXPENSE')
+        .neq('status', 'PAID')
+        .neq('status', 'CANCELLED')
+        .lt('due_date', today)
+    ])
 
-  return {
-    proposals: proposalsResult.count || 0,
-    projects: projectsResult.count || 0,
-    financial: financialResult.count || 0,
+    return {
+      proposals: proposalsResult.count || 0,
+      projects: projectsResult.count || 0,
+      financial: financialResult.count || 0,
+    }
+  } catch (error) {
+    // Se o usuário não tem organização configurada, retornar badges vazios
+    console.error('getSidebarBadges error (user may not have organization):', error)
+    return {
+      proposals: 0,
+      projects: 0,
+      financial: 0,
+    }
   }
 }

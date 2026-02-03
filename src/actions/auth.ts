@@ -51,8 +51,12 @@ export async function signUp(
     // FASE 1: Criar organização única para cada usuário
     const orgSlug = `org_${authData.user.id.slice(0, 12)}`
 
-    // Criar organização
-    const { error: orgError } = await supabase
+    // Usar service role para bypass de RLS durante o cadastro
+    const { createServiceClient } = await import('@/lib/supabase/server')
+    const serviceClient = await createServiceClient()
+
+    // Criar organização usando service role
+    const { error: orgError } = await serviceClient
       .from('organizations')
       .insert([
         {
@@ -72,8 +76,8 @@ export async function signUp(
 
     const organizationId = orgSlug
 
-    // Criar usuário vinculado à organização
-    const { error: userError } = await supabase.from('users').insert([
+    // Criar usuário vinculado à organização usando service role
+    const { error: userError } = await serviceClient.from('users').insert([
       {
         id: authData.user.id,
         email: authData.user.email,
