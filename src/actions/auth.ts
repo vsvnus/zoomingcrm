@@ -52,7 +52,7 @@ export async function signUp(
     const orgSlug = `org_${authData.user.id.slice(0, 12)}`
 
     // Criar organização
-    const { data: org, error: orgError } = await supabase
+    const { error: orgError } = await supabase
       .from('organizations')
       .insert([
         {
@@ -64,15 +64,13 @@ export async function signUp(
           initial_capital_set_at: capitalInicial ? new Date().toISOString() : null,
         },
       ])
-      .select()
-      .single()
 
     if (orgError) {
       console.error('Error creating organization:', orgError)
       throw new Error('Erro ao criar organização no banco de dados')
     }
 
-    const organizationId = org.id
+    const organizationId = orgSlug
 
     // Criar usuário vinculado à organização
     const { error: userError } = await supabase.from('users').insert([

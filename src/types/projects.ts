@@ -216,6 +216,7 @@ export interface CreateProjectData {
   drive_folder_link?: string
   script_link?: string
   assigned_to_id?: string
+  budget?: number
 }
 
 /**

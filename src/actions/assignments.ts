@@ -9,6 +9,7 @@
 
 import { createClient, getUserOrganization } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { upsertFreelancerPayable } from './financeiro'
 import type {
     ItemAssignment,
     ItemAssignmentWithFreelancer,
@@ -110,13 +111,38 @@ export async function updateItemAssignment(
         .eq('organization_id', organizationId)
         .select(`
       *,
-      freelancers (id, name, email, phone, daily_rate)
+      freelancers (id, name, email, phone, daily_rate),
+      project_items (project_id)
     `)
         .single()
 
     if (error) {
         console.error('Error updating item assignment:', error)
         throw new Error('Erro ao atualizar assignment: ' + error.message)
+    }
+
+    // ============================================
+    // SINCRONIZAÇÃO FINANCEIRA (SPRINT 2)
+    // ============================================
+    // Se for assignment de projeto (não proposta), tem fee > 0 e tem project_id
+    if (
+        assignment.project_item_id &&
+        assignment.project_items?.project_id &&
+        assignment.agreed_fee > 0
+    ) {
+        try {
+            await upsertFreelancerPayable({
+                projectId: assignment.project_items.project_id,
+                freelancerId: assignment.freelancer_id,
+                freelancerName: assignment.freelancers?.name || 'Freelancer',
+                amount: assignment.agreed_fee,
+                date: assignment.scheduled_date || new Date().toISOString().split('T')[0],
+                organizationId
+            })
+        } catch (finError) {
+            console.error('Erro ao sincronizar financeiro do freelancer:', finError)
+            // Não bloqueia o fluxo principal
+        }
     }
 
     revalidatePath('/proposals')
