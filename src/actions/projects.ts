@@ -613,9 +613,11 @@ export async function updateProjectMember(
       if (amount > 0) {
         const defaultDate = new Date().toISOString().split('T')[0]
         // Safety check for freelancers relation type (single vs array)
-        const freelancerName = Array.isArray(member.freelancers)
-          ? member.freelancers[0]?.name
-          : (member.freelancers as any)?.name
+        // O tipo retornado pelo Supabase pode ser um array ou um objeto dependendo da query
+        const freelancersRel = member.freelancers as unknown as { name: string } | { name: string }[]
+        const freelancerName = Array.isArray(freelancersRel)
+          ? freelancersRel[0]?.name
+          : (freelancersRel as { name: string })?.name
 
         await upsertFreelancerPayable({
           projectId: member.project_id,
