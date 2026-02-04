@@ -30,7 +30,21 @@ export async function signUp(
   capitalInicial?: number
 ) {
   const supabase = await createClient()
+  const { createServiceClient } = await import('@/lib/supabase/server')
+  const serviceClient = await createServiceClient()
 
+  // 1. Verificar se email já existe na tabela users
+  const { data: existingUsersByEmail } = await serviceClient
+    .from('users')
+    .select('id, organization_id')
+    .eq('email', email)
+    .single()
+
+  if (existingUsersByEmail) {
+    throw new Error('Este email já está cadastrado. Faça login.')
+  }
+
+  // 2. Tentar criar usuário no auth
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
@@ -43,18 +57,24 @@ export async function signUp(
   })
 
   if (authError) {
+    // Traduzir erros comuns do Supabase
+    if (authError.message.includes('already registered')) {
+      throw new Error('Este email já está cadastrado. Faça login.')
+    }
+    if (authError.message.includes('password')) {
+      throw new Error('Senha muito fraca. Use no mínimo 6 caracteres.')
+    }
     throw new Error(authError.message)
   }
 
-  // Criar usuário na tabela users
-  if (authData.user) {
-    // FASE 1: Criar organização única para cada usuário
-    const orgSlug = `org_${authData.user.id.slice(0, 12)}`
+  if (!authData.user) {
+    throw new Error('Erro ao criar conta. Tente novamente.')
+  }
 
-    // Usar service role para bypass de RLS durante o cadastro
-    const { createServiceClient } = await import('@/lib/supabase/server')
-    const serviceClient = await createServiceClient()
+  // 3. Criar organização e usuário na tabela users
+  const orgSlug = `org_${authData.user.id.slice(0, 12)}`
 
+  try {
     // Criar organização usando service role
     const { error: orgError } = await serviceClient
       .from('organizations')
@@ -71,7 +91,9 @@ export async function signUp(
 
     if (orgError) {
       console.error('Error creating organization:', orgError)
-      throw new Error('Erro ao criar organização no banco de dados')
+      // Deletar usuário do auth se falhar criar org
+      await serviceClient.auth.admin.deleteUser(authData.user.id)
+      throw new Error('Erro ao criar organização. Tente novamente.')
     }
 
     const organizationId = orgSlug
@@ -83,13 +105,16 @@ export async function signUp(
         email: authData.user.email,
         name,
         organization_id: organizationId,
-        role: 'ADMIN', // Primeiro usuário é admin
+        role: 'ADMIN',
       },
     ])
 
     if (userError) {
       console.error('Error creating user:', userError)
-      throw new Error('Erro ao criar usuário no banco de dados')
+      // Limpar tudo se falhar
+      await serviceClient.from('organizations').delete().eq('id', orgSlug)
+      await serviceClient.auth.admin.deleteUser(authData.user.id)
+      throw new Error('Erro ao criar usuário. Tente novamente.')
     }
 
     // SPRINT 0: Criar transação de capital inicial se informado
@@ -103,16 +128,17 @@ export async function signUp(
 
         if (!result.success) {
           console.error('Erro ao criar capital inicial:', result.message)
-          // Não falhar o cadastro, apenas logar o erro
-          // O usuário pode adicionar o capital inicial depois
-        } else {
-          console.log('Capital inicial registrado:', result.transactionId)
         }
       } catch (error) {
         console.error('Erro inesperado ao criar capital inicial:', error)
-        // Não falhar o cadastro
       }
     }
+  } catch (error: any) {
+    // Se for um erro nosso (já traduzido), repassar
+    if (error.message && !error.message.includes('Error')) {
+      throw error
+    }
+    throw new Error('Erro ao criar conta. Tente novamente.')
   }
 
   revalidatePath('/', 'layout')

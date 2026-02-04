@@ -136,8 +136,18 @@ export const getUserOrganization = cache(async (): Promise<string> => {
     .single()
 
   if (existingUserByEmail) {
-    // Usuário já existe com esse email - usar a organização existente
-    console.log('Usuário encontrado por email, usando organização existente:', existingUserByEmail.organization_id)
+    // Migrar: atualizar ID do usuário para o novo auth ID
+    console.log('Migrando usuário legado para novo auth ID:', user.id)
+    const { error: updateError } = await serviceClient
+      .from('users')
+      .update({ id: user.id })
+      .eq('email', user.email)
+
+    if (updateError) {
+      console.error('Erro ao migrar usuário legado:', updateError)
+      // Mesmo com erro, retornar a organização existente
+    }
+
     return existingUserByEmail.organization_id
   }
 
