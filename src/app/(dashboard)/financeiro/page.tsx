@@ -21,6 +21,8 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
 
   // Buscar contas a pagar/receber para as tabelas
   // Filtrar contas que vencem até o final do período selecionado
+  // Modificado para usar filtro OR: mostrar se data <= selecionada OU se data é nula (sem vencimento)
+  // Supabase JS usa sintaxe específica para OR: .or('due_date.lte.XY,due_date.is.null')
   const [payablesData, receivablesData] = await Promise.all([
     supabase
       .from('accounts_payable')
@@ -30,7 +32,7 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
         freelancers:freelancer_id(name)
       `)
       .eq('organization_id', organizationId)
-      .lte('due_date', to.toISOString())
+      .or(`due_date.lte.${to.toISOString()},due_date.is.null`)
       .order('due_date', { ascending: true }),
     supabase
       .from('accounts_receivable')
@@ -41,7 +43,7 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
         proposals:proposal_id(title)
       `)
       .eq('organization_id', organizationId)
-      .lte('due_date', to.toISOString())
+      .or(`due_date.lte.${to.toISOString()},due_date.is.null`)
       .order('due_date', { ascending: true }),
   ])
 
