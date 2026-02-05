@@ -260,9 +260,11 @@ export function ReceivablesTab({ data, onUpdate, organizationId }: ReceivablesTa
                   <TableCell>
                     {receivable.due_date ? (
                       <span className={isOverdue ? 'text-red-500 font-medium' : ''}>
-                        {format(new Date(receivable.due_date), 'dd/MM/yyyy', {
-                          locale: ptBR,
-                        })}
+                        {(() => {
+                          // Fix: Parse YYYY-MM-DD manually to avoid timezone shift
+                          const [y, m, d] = receivable.due_date.split('-')
+                          return `${d}/${m}/${y}`
+                        })()}
                       </span>
                     ) : (
                       <span className="text-sm text-muted-foreground">-</span>

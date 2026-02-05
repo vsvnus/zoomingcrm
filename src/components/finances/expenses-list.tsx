@@ -30,6 +30,11 @@ export function ExpensesList({ expenses }: ExpensesListProps) {
   }
 
   const formatDate = (date: string) => {
+    // If it's a simple date string YYYY-MM-DD, parse manually to avoid timezone issues
+    if (date.length === 10 && date.includes('-')) {
+      const [y, m, d] = date.split('-')
+      return `${d}/${m}/${y}`
+    }
     return new Date(date).toLocaleDateString('pt-BR')
   }
 
@@ -189,9 +194,8 @@ export function ExpensesList({ expenses }: ExpensesListProps) {
                   </p>
                   <p className="mt-2 text-xs text-zinc-500">Realizado</p>
                   <p
-                    className={`font-medium ${
-                      isOverBudget ? 'text-red-400' : 'text-white'
-                    }`}
+                    className={`font-medium ${isOverBudget ? 'text-red-400' : 'text-white'
+                      }`}
                   >
                     {formatCurrency(expense.actual_cost)}
                   </p>

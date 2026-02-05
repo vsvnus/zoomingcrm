@@ -93,11 +93,8 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
         return
       }
 
-      if (expenseType === 'variable' && !formData.projectId) {
-        alert('Selecione um projeto para despesa variável')
-        setIsLoading(false)
-        return
-      }
+      // Validation for project removed as per user request
+      // if (expenseType === 'variable' && !formData.projectId) { ... }
 
       await addTransaction({
         organization_id: organizationId,
@@ -178,14 +175,13 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
             {/* Projeto (Apenas para Variável) */}
             {expenseType === 'variable' && (
               <div className="grid gap-2">
-                <Label htmlFor="project">Projeto</Label>
+                <Label htmlFor="project">Projeto (Opcional)</Label>
                 <Select
                   value={formData.projectId}
                   onValueChange={(value) => setFormData({ ...formData, projectId: value })}
-                  required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o projeto" />
+                    <SelectValue placeholder="Selecione o projeto (ou deixe em branco)" />
                   </SelectTrigger>
                   <SelectContent>
                     {projects.map((project) => (
