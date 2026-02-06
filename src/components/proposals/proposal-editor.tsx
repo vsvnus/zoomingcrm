@@ -218,8 +218,8 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
         is_recurring: editForm.is_recurring,
         paymentSchedule: editForm.paymentSchedule?.map((item: any) => ({
           ...item,
-          dueDate: item.due_date,
-          paidAt: item.paid_at
+          dueDate: item.due_date || undefined,
+          paidAt: item.paidAt || item.paid_at
         }))
       })
       setProposal({

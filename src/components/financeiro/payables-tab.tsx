@@ -226,7 +226,7 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
               const VARIABLE_CATEGORIES = ['CREW_TALENT', 'EQUIPMENT_RENTAL', 'LOCATION', 'LOGISTICS', 'POST_PRODUCTION', 'PRODUCTION']
               // Se a categoria for variável, NÃO é fixo, mesmo se não tiver projeto (isso é um erro)
               const isFixed = !VARIABLE_CATEGORIES.includes(payable.category)
-              const isPending = payable.status === 'PENDING' || payable.status === 'SCHEDULED'
+              const isPending = ['PENDING', 'SCHEDULED', 'OVERDUE'].includes(payable.status)
               const isPaid = payable.status === 'PAID'
               const hasValidProject = payable.project_id && payable.projects?.title
 
