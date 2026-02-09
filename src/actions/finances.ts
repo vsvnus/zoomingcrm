@@ -3,6 +3,24 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
+// Mapear categorias de project_expenses para financial_transactions
+function mapExpenseCategoryToFinancial(category: string): string {
+  const map: Record<string, string> = {
+    CREW_TALENT: 'CREW_TALENT',
+    EQUIPMENT: 'EQUIPMENT_RENTAL',
+    LOGISTICS: 'LOGISTICS',
+    FOOD: 'OTHER_EXPENSE',
+    OTHER: 'OTHER_EXPENSE',
+  }
+  return map[category] || 'OTHER_EXPENSE'
+}
+
+// Mapear payment_status de project_expenses para financial_transactions
+function mapPaymentStatus(status: string): string {
+  if (status === 'TO_PAY') return 'PENDING'
+  return status // SCHEDULED e PAID são iguais
+}
+
 // Buscar resumo financeiro do projeto
 export async function getProjectFinancialSummary(projectId: string) {
   const supabase = await createClient()
@@ -93,6 +111,35 @@ export async function addExpense(formData: {
     throw new Error('Erro ao inicializar financeiro do projeto')
   }
 
+  // 1. Criar financial_transaction correspondente (Contas a Pagar)
+  const expenseStatus = formData.payment_status || 'TO_PAY'
+  const expenseAmount = formData.actual_cost || formData.estimated_cost
+
+  const { data: ftData, error: ftError } = await supabase
+    .from('financial_transactions')
+    .insert({
+      organization_id: financeData.organization_id,
+      type: 'EXPENSE',
+      category: mapExpenseCategoryToFinancial(formData.category),
+      description: formData.description,
+      amount: expenseAmount,
+      status: mapPaymentStatus(expenseStatus),
+      due_date: formData.payment_date || null,
+      payment_date: expenseStatus === 'PAID' ? (formData.payment_date || new Date().toISOString().split('T')[0]) : null,
+      project_id: formData.project_id,
+      freelancer_id: formData.freelancer_id || null,
+      invoice_number: formData.invoice_number || null,
+      notes: formData.notes || null,
+    })
+    .select('id')
+    .single()
+
+  if (ftError) {
+    console.error('Error creating financial transaction for expense:', ftError)
+    // Não bloqueia a criação da despesa, mas loga o erro
+  }
+
+  // 2. Criar project_expense com link para financial_transaction
   const { data, error } = await supabase
     .from('project_expenses')
     .insert([
@@ -110,6 +157,7 @@ export async function addExpense(formData: {
         payment_date: formData.payment_date,
         invoice_number: formData.invoice_number,
         notes: formData.notes,
+        financial_transaction_id: ftData?.id || null,
       },
     ])
     .select()
@@ -121,6 +169,7 @@ export async function addExpense(formData: {
   }
 
   revalidatePath(`/projects/${formData.project_id}`)
+  revalidatePath('/financeiro')
   return data
 }
 
@@ -150,13 +199,51 @@ export async function updateExpense(
     throw new Error('Erro ao atualizar despesa')
   }
 
+  // Sync com financial_transaction vinculada
+  if (data?.financial_transaction_id) {
+    const ftUpdates: Record<string, any> = {}
+    if (updates.actual_cost !== undefined || updates.estimated_cost !== undefined) {
+      ftUpdates.amount = updates.actual_cost || updates.estimated_cost || data.actual_cost || data.estimated_cost
+    }
+    if (updates.payment_status) {
+      ftUpdates.status = mapPaymentStatus(updates.payment_status)
+    }
+    if (updates.payment_date !== undefined) {
+      ftUpdates.due_date = updates.payment_date || null
+      if (updates.payment_status === 'PAID') {
+        ftUpdates.payment_date = updates.payment_date || new Date().toISOString().split('T')[0]
+      }
+    }
+    if (updates.invoice_number !== undefined) {
+      ftUpdates.invoice_number = updates.invoice_number || null
+    }
+    if (updates.notes !== undefined) {
+      ftUpdates.notes = updates.notes || null
+    }
+
+    if (Object.keys(ftUpdates).length > 0) {
+      await supabase
+        .from('financial_transactions')
+        .update(ftUpdates)
+        .eq('id', data.financial_transaction_id)
+    }
+  }
+
   revalidatePath('/projects')
+  revalidatePath('/financeiro')
   return data
 }
 
 // Deletar despesa
 export async function deleteExpense(expenseId: string) {
   const supabase = await createClient()
+
+  // Buscar a despesa antes de deletar para pegar o financial_transaction_id
+  const { data: expense } = await supabase
+    .from('project_expenses')
+    .select('financial_transaction_id')
+    .eq('id', expenseId)
+    .single()
 
   const { error } = await supabase
     .from('project_expenses')
@@ -168,7 +255,16 @@ export async function deleteExpense(expenseId: string) {
     throw new Error('Erro ao deletar despesa')
   }
 
+  // Deletar financial_transaction vinculada
+  if (expense?.financial_transaction_id) {
+    await supabase
+      .from('financial_transactions')
+      .delete()
+      .eq('id', expense.financial_transaction_id)
+  }
+
   revalidatePath('/projects')
+  revalidatePath('/financeiro')
 }
 
 // Atualizar valores de receita

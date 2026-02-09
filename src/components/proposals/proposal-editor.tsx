@@ -399,7 +399,7 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                 </div>
 
                 {/* Custom Payment Schedule Editor */}
-                {editForm.installments >= 1 && (
+                {editForm.installments > 1 && (
                   <PaymentScheduleEditor
                     totalValue={totalValue}
                     installments={editForm.installments}

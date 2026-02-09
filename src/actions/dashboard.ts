@@ -262,20 +262,28 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
   const cashFlowData = await getCashFlowData(organizationId, dateRange)
 
 
-  // Buscar pendentes (a receber e a pagar)
-  const { data: pendingReceivablesData } = await supabase
+  // Buscar pendentes (a receber e a pagar) filtrados por due_date até o fim do período
+  let receivablesQuery = supabase
     .from('financial_transactions')
     .select('amount')
     .eq('organization_id', organizationId)
     .eq('type', 'INCOME')
     .in('status', ['PENDING', 'SCHEDULED'])
 
-  const { data: pendingPayablesData } = await supabase
+  let payablesQuery = supabase
     .from('financial_transactions')
     .select('amount')
     .eq('organization_id', organizationId)
     .eq('type', 'EXPENSE')
     .in('status', ['PENDING', 'SCHEDULED'])
+
+  if (dateRange) {
+    receivablesQuery = receivablesQuery.or(`due_date.lte.${dateRange.end.toISOString()},due_date.is.null`)
+    payablesQuery = payablesQuery.or(`due_date.lte.${dateRange.end.toISOString()},due_date.is.null`)
+  }
+
+  const { data: pendingReceivablesData } = await receivablesQuery
+  const { data: pendingPayablesData } = await payablesQuery
 
   const pendingReceivables = pendingReceivablesData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0
   const pendingPayables = pendingPayablesData?.reduce((sum, item) => sum + Math.abs(Number(item.amount)), 0) || 0

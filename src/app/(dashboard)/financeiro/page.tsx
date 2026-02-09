@@ -47,60 +47,48 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
       .order('due_date', { ascending: true }),
   ])
 
-  // Calcular métricas manualmente para garantir precisão
+  // Calcular métricas usando SEMPRE due_date como referência de período
+  // due_date = data de vencimento selecionada na conta (a pagar ou a receber)
+  // Nunca usar payment_date para determinar o período - ela indica apenas quando foi pago
   let initialCapital = 0
   let totalIncome = 0
   let totalExpenses = 0
   let pendingReceivable = 0
   let pendingPayable = 0
-  let paidIncome = 0
-  let paidExpenses = 0
   let currentBalance = 0
 
   if (transactions) {
     transactions.forEach((t) => {
       const amount = Number(t.amount || 0)
-      // Fix: 'date' column doesn't exist. Use payment_date (if paid), due_date (if pending), or fallback to created_at
-      const dateStr = t.payment_date || t.due_date || t.created_at
+      // REGRA: sempre usar due_date para posicionar no período. Fallback: created_at
+      const dateStr = t.due_date || t.created_at
       const tDate = dateStr ? new Date(dateStr) : new Date()
 
-      // Para saldo atual: considerar todas as transações até a data final selecionada
-      // Isso reflete o "Saldo ao final do período"
+      // Projeção: considerar tudo com due_date <= último dia selecionado
       if (tDate <= to) {
         if (t.type === 'INITIAL_CAPITAL') {
-          if (t.status === 'PAID') currentBalance += amount
-          // Initial capital also counts towards initialCapital var if paid? The original code had:
-          // if (t.status === 'PAID') initialCapital += amount
-          // Let's keep logic consistent with original but scoped to date
-          if (t.status === 'PAID') initialCapital += amount
+          if (t.status === 'PAID') {
+            currentBalance += amount
+            initialCapital += amount
+          }
         } else if (t.type === 'INCOME') {
           if (t.status === 'PAID') {
             currentBalance += amount
-
-            // Faturamento Total no CARD: Apenas dentro do período selecionado
+            // Faturamento Total: apenas transações PAID com due_date dentro de [from, to]
             if (tDate >= from) {
               totalIncome += amount
-              paidIncome += amount
             }
           } else {
-            // Pending items generally come from accounts receivable/payable, but transactions might be pending too?
-            // If transaction is pending, check if it falls in period for visibility? 
-            // Original logic: if (t.status === 'PAID') paidIncome += amount else pendingReceivable += amount
-            // We should stick to the requirement: "Valores a receber (até fim do período)"
-            // If it's pure transaction pending, we sum it if <= to
             pendingReceivable += amount
           }
         } else if (t.type === 'EXPENSE') {
           if (t.status === 'PAID') {
             currentBalance -= amount
-
-            // Despesas Totais no CARD: Apenas dentro do período selecionado
+            // Custos Totais: apenas transações PAID com due_date dentro de [from, to]
             if (tDate >= from) {
               totalExpenses += amount
-              paidExpenses += amount
             }
           } else {
-            // Pending Payables
             pendingPayable += amount
           }
         }

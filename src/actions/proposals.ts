@@ -272,9 +272,13 @@ export async function updateProposal(
 ) {
   const supabase = await createClient()
 
+  // Separar paymentSchedule do objeto antes de enviar ao Supabase
+  // pois paymentSchedule NÃO é coluna da tabela proposals
+  const { paymentSchedule, ...proposalUpdates } = formData
+
   const { data, error } = await supabase
     .from('proposals')
-    .update(formData)
+    .update(proposalUpdates)
     .eq('id', proposalId)
     .select('*, clients(id, name, company)')
     .single()
@@ -288,7 +292,7 @@ export async function updateProposal(
   await recalculateProposalValues(proposalId)
 
   // Save Payment Schedule if provided
-  if (formData.paymentSchedule) {
+  if (paymentSchedule) {
     // 1. Delete existing schedule
     await supabase
       .from('payment_schedule')
@@ -296,8 +300,8 @@ export async function updateProposal(
       .eq('proposal_id', proposalId)
 
     // 2. Insert new schedule
-    if (formData.paymentSchedule.length > 0) {
-      const scheduleToInsert = formData.paymentSchedule.map((item: any) => ({
+    if (paymentSchedule.length > 0) {
+      const scheduleToInsert = paymentSchedule.map((item: any) => ({
         proposal_id: proposalId,
         description: item.description,
         due_date: item.dueDate,
@@ -320,7 +324,7 @@ export async function updateProposal(
   }
 
   // SINCRO: Se o titulo mudou, atualizar o nome do projeto vinculado (se existir)
-  if (formData.title) {
+  if (proposalUpdates.title) {
     // Tenta encontrar projeto vinculado pelo proposal_id
     const { data: linkedProject } = await supabase
       .from('projects')
