@@ -72,6 +72,9 @@ export interface Transaction {
 /**
  * Buscar overview financeiro (dashboard)
  */
+/**
+ * Buscar overview financeiro (dashboard)
+ */
 export async function getFinancialOverview() {
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
@@ -87,7 +90,14 @@ export async function getFinancialOverview() {
     return null
   }
 
-  return data
+  // FORCE RECALCULATION OF BALANCE (Sprint Fix 3)
+  // The view might be outdated or incorrect. We calculate manually.
+  const realBalance = await getCurrentBalance(organizationId)
+
+  return {
+    ...data,
+    current_balance: realBalance
+  }
 }
 
 /**
@@ -189,6 +199,75 @@ export async function addTransaction(transaction: Transaction) {
   if (error) {
     console.error('Error adding transaction:', error)
     throw new Error('Erro ao adicionar transação: ' + error.message)
+  }
+
+  revalidatePath('/financeiro')
+  return data
+}
+
+// ... (rest of the file until getCurrentBalance) ...
+
+/**
+ * Busca o saldo atual calculado
+ */
+export async function getCurrentBalance(organizationId: string): Promise<number> {
+  const supabase = await createClient()
+
+  try {
+    // Buscar todas as transações PAGAS (PAID) para cálculo preciso
+    const { data: transactions } = await supabase
+      .from('financial_transactions')
+      .select('type, amount')
+      .eq('organization_id', organizationId)
+      .eq('status', 'PAID')
+
+    if (!transactions) return 0
+
+    let saldo = 0
+
+    transactions.forEach((t) => {
+      const valor = Number(t.amount || 0)
+
+      if (t.type === 'INITIAL_CAPITAL' || t.type === 'INCOME') {
+        saldo += valor
+      } else if (t.type === 'EXPENSE') {
+        saldo -= Math.abs(valor) // Garantir que despesa subtraia mesmo se salva positivo
+      }
+      // TRANSFER: Se for relevante, adicionar lógica aqui. Por enquanto, ignora (ou assume neutro).
+    })
+
+    return saldo
+  } catch (error) {
+    console.error('Error calculating current balance:', error)
+    return 0
+  }
+}
+
+/**
+ * Adicionar múltiplas transações de parcelamento
+ */
+export async function addInstallmentTransactions(transactions: Transaction[]) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('Usuário não autenticado')
+  }
+
+  const transactionsWithUser = transactions.map(t => ({
+    ...t,
+    created_by: user.id,
+    organization_id: t.organization_id // Ensure org id is passed if not already in t
+  }))
+
+  const { data, error } = await supabase
+    .from('financial_transactions')
+    .insert(transactionsWithUser)
+    .select()
+
+  if (error) {
+    console.error('Error adding installment transactions:', error)
+    throw new Error('Erro ao adicionar parcelas: ' + error.message)
   }
 
   revalidatePath('/financeiro')
@@ -401,6 +480,22 @@ export async function createInitialCapitalTransaction(
       }
     }
 
+    // Buscar a data da primeira transação existente para definir capital ANTES dela
+    const { data: firstTransaction } = await supabase
+      .from('financial_transactions')
+      .select('due_date')
+      .eq('organization_id', organizationId)
+      .order('due_date', { ascending: true })
+      .limit(1)
+      .single()
+
+    let initialDate = new Date()
+    if (firstTransaction && firstTransaction.due_date) {
+      const firstDate = new Date(firstTransaction.due_date)
+      firstDate.setDate(firstDate.getDate() - 1) // 1 dia antes
+      initialDate = firstDate
+    }
+
     // Criar transação com schema correto do banco
     const { data: transaction, error: transactionError } = await supabase
       .from('financial_transactions')
@@ -413,6 +508,8 @@ export async function createInitialCapitalTransaction(
           amount: valor,
           description: 'Capital inicial informado no cadastro',
           created_by: createdBy,
+          due_date: initialDate.toISOString().split('T')[0],
+          payment_date: initialDate.toISOString().split('T')[0],
         },
       ])
       .select()
@@ -476,50 +573,7 @@ export async function checkHasInitialCapital(organizationId: string): Promise<bo
 /**
  * Busca o saldo atual calculado
  */
-export async function getCurrentBalance(organizationId: string): Promise<number> {
-  const supabase = await createClient()
-
-  try {
-    // Buscar capital inicial (INITIAL_CAPITAL com status PAID)
-    const { data: capitalData } = await supabase
-      .from('financial_transactions')
-      .select('amount')
-      .eq('organization_id', organizationId)
-      .eq('type', 'INITIAL_CAPITAL')
-      .eq('status', 'PAID')
-      .single()
-
-    const capitalInicial = Number(capitalData?.amount || 0)
-
-    // Buscar total de receitas confirmadas (INCOME com status PAID)
-    const { data: receitasData } = await supabase
-      .from('financial_transactions')
-      .select('amount')
-      .eq('organization_id', organizationId)
-      .eq('type', 'INCOME')
-      .eq('status', 'PAID')
-
-    const totalReceitas = receitasData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0
-
-    // Buscar total de despesas confirmadas (EXPENSE com status PAID)
-    const { data: despesasData } = await supabase
-      .from('financial_transactions')
-      .select('amount')
-      .eq('organization_id', organizationId)
-      .eq('type', 'EXPENSE')
-      .eq('status', 'PAID')
-
-    const totalDespesas = despesasData?.reduce((sum, item) => sum + Math.abs(Number(item.amount)), 0) || 0
-
-    // Calcular saldo: Capital Inicial + Receitas - Despesas
-    const saldoAtual = capitalInicial + totalReceitas - totalDespesas
-
-    return saldoAtual
-  } catch (error) {
-    console.error('Error calculating current balance:', error)
-    return 0
-  }
-}
+// getCurrentBalance removed (duplicate)
 
 /**
  * Busca o resumo financeiro completo

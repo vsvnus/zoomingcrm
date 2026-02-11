@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus } from 'lucide-react'
-import { addTransaction } from '@/actions/financeiro'
+import { addTransaction, addInstallmentTransactions } from '@/actions/financeiro'
 import { useRouter } from 'next/navigation'
 import { getProjects } from '@/actions/projects'
 
@@ -60,6 +60,10 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
   const [isLoading, setIsLoading] = useState(false)
   const [expenseType, setExpenseType] = useState<'fixed' | 'variable'>('variable')
   const [isRecurring, setIsRecurring] = useState(false)
+  const [isInstallment, setIsInstallment] = useState(false)
+  const [installmentsCount, setInstallmentsCount] = useState(2)
+  const [installments, setInstallments] = useState<{ date: string; amount: number }[]>([])
+
   const [projects, setProjects] = useState<any[]>([])
   const [formData, setFormData] = useState({
     description: '',
@@ -74,6 +78,50 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
   useEffect(() => {
     getProjects().then(setProjects)
   }, [])
+
+  // Generate installments preview when amount, count or due date changes
+  useEffect(() => {
+    if (isInstallment && formData.amount && formData.dueDate) {
+      const total = parseFloat(formData.amount)
+      if (isNaN(total) || total <= 0) return
+
+      const count = Math.max(2, installmentsCount)
+      const baseAmount = Math.floor((total / count) * 100) / 100
+      const remainder = Math.round((total - baseAmount * count) * 100) / 100
+
+      const newInstallments = []
+      const startDate = new Date(formData.dueDate)
+
+      for (let i = 0; i < count; i++) {
+        const date = new Date(startDate)
+        date.setMonth(date.getMonth() + i)
+
+        // Handle month overflow (e.g. Jan 31 -> Feb 28)
+        if (date.getDate() !== startDate.getDate()) {
+          date.setDate(0) // Set to last day of previous month
+        }
+
+        let amount = baseAmount
+        if (i === 0) amount += remainder
+
+        newInstallments.push({
+          date: date.toISOString().split('T')[0],
+          amount
+        })
+      }
+      setInstallments(newInstallments)
+    }
+  }, [isInstallment, formData.amount, formData.dueDate, installmentsCount])
+
+  const handleInstallmentChange = (index: number, field: 'date' | 'amount', value: string) => {
+    const newInstallments = [...installments]
+    if (field === 'date') {
+      newInstallments[index].date = value
+    } else {
+      newInstallments[index].amount = parseFloat(value) || 0
+    }
+    setInstallments(newInstallments)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -93,22 +141,45 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
         return
       }
 
-      // Validation for project removed as per user request
-      // if (expenseType === 'variable' && !formData.projectId) { ... }
+      if (isInstallment) {
+        // Validation for installments totals
+        const installmentTotal = installments.reduce((sum, item) => sum + item.amount, 0)
+        if (Math.abs(installmentTotal - amount) > 0.05) {
+          if (!confirm(`O total das parcelas (R$ ${installmentTotal.toFixed(2)}) é diferente do valor total (R$ ${amount.toFixed(2)}). Deseja continuar mesmo assim?`)) {
+            setIsLoading(false)
+            return
+          }
+        }
 
-      await addTransaction({
-        organization_id: organizationId,
-        type: 'EXPENSE',
-        category: formData.category as any,
-        description: formData.description,
-        amount: amount,
-        status: 'PENDING',
-        due_date: formData.dueDate || undefined,
-        notes: formData.notes || undefined,
-        project_id: formData.projectId || undefined,
-        is_recurring: isRecurring,
-        recurrence_period: isRecurring ? 'MONTHLY' : undefined,
-      })
+        const transactions = installments.map((inst, index) => ({
+          organization_id: organizationId,
+          type: 'EXPENSE' as const, // Cast needed for TS
+          category: formData.category as any,
+          description: `${formData.description} (${index + 1}/${installments.length})`,
+          amount: inst.amount,
+          status: 'PENDING' as const, // Cast needed
+          due_date: inst.date,
+          notes: formData.notes || undefined,
+          project_id: formData.projectId || undefined,
+          is_recurring: false, // Installments are NOT recurring in the infinite sense
+        }))
+
+        await addInstallmentTransactions(transactions)
+      } else {
+        await addTransaction({
+          organization_id: organizationId,
+          type: 'EXPENSE',
+          category: formData.category as any,
+          description: formData.description,
+          amount: amount,
+          status: 'PENDING',
+          due_date: formData.dueDate || undefined,
+          notes: formData.notes || undefined,
+          project_id: formData.projectId || undefined,
+          is_recurring: isRecurring,
+          recurrence_period: isRecurring ? 'MONTHLY' : undefined,
+        })
+      }
 
       // Reset form
       setFormData({
@@ -120,6 +191,8 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
         projectId: '',
       })
       setIsRecurring(false)
+      setIsInstallment(false)
+      setInstallmentsCount(2)
       setOpen(false)
       router.refresh()
     } catch (error: any) {
@@ -143,7 +216,7 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Adicionar Nova Despesa</DialogTitle>
           <DialogDescription>
@@ -229,7 +302,7 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
 
             {/* Valor */}
             <div className="grid gap-2">
-              <Label htmlFor="amount">Valor (R$)</Label>
+              <Label htmlFor="amount">Valor Total (R$)</Label>
               <Input
                 id="amount"
                 type="number"
@@ -242,28 +315,98 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
               />
             </div>
 
-            {/* Data de Vencimento */}
+            {/* Data de Vencimento (1ª Parcela) */}
             <div className="grid gap-2">
-              <Label htmlFor="dueDate">Data de Vencimento (Opcional)</Label>
+              <Label htmlFor="dueDate">
+                {isInstallment ? 'Vencimento da 1ª Parcela' : 'Data de Vencimento (Opcional)'}
+              </Label>
               <Input
                 id="dueDate"
                 type="date"
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                required={isInstallment}
               />
             </div>
 
-            {/* Recorrência */}
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="recurring"
-                checked={isRecurring}
-                onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
-              />
-              <Label htmlFor="recurring" className="cursor-pointer">
-                Despesa Recorrente (Mensal)
-              </Label>
+            {/* Opções de Repetição: Recorrência ou Parcelamento */}
+            <div className="flex gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="recurring"
+                  checked={isRecurring}
+                  onCheckedChange={(checked) => {
+                    setIsRecurring(checked as boolean)
+                    if (checked) setIsInstallment(false)
+                  }}
+                  disabled={isInstallment}
+                />
+                <Label htmlFor="recurring" className="cursor-pointer">
+                  Recorrente (Mensal)
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="installment"
+                  checked={isInstallment}
+                  onCheckedChange={(checked) => {
+                    setIsInstallment(checked as boolean)
+                    if (checked) setIsRecurring(false)
+                  }}
+                  disabled={isRecurring}
+                />
+                <Label htmlFor="installment" className="cursor-pointer">
+                  Parcelado
+                </Label>
+              </div>
             </div>
+
+            {/* Área de Parcelamento */}
+            {isInstallment && (
+              <div className="space-y-4 rounded-md border p-4 bg-muted/20">
+                <div className="grid gap-2">
+                  <Label htmlFor="installmentsCount">Número de Parcelas</Label>
+                  <Select
+                    value={String(installmentsCount)}
+                    onValueChange={(val) => setInstallmentsCount(parseInt(val))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[2, 3, 4, 5, 6, 9, 10, 12, 18, 24, 36, 48].map((n) => (
+                        <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Simulação de Parcelas</Label>
+                  {installments.map((inst, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <span className="text-xs text-muted-foreground w-6">{idx + 1}x</span>
+                      <Input
+                        type="date"
+                        value={inst.date}
+                        onChange={(e) => handleInstallmentChange(idx, 'date', e.target.value)}
+                        className="flex-1 h-8"
+                      />
+                      <div className="relative w-32">
+                        <span className="absolute left-2 top-1.5 text-xs">R$</span>
+                        <Input
+                          type="number"
+                          value={inst.amount}
+                          onChange={(e) => handleInstallmentChange(idx, 'amount', e.target.value)}
+                          className="w-full h-8 pl-6"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Observações */}
             <div className="grid gap-2">

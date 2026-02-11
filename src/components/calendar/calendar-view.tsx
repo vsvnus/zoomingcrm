@@ -39,6 +39,7 @@ interface CalendarViewProps {
   events: CalendarEvent[]
   onCreateEvent: () => void
   onEventClick: (event: CalendarEvent) => void
+  onRangeChange?: (range: Date[] | { start: Date; end: Date }) => void
 }
 
 const eventTypeLabels: Record<CalendarEventType, string> = {
@@ -71,22 +72,39 @@ const messages = {
   showMore: (total: number) => `+${total} mais`,
 }
 
-export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarViewProps) {
+export function CalendarView({ events, onCreateEvent, onEventClick, onRangeChange }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<View>(Views.MONTH)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
 
   const calendarEvents = useMemo(() => {
-    return events.map((event) => ({
-      ...event,
-      start: new Date(event.start),
-      end: new Date(event.end),
-      resource: event,
-    }))
+    return events.map((event) => {
+      // Fix Timezone Issue: Manually parse YYYY-MM-DD to local midnight
+      let start = new Date(event.start)
+      let end = new Date(event.end)
+
+      if (event.allDay) {
+        // Assuming event.start is YYYY-MM-DD
+        // split('-') works reliably for ISO date strings
+        const [sYear, sMonth, sDay] = event.start.toString().split('T')[0].split('-').map(Number)
+        start = new Date(sYear, sMonth - 1, sDay)
+
+        const [eYear, eMonth, eDay] = event.end.toString().split('T')[0].split('-').map(Number)
+        end = new Date(eYear, eMonth - 1, eDay)
+      }
+
+      return {
+        ...event,
+        start,
+        end,
+        resource: event,
+      }
+    })
   }, [events])
 
   const handleNavigate = useCallback((action: 'PREV' | 'NEXT' | 'TODAY') => {
-    if (action === 'PREV') {
+    if (action === 'PREV') { // removed logic that was managed by RBC if we pass date
+      // However, we are controlling date, so we must update it
       setCurrentDate((prev) => subMonths(prev, 1))
     } else if (action === 'NEXT') {
       setCurrentDate((prev) => addMonths(prev, 1))
@@ -159,8 +177,8 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
               key={v.key}
               onClick={() => setView(v.key)}
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${view === v.key
-                  ? 'bg-accent-500 text-white shadow-sm'
-                  : 'text-text-tertiary hover:text-text-primary hover:bg-bg-hover'
+                ? 'bg-accent-500 text-white shadow-sm'
+                : 'text-text-tertiary hover:text-text-primary hover:bg-bg-hover'
                 }`}
             >
               {v.label}
@@ -197,6 +215,7 @@ export function CalendarView({ events, onCreateEvent, onEventClick }: CalendarVi
           onView={setView}
           date={currentDate}
           onNavigate={setCurrentDate}
+          onRangeChange={onRangeChange}
           onSelectEvent={handleSelectEvent}
           eventPropGetter={eventStyleGetter}
           messages={messages}
