@@ -57,12 +57,20 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
   let pendingPayable = 0
   let currentBalance = 0
 
+  // Helper: parse date string as LOCAL date to avoid UTC timezone shift
+  // "2025-01-15" deve ser 15/Jan local, não 14/Jan (que ocorre com new Date("2025-01-15") em UTC-3)
+  const parseLocalDate = (dateStr: string): Date => {
+    const dateOnly = dateStr.toString().split('T')[0]
+    const [year, month, day] = dateOnly.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+
   if (transactions) {
     transactions.forEach((t) => {
       const amount = Number(t.amount || 0)
       // REGRA: sempre usar due_date para posicionar no período. Fallback: created_at
       const dateStr = t.due_date || t.created_at
-      const tDate = dateStr ? new Date(dateStr) : new Date()
+      const tDate = dateStr ? parseLocalDate(dateStr) : new Date()
 
       // Projeção: considerar tudo com due_date <= último dia selecionado
       if (tDate <= to) {

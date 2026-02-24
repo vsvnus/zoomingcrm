@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { Calendar, dateFnsLocalizer, Views, type View } from 'react-big-calendar'
-import { format, parse, startOfWeek, getDay, addMonths, subMonths } from 'date-fns'
+import { format, parse, startOfWeek, getDay, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -78,19 +78,27 @@ export function CalendarView({ events, onCreateEvent, onEventClick, onRangeChang
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
 
   const calendarEvents = useMemo(() => {
+    // Helper: parse date string as LOCAL date (avoids UTC timezone shift)
+    const parseLocalDate = (dateStr: string): Date => {
+      const dateOnly = dateStr.toString().split('T')[0]
+      const [year, month, day] = dateOnly.split('-').map(Number)
+      return new Date(year, month - 1, day)
+    }
+
     return events.map((event) => {
-      // Fix Timezone Issue: Manually parse YYYY-MM-DD to local midnight
-      let start = new Date(event.start)
-      let end = new Date(event.end)
+      // Always parse as local date to avoid timezone issues
+      let start = parseLocalDate(event.start)
+      let end = parseLocalDate(event.end)
 
       if (event.allDay) {
-        // Assuming event.start is YYYY-MM-DD
-        // split('-') works reliably for ISO date strings
-        const [sYear, sMonth, sDay] = event.start.toString().split('T')[0].split('-').map(Number)
-        start = new Date(sYear, sMonth - 1, sDay)
-
-        const [eYear, eMonth, eDay] = event.end.toString().split('T')[0].split('-').map(Number)
-        end = new Date(eYear, eMonth - 1, eDay)
+        // react-big-calendar expects EXCLUSIVE end for allDay events
+        // Single-day event: start=Jan15, end=Jan16 (shows only on Jan 15)
+        if (end.getTime() <= start.getTime()) {
+          end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1)
+        } else {
+          // Multi-day: add 1 day to end for exclusive boundary
+          end = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1)
+        }
       }
 
       return {
@@ -103,15 +111,23 @@ export function CalendarView({ events, onCreateEvent, onEventClick, onRangeChang
   }, [events])
 
   const handleNavigate = useCallback((action: 'PREV' | 'NEXT' | 'TODAY') => {
-    if (action === 'PREV') { // removed logic that was managed by RBC if we pass date
-      // However, we are controlling date, so we must update it
-      setCurrentDate((prev) => subMonths(prev, 1))
+    let newDate: Date
+    if (action === 'PREV') {
+      newDate = subMonths(currentDate, 1)
     } else if (action === 'NEXT') {
-      setCurrentDate((prev) => addMonths(prev, 1))
+      newDate = addMonths(currentDate, 1)
     } else {
-      setCurrentDate(new Date())
+      newDate = new Date()
     }
-  }, [])
+    setCurrentDate(newDate)
+
+    // Trigger range change to fetch events for the new visible period
+    if (onRangeChange) {
+      const rangeStart = subMonths(startOfMonth(newDate), 1)
+      const rangeEnd = addMonths(endOfMonth(newDate), 1)
+      onRangeChange({ start: rangeStart, end: rangeEnd })
+    }
+  }, [currentDate, onRangeChange])
 
   const handleSelectEvent = useCallback((event: any) => {
     setSelectedEvent(event.resource)

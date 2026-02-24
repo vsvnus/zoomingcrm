@@ -206,7 +206,86 @@ export async function getCalendarEvents(
     })
   }
 
-  // 6. Buscar eventos manuais (calendar_events table)
+  // 6. Buscar itens de proposta com datas (recording_date, delivery_date)
+  const { data: proposalItems } = await supabase
+    .from('proposal_items')
+    .select('id, description, recording_date, delivery_date, date, proposal_id, proposals(id, title, organization_id, clients(name))')
+    .eq('proposals.organization_id', organizationId)
+
+  if (proposalItems) {
+    proposalItems.forEach((item) => {
+      const proposal = item.proposals as any
+      if (!proposal) return
+
+      // Gravação date
+      if (item.recording_date) {
+        const recDateStr = item.recording_date.toString().split('T')[0]
+        const recDate = new Date(recDateStr)
+        if (recDate >= start && recDate <= end) {
+          events.push({
+            id: `proposal-item-rec-${item.id}`,
+            title: `Gravação: ${item.description}`,
+            description: `Proposta: ${proposal.title}`,
+            start: recDateStr,
+            end: recDateStr,
+            allDay: true,
+            type: 'shooting',
+            color: eventColors.shooting,
+            projectId: null,
+            projectTitle: null,
+            clientName: proposal.clients?.name || null,
+            location: null,
+          })
+        }
+      }
+
+      // Entrega date
+      if (item.delivery_date) {
+        const delDateStr = item.delivery_date.toString().split('T')[0]
+        const delDate = new Date(delDateStr)
+        if (delDate >= start && delDate <= end) {
+          events.push({
+            id: `proposal-item-del-${item.id}`,
+            title: `Entrega: ${item.description}`,
+            description: `Proposta: ${proposal.title}`,
+            start: delDateStr,
+            end: delDateStr,
+            allDay: true,
+            type: 'delivery',
+            color: eventColors.delivery,
+            projectId: null,
+            projectTitle: null,
+            clientName: proposal.clients?.name || null,
+            location: null,
+          })
+        }
+      }
+
+      // Legacy date field
+      if (item.date && !item.recording_date && !item.delivery_date) {
+        const dateStr = item.date.toString().split('T')[0]
+        const itemDate = new Date(dateStr)
+        if (itemDate >= start && itemDate <= end) {
+          events.push({
+            id: `proposal-item-${item.id}`,
+            title: `Item: ${item.description}`,
+            description: `Proposta: ${proposal.title}`,
+            start: dateStr,
+            end: dateStr,
+            allDay: true,
+            type: 'other',
+            color: '#f59e0b',
+            projectId: null,
+            projectTitle: null,
+            clientName: proposal.clients?.name || null,
+            location: null,
+          })
+        }
+      }
+    })
+  }
+
+  // 7. Buscar eventos manuais (calendar_events table)
   const { data: manualEvents } = await supabase
     .from('calendar_events')
     .select('*')

@@ -480,20 +480,25 @@ export async function createInitialCapitalTransaction(
       }
     }
 
-    // Buscar a data da primeira transação existente para definir capital ANTES dela
+    // Buscar a data da primeira transação (não-capital) para definir capital ANTES dela
     const { data: firstTransaction } = await supabase
       .from('financial_transactions')
       .select('due_date')
       .eq('organization_id', organizationId)
+      .neq('type', 'INITIAL_CAPITAL')
+      .not('due_date', 'is', null)
       .order('due_date', { ascending: true })
       .limit(1)
-      .single()
+      .maybeSingle()
 
-    let initialDate = new Date()
+    let initialDate: Date
     if (firstTransaction && firstTransaction.due_date) {
-      const firstDate = new Date(firstTransaction.due_date)
-      firstDate.setDate(firstDate.getDate() - 1) // 1 dia antes
-      initialDate = firstDate
+      // Parse como data local para evitar problemas de timezone
+      const dateStr = firstTransaction.due_date.toString().split('T')[0]
+      const [y, m, d] = dateStr.split('-').map(Number)
+      initialDate = new Date(y, m - 1, d - 1) // 1 dia antes da primeira transação
+    } else {
+      initialDate = new Date()
     }
 
     // Criar transação com schema correto do banco

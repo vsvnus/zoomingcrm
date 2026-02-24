@@ -79,26 +79,22 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
     getProjects().then(setProjects)
   }, [])
 
-  // Generate installments preview when amount, count or due date changes
+  // Generate installment DATES only when enabling installments, changing count, or first due date
+  // User-selected dates for each installment are preserved when only the amount changes
   useEffect(() => {
-    if (isInstallment && formData.amount && formData.dueDate) {
-      const total = parseFloat(formData.amount)
-      if (isNaN(total) || total <= 0) return
-
+    if (isInstallment && formData.dueDate) {
+      const total = parseFloat(formData.amount) || 0
       const count = Math.max(2, installmentsCount)
-      const baseAmount = Math.floor((total / count) * 100) / 100
-      const remainder = Math.round((total - baseAmount * count) * 100) / 100
+      const baseAmount = total > 0 ? Math.floor((total / count) * 100) / 100 : 0
+      const remainder = total > 0 ? Math.round((total - baseAmount * count) * 100) / 100 : 0
 
       const newInstallments = []
-      const startDate = new Date(formData.dueDate)
+      const [y, m, d] = formData.dueDate.split('-').map(Number)
 
       for (let i = 0; i < count; i++) {
-        const date = new Date(startDate)
-        date.setMonth(date.getMonth() + i)
-
-        // Handle month overflow (e.g. Jan 31 -> Feb 28)
-        if (date.getDate() !== startDate.getDate()) {
-          date.setDate(0) // Set to last day of previous month
+        const date = new Date(y, m - 1 + i, d)
+        if (date.getDate() !== d) {
+          date.setDate(0)
         }
 
         let amount = baseAmount
@@ -111,7 +107,24 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
       }
       setInstallments(newInstallments)
     }
-  }, [isInstallment, formData.amount, formData.dueDate, installmentsCount])
+  }, [isInstallment, formData.dueDate, installmentsCount])
+
+  // Recalculate only AMOUNTS when total changes — preserve user-set dates
+  useEffect(() => {
+    if (isInstallment && installments.length > 0 && formData.amount) {
+      const total = parseFloat(formData.amount)
+      if (isNaN(total) || total <= 0) return
+
+      const count = installments.length
+      const baseAmount = Math.floor((total / count) * 100) / 100
+      const remainder = Math.round((total - baseAmount * count) * 100) / 100
+
+      setInstallments(prev => prev.map((inst, i) => ({
+        ...inst,
+        amount: i === 0 ? baseAmount + remainder : baseAmount
+      })))
+    }
+  }, [formData.amount])
 
   const handleInstallmentChange = (index: number, field: 'date' | 'amount', value: string) => {
     const newInstallments = [...installments]
