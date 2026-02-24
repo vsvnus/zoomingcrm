@@ -13,6 +13,7 @@ import {
   Video,
   Monitor,
   FileText,
+  Film,
   Link as LinkIcon,
   Package,
   Plus,
@@ -51,6 +52,7 @@ interface ProjectDetailTabsProps {
   financialSummary?: any
   expenses?: any[]
   equipmentBookings?: any[]
+  scriptId?: string
 }
 
 export function ProjectDetailTabs({
@@ -58,10 +60,11 @@ export function ProjectDetailTabs({
   financialSummary,
   expenses = [],
   equipmentBookings = [],
+  scriptId,
 }: ProjectDetailTabsProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'scope' | 'team' | 'equipment' | 'financial'
+    'overview' | 'scope' | 'script' | 'team' | 'equipment' | 'financial'
   >('overview')
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isAddTeamMemberOpen, setIsAddTeamMemberOpen] = useState(false)
@@ -77,6 +80,7 @@ export function ProjectDetailTabs({
   const tabs = [
     { id: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
     { id: 'scope', label: 'Escopo', icon: FileText },
+    { id: 'script', label: 'Roteiro', icon: Film },
     { id: 'team', label: 'Equipe', icon: Users },
     { id: 'equipment', label: 'Equipamentos', icon: Package },
     { id: 'financial', label: 'Financeiro', icon: DollarSign },
@@ -363,7 +367,7 @@ export function ProjectDetailTabs({
               key={tab.id}
               onClick={() =>
                 setActiveTab(
-                  tab.id as 'overview' | 'scope' | 'team' | 'equipment' | 'financial'
+                  tab.id as 'overview' | 'scope' | 'script' | 'team' | 'equipment' | 'financial'
                 )
               }
               className={`relative flex flex-1 items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-medium transition-all ${isActive
@@ -923,6 +927,34 @@ export function ProjectDetailTabs({
           </div>
         )
         }
+
+        {activeTab === 'script' && (
+          <div className="space-y-6">
+            <div className="rounded-xl border border-border bg-card p-8 text-center space-y-4">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-500/10 border border-accent-500/20">
+                <Film className="h-8 w-8 text-accent-500" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-text-primary">
+                  Roteiro & Storyboard
+                </h3>
+                <p className="text-sm text-text-secondary max-w-md mx-auto">
+                  {scriptId
+                    ? 'Edite o roteiro do projeto no Zooming Studio com editor visual, storyboard, timeline e campos completos de produção.'
+                    : 'Crie o roteiro do projeto no Zooming Studio com editor visual, storyboard, timeline e campos completos de produção.'
+                  }
+                </p>
+              </div>
+              <Link
+                href={scriptId ? `/studio/${scriptId}` as any : `/studio/new?project=${project.id}` as any}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-all"
+              >
+                <Film className="h-4 w-4" />
+                {scriptId ? 'Abrir no Zooming Studio' : 'Criar Roteiro no Studio'}
+              </Link>
+            </div>
+          </div>
+        )}
 
         {
           activeTab === 'team' && (

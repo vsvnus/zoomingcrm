@@ -12,6 +12,7 @@ import {
   DollarSign,
   Calendar,
   Building2,
+  Clapperboard,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -73,6 +74,12 @@ export function Sidebar() {
           badge: badges.financial > 0 ? '!' : null,
           badgeColor: 'bg-error text-white'
         },
+      ]
+    },
+    {
+      title: 'Produção',
+      items: [
+        { icon: Clapperboard, label: 'Zooming Studio', href: '/studio', badge: 'Novo!', badgeColor: 'bg-accent-500 text-white' },
       ]
     },
     {
