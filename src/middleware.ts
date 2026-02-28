@@ -12,7 +12,10 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - login (login page -- handled inside updateSession for redirect logic)
+     * - p/ (public proposal pages)
+     * - static asset extensions
      */
-    '/((?!_next/static|_next/image|favicon.ico|login|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|login|p/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

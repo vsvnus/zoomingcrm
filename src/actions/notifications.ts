@@ -79,11 +79,14 @@ export async function markAllAsRead() {
  */
 export async function markAsRead(notificationId: string) {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
 
     await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId)
+        .eq('recipient_id', user.id)
 
     revalidatePath('/')
 }

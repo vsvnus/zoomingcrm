@@ -3,6 +3,7 @@
 import { createClient, getUserOrganization } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns'
+import { validateInput, calendarEventSchema } from '@/lib/validations'
 
 export type CalendarEventType = 'shooting' | 'delivery' | 'meeting' | 'other'
 
@@ -324,6 +325,15 @@ export async function createCalendarEvent(event: {
   type: CalendarEventType
   location?: string
 }) {
+  validateInput(calendarEventSchema, {
+    title: event.title,
+    description: event.description,
+    start_date: event.startDate,
+    end_date: event.endDate || event.startDate,
+    all_day: event.allDay,
+    type: event.type,
+    location: event.location,
+  })
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
 

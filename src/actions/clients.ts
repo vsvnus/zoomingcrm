@@ -2,6 +2,7 @@
 
 import { createClient, getUserOrganization } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { validateInput, createClientSchema, updateClientSchema } from '@/lib/validations'
 
 export async function getClients() {
   const supabase = await createClient()
@@ -28,6 +29,7 @@ export async function addClient(formData: {
   company?: string
   notes?: string
 }) {
+  const validated = validateInput(createClientSchema, formData)
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
 
@@ -35,7 +37,7 @@ export async function addClient(formData: {
     .from('clients')
     .insert([
       {
-        ...formData,
+        ...validated,
         organization_id: organizationId,
       },
     ])
@@ -64,13 +66,14 @@ export async function updateClient(
     notes?: string | null
   }
 ) {
+  const validated = validateInput(updateClientSchema, formData)
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
 
   const { data, error } = await supabase
     .from('clients')
     .update({
-      ...formData,
+      ...validated,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)

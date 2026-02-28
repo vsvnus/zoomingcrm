@@ -18,6 +18,19 @@ import type {
   ProjectStats,
 } from '@/types/projects'
 import { upsertFreelancerPayable, deleteTransaction } from '@/actions/financeiro'
+import { validateInput, createProjectSchema, shootingDateSchema, deliveryDateSchema, projectItemSchema, projectTaskSchema } from '@/lib/validations'
+
+// ============================================
+// HELPER: Verify Project Ownership
+// ============================================
+
+async function verifyProjectOwnership(supabase: any, projectId: string, organizationId: string) {
+  const { data } = await supabase
+    .from('projects').select('id')
+    .eq('id', projectId).eq('organization_id', organizationId).single()
+  if (!data) throw new Error('Projeto não encontrado')
+  return data
+}
 
 // ============================================
 // PROJECTS CRUD
@@ -274,25 +287,17 @@ export async function getProject(projectId: string): Promise<ProjectWithRelation
  * Apenas 3 campos: título, cliente e descrição opcional
  */
 export async function createProject(formData: MinimalProjectData) {
+  const validated = validateInput(createProjectSchema, formData)
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
-
-  // Validação de campos obrigatórios
-  if (!formData.title?.trim()) {
-    throw new Error('Título do projeto é obrigatório')
-  }
-
-  if (!formData.client_id) {
-    throw new Error('Cliente é obrigatório')
-  }
 
   const { data, error } = await supabase
     .from('projects')
     .insert([
       {
-        title: formData.title.trim(),
-        description: formData.description || null,
-        client_id: formData.client_id,
+        title: validated.title.trim(),
+        description: validated.description || null,
+        client_id: validated.client_id,
         organization_id: organizationId,
         status: 'BRIEFING',
         origin: 'manual',
@@ -693,6 +698,8 @@ export async function getProjectTeamSummary(
   projectId: string
 ): Promise<ProjectTeamSummary | null> {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const { data, error } = await supabase
     .from('project_team_summary')
@@ -839,17 +846,20 @@ export async function addShootingDate(projectId: string, shootingDate: {
   location?: string
   notes?: string
 }) {
+  const validated = validateInput(shootingDateSchema, shootingDate)
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const { data, error } = await supabase
     .from('shooting_dates')
     .insert([
       {
         projectId: projectId, // camelCase conforme migration
-        date: shootingDate.date,
-        time: shootingDate.time,
-        location: shootingDate.location,
-        notes: shootingDate.notes,
+        date: validated.date,
+        time: validated.time,
+        location: validated.location,
+        notes: validated.notes,
         updatedAt: new Date().toISOString(),
       },
     ])
@@ -870,16 +880,19 @@ export async function addDeliveryDate(projectId: string, deliveryDate: {
   description: string
   completed?: boolean
 }) {
+  const validated = validateInput(deliveryDateSchema, deliveryDate)
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const { data, error } = await supabase
     .from('delivery_dates')
     .insert([
       {
         projectId: projectId, // camelCase conforme migration
-        date: deliveryDate.date,
-        description: deliveryDate.description,
-        completed: deliveryDate.completed || false,
+        date: validated.date,
+        description: validated.description,
+        completed: validated.completed || false,
         updatedAt: new Date().toISOString(),
       },
     ])
@@ -897,6 +910,8 @@ export async function addDeliveryDate(projectId: string, deliveryDate: {
 
 export async function deleteShootingDate(shootingDateId: string, projectId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const { error } = await supabase
     .from('shooting_dates')
@@ -913,6 +928,8 @@ export async function deleteShootingDate(shootingDateId: string, projectId: stri
 
 export async function deleteDeliveryDate(deliveryDateId: string, projectId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const { error } = await supabase
     .from('delivery_dates')
@@ -929,6 +946,8 @@ export async function deleteDeliveryDate(deliveryDateId: string, projectId: stri
 
 export async function getProjectShootingDates(projectId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const { data, error } = await supabase
     .from('shooting_dates')
@@ -947,6 +966,8 @@ export async function getProjectShootingDates(projectId: string) {
 
 export async function toggleDeliveryComplete(deliveryDateId: string, projectId: string, completed: boolean) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const { error } = await supabase
     .from('delivery_dates')
@@ -984,6 +1005,8 @@ export async function getOrganizationUsers() {
 
 export async function toggleProjectItemStatus(itemId: string, projectId: string, status: 'PENDING' | 'DONE') {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const { error } = await supabase
     .from('project_items')
@@ -1087,7 +1110,10 @@ export async function addProjectItem(projectId: string, item: {
   unit_price: number
   due_date?: string | null
 }) {
+  const validated = validateInput(projectItemSchema, item)
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   // Buscar último order
   const { data: lastItem } = await supabase
@@ -1102,12 +1128,12 @@ export async function addProjectItem(projectId: string, item: {
 
   const { error } = await supabase.from('project_items').insert({
     project_id: projectId,
-    description: item.description,
-    quantity: item.quantity,
-    unit_price: item.unit_price,
-    total_price: item.quantity * item.unit_price,
+    description: validated.description,
+    quantity: validated.quantity,
+    unit_price: validated.unit_price,
+    total_price: validated.quantity * validated.unit_price,
     status: 'PENDING',
-    due_date: item.due_date,
+    due_date: validated.due_date,
     order: nextOrder
   })
 
@@ -1119,7 +1145,6 @@ export async function addProjectItem(projectId: string, item: {
   revalidatePath(`/projects/${projectId}`)
 
   // INTEGRAÇÃO FINANCEIRA
-  const organizationId = await getUserOrganization()
   await recalculateProjectRevenue(projectId, organizationId)
 }
 
@@ -1130,6 +1155,8 @@ export async function updateProjectItem(itemId: string, projectId: string, updat
   due_date?: string | null
 }) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const updateData: any = { ...updates }
 
@@ -1166,12 +1193,13 @@ export async function updateProjectItem(itemId: string, projectId: string, updat
   revalidatePath(`/projects/${projectId}`)
 
   // INTEGRAÇÃO FINANCEIRA
-  const organizationId = await getUserOrganization()
   await recalculateProjectRevenue(projectId, organizationId)
 }
 
 export async function deleteProjectItem(itemId: string, projectId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const { error } = await supabase
     .from('project_items')
@@ -1186,7 +1214,6 @@ export async function deleteProjectItem(itemId: string, projectId: string) {
   revalidatePath(`/projects/${projectId}`)
 
   // INTEGRAÇÃO FINANCEIRA
-  const organizationId = await getUserOrganization()
   await recalculateProjectRevenue(projectId, organizationId)
 }
 
@@ -1203,6 +1230,8 @@ const DEFAULT_TASKS = [
 
 export async function getProjectTasks(projectId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const { data, error } = await supabase
     .from('project_tasks')
@@ -1219,7 +1248,10 @@ export async function getProjectTasks(projectId: string) {
 }
 
 export async function addProjectTask(projectId: string, title: string) {
+  const validated = validateInput(projectTaskSchema, { title })
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   // Buscar último order
   const { data: lastTask } = await supabase
@@ -1236,7 +1268,7 @@ export async function addProjectTask(projectId: string, title: string) {
     .from('project_tasks')
     .insert({
       project_id: projectId,
-      title: title.trim(),
+      title: validated.title,
       completed: false,
       order: nextOrder,
     })
@@ -1254,6 +1286,8 @@ export async function addProjectTask(projectId: string, title: string) {
 
 export async function toggleProjectTask(taskId: string, projectId: string, completed: boolean) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const { error } = await supabase
     .from('project_tasks')
@@ -1270,6 +1304,8 @@ export async function toggleProjectTask(taskId: string, projectId: string, compl
 
 export async function deleteProjectTask(taskId: string, projectId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const { error } = await supabase
     .from('project_tasks')
@@ -1286,6 +1322,8 @@ export async function deleteProjectTask(taskId: string, projectId: string) {
 
 export async function updateProjectTask(taskId: string, projectId: string, title: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   const { error } = await supabase
     .from('project_tasks')
@@ -1303,6 +1341,8 @@ export async function updateProjectTask(taskId: string, projectId: string, title
 
 export async function initializeDefaultTasks(projectId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProjectOwnership(supabase, projectId, organizationId)
 
   // Verificar se já tem tarefas
   const { count } = await supabase

@@ -23,7 +23,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { updateTransaction } from '@/actions/financeiro'
 import { useRouter } from 'next/navigation'
-import { Transaction } from '@/actions/financeiro' // Add this export to actions/financeiro.ts if not present, otherwise generic any
+import type { Transaction } from '@/types/financial'
 import { format } from 'date-fns'
 import { getProjects } from '@/actions/projects'
 

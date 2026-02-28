@@ -4,13 +4,15 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createInitialCapitalTransaction } from './financeiro'
+import { validateInput, signInSchema, signUpSchema } from '@/lib/validations'
 
 export async function signIn(email: string, password: string) {
+  const validated = validateInput(signInSchema, { email, password })
   const supabase = await createClient()
 
   const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
+    email: validated.email,
+    password: validated.password,
   })
 
   if (error) {
@@ -29,6 +31,7 @@ export async function signUp(
   whatsapp?: string,
   capitalInicial?: number
 ) {
+  const validated = validateInput(signUpSchema, { email, password, name, companyName, whatsapp, capitalInicial })
   const supabase = await createClient()
   const { createServiceClient } = await import('@/lib/supabase/server')
   const serviceClient = await createServiceClient()

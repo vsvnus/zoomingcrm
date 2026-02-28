@@ -1,0 +1,47 @@
+'use client'
+
+import { useEffect } from 'react'
+
+export default function ProjectDetailError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  useEffect(() => {
+    console.error('Project detail error:', error)
+  }, [error])
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
+      <div className="text-center max-w-md">
+        <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-500/10 flex items-center justify-center">
+          <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold text-text-primary mb-2">
+          Erro ao carregar projeto
+        </h2>
+        <p className="text-text-secondary mb-6">
+          Nao foi possivel carregar os detalhes do projeto. O projeto pode ter sido removido ou voce nao tem permissao para acessa-lo.
+        </p>
+        <div className="flex gap-3 justify-center">
+          <button
+            onClick={() => reset()}
+            className="px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors text-sm font-medium"
+          >
+            Tentar novamente
+          </button>
+          <a
+            href="/projects"
+            className="px-4 py-2 bg-bg-tertiary text-text-primary rounded-lg hover:bg-bg-secondary transition-colors text-sm font-medium"
+          >
+            Voltar para Projetos
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}

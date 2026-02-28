@@ -1,12 +1,30 @@
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
 import { AIChatWidget } from '@/components/ai/ai-chat-widget'
 
-export default function DashboardLayout({
+/**
+ * Dashboard layout -- async Server Component with auth guard.
+ *
+ * Defense-in-depth: even if the middleware session check is bypassed
+ * (e.g. static generation, edge-case race), this layout will redirect
+ * unauthenticated users to /login before any dashboard page renders.
+ */
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
   return (
     <div className="relative min-h-screen bg-bg-primary">
       {/* Background gradiente sutil - adapta ao tema */}

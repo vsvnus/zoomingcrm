@@ -12,6 +12,19 @@ import type {
   CreateSceneData,
   UpdateSceneData,
 } from '@/types/scripts'
+import { validateInput, createScriptSchema, createSceneSchema } from '@/lib/validations'
+
+// ============================================
+// HELPER: Verify Script Ownership
+// ============================================
+
+async function verifyScriptOwnership(supabase: any, scriptId: string, organizationId: string) {
+  const { data } = await supabase
+    .from('scripts').select('id')
+    .eq('id', scriptId).eq('organization_id', organizationId).single()
+  if (!data) throw new Error('Roteiro não encontrado')
+  return data
+}
 
 // ============================================
 // SCRIPTS: List All (for Studio)
@@ -41,35 +54,33 @@ export async function getAllScripts(): Promise<ScriptWithProject[]> {
 
   if (!scripts || scripts.length === 0) return []
 
-  // Get scene counts and first storyboard for each script
-  const enriched: ScriptWithProject[] = await Promise.all(
-    scripts.map(async (script: any) => {
-      const { count } = await supabase
-        .from('scenes')
-        .select('*', { count: 'exact', head: true })
-        .eq('script_id', script.id)
+  // Single query to get all scenes for all scripts (eliminates N+2 queries)
+  const scriptIds = scripts.map(s => s.id)
+  const { data: allScenes } = await supabase
+    .from('scenes')
+    .select('script_id, storyboard_url, "order"')
+    .in('script_id', scriptIds)
+    .order('order', { ascending: true })
 
-      const { data: firstScene } = await supabase
-        .from('scenes')
-        .select('storyboard_url')
-        .eq('script_id', script.id)
-        .not('storyboard_url', 'is', null)
-        .order('order', { ascending: true })
-        .limit(1)
-        .maybeSingle()
+  // Aggregate in memory
+  const sceneCountMap: Record<string, number> = {}
+  const firstStoryboardMap: Record<string, string | null> = {}
 
-      return {
-        ...script,
-        scenes_count: count || 0,
-        project_title: script.projects?.title || 'Projeto sem nome',
-        project_status: script.projects?.status || 'UNKNOWN',
-        first_storyboard_url: firstScene?.storyboard_url || null,
-        projects: undefined,
-      }
-    })
-  )
+  allScenes?.forEach(scene => {
+    sceneCountMap[scene.script_id] = (sceneCountMap[scene.script_id] || 0) + 1
+    if (scene.storyboard_url && !firstStoryboardMap[scene.script_id]) {
+      firstStoryboardMap[scene.script_id] = scene.storyboard_url
+    }
+  })
 
-  return enriched
+  return scripts.map((script: any) => ({
+    ...script,
+    scenes_count: sceneCountMap[script.id] || 0,
+    project_title: script.projects?.title || 'Projeto sem nome',
+    project_status: script.projects?.status || 'UNKNOWN',
+    first_storyboard_url: firstStoryboardMap[script.id] || null,
+    projects: undefined,
+  }))
 }
 
 export async function getProjectsForStudio(): Promise<{ id: string; title: string; status: string }[]> {
@@ -164,6 +175,7 @@ export async function getScript(scriptId: string): Promise<ScriptWithScenes | nu
 }
 
 export async function createScript(formData: CreateScriptData): Promise<Script> {
+  validateInput(createScriptSchema, formData)
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
 
@@ -251,7 +263,10 @@ export async function deleteScript(scriptId: string, projectId: string) {
 // ============================================
 
 export async function createScene(formData: CreateSceneData): Promise<Scene> {
+  validateInput(createSceneSchema, formData)
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyScriptOwnership(supabase, formData.script_id, organizationId)
 
   const { data, error } = await supabase
     .from('scenes')
@@ -290,6 +305,8 @@ export async function createScene(formData: CreateSceneData): Promise<Scene> {
 
 export async function updateScene(sceneId: string, formData: UpdateSceneData, scriptId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyScriptOwnership(supabase, scriptId, organizationId)
 
   const { data, error } = await supabase
     .from('scenes')
@@ -316,6 +333,8 @@ export async function updateScene(sceneId: string, formData: UpdateSceneData, sc
 
 export async function deleteScene(sceneId: string, scriptId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyScriptOwnership(supabase, scriptId, organizationId)
 
   const { error } = await supabase
     .from('scenes')
@@ -348,6 +367,8 @@ export async function deleteScene(sceneId: string, scriptId: string) {
 
 export async function reorderScenes(scriptId: string, sceneIds: string[]) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyScriptOwnership(supabase, scriptId, organizationId)
 
   // Update order for each scene
   for (let i = 0; i < sceneIds.length; i++) {
@@ -362,6 +383,8 @@ export async function reorderScenes(scriptId: string, sceneIds: string[]) {
 
 export async function duplicateScene(sceneId: string, scriptId: string): Promise<Scene> {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyScriptOwnership(supabase, scriptId, organizationId)
 
   // Fetch the scene to duplicate
   const { data: original, error: fetchError } = await supabase
@@ -456,6 +479,13 @@ export async function addSceneAsset(sceneId: string, asset: {
   order?: number
 }) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+
+  // Get script_id from scene, then verify script ownership
+  const { data: scene } = await supabase
+    .from('scenes').select('script_id').eq('id', sceneId).single()
+  if (!scene) throw new Error('Cena não encontrada')
+  await verifyScriptOwnership(supabase, scene.script_id, organizationId)
 
   const { data, error } = await supabase
     .from('scene_assets')
@@ -479,6 +509,17 @@ export async function addSceneAsset(sceneId: string, asset: {
 
 export async function deleteSceneAsset(assetId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+
+  // Traverse asset -> scene -> script to verify ownership
+  const { data: assetData } = await supabase
+    .from('scene_assets').select('scene_id').eq('id', assetId).single()
+  if (!assetData) throw new Error('Asset não encontrado')
+
+  const { data: sceneData } = await supabase
+    .from('scenes').select('script_id').eq('id', assetData.scene_id).single()
+  if (!sceneData) throw new Error('Cena não encontrada')
+  await verifyScriptOwnership(supabase, sceneData.script_id, organizationId)
 
   const { error } = await supabase
     .from('scene_assets')
@@ -493,6 +534,13 @@ export async function deleteSceneAsset(assetId: string) {
 
 export async function getSceneAssets(sceneId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+
+  // Get script_id from scene, then verify script ownership
+  const { data: sceneData } = await supabase
+    .from('scenes').select('script_id').eq('id', sceneId).single()
+  if (!sceneData) throw new Error('Cena não encontrada')
+  await verifyScriptOwnership(supabase, sceneData.script_id, organizationId)
 
   const { data, error } = await supabase
     .from('scene_assets')

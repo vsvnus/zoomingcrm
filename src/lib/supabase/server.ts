@@ -71,6 +71,12 @@ export const getUserOrganization = cache(async (): Promise<string> => {
   }
 
   // Usuário não existe na tabela users (conta legada) - criar automaticamente
+  // Guard: disable auto-creation in production unless explicitly allowed
+  if (!process.env.ALLOW_LEGACY_MIGRATION) {
+    console.error('Legacy user detected but ALLOW_LEGACY_MIGRATION is not set. User:', user.id)
+    throw new Error('Conta não encontrada. Entre em contato com o suporte.')
+  }
+
   // Usar service role para bypass de RLS
   console.log('Usuário legado detectado, criando organização e registro...')
 

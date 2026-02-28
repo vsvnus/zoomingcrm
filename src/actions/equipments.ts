@@ -2,6 +2,7 @@
 
 import { createClient, getUserOrganization } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { validateInput, createEquipmentSchema, updateEquipmentSchema, bookingSchema, maintenanceLogSchema } from '@/lib/validations'
 
 // ============================================
 // TIPOS
@@ -137,12 +138,13 @@ export async function getEquipmentAvailability(id: string) {
  * Adicionar novo equipamento
  */
 export async function addEquipment(equipment: Equipment) {
+  const validated = validateInput(createEquipmentSchema, equipment)
   const organizationId = await getUserOrganization()
   const supabase = await createClient()
 
   const { data, error } = await supabase
     .from('equipments')
-    .insert([{ ...equipment, organization_id: organizationId }])
+    .insert([{ ...validated, organization_id: organizationId }])
     .select()
     .single()
 
@@ -159,12 +161,13 @@ export async function addEquipment(equipment: Equipment) {
  * Atualizar equipamento
  */
 export async function updateEquipment(id: string, updates: Partial<Equipment>) {
+  const validated = validateInput(updateEquipmentSchema, updates)
   const organizationId = await getUserOrganization()
   const supabase = await createClient()
 
   const { data, error } = await supabase
     .from('equipments')
-    .update(updates)
+    .update(validated)
     .eq('id', id)
     .eq('organization_id', organizationId)
     .select()
@@ -348,8 +351,23 @@ export async function checkBookingConflict(
  * Criar nova reserva de equipamento
  */
 export async function addEquipmentBooking(booking: EquipmentBooking) {
+  const validated = validateInput(bookingSchema, booking)
   const organizationId = await getUserOrganization()
   const supabase = await createClient()
+
+  // Verify project belongs to org
+  const { data: projectCheck } = await supabase
+    .from('projects').select('id')
+    .eq('id', booking.projectId).eq('organization_id', organizationId).single()
+  if (!projectCheck) throw new Error('Projeto não encontrado')
+
+  // Verify equipment belongs to org (if individual equipment)
+  if (booking.equipmentId) {
+    const { data: equipCheck } = await supabase
+      .from('equipments').select('id')
+      .eq('id', booking.equipmentId).eq('organization_id', organizationId).single()
+    if (!equipCheck) throw new Error('Equipamento não encontrado')
+  }
 
   // Verificar conflito primeiro (se for equipamento individual)
   if (booking.equipmentId) {
@@ -394,7 +412,14 @@ export async function addEquipmentBooking(booking: EquipmentBooking) {
  * Buscar reservas de um equipamento
  */
 export async function getEquipmentBookings(equipmentId: string) {
+  const organizationId = await getUserOrganization()
   const supabase = await createClient()
+
+  // Verify equipment belongs to org
+  const { data: equipCheck } = await supabase
+    .from('equipments').select('id')
+    .eq('id', equipmentId).eq('organization_id', organizationId).single()
+  if (!equipCheck) throw new Error('Equipamento não encontrado')
 
   const { data, error } = await supabase
     .from('equipment_bookings')
@@ -419,7 +444,14 @@ export async function getEquipmentBookings(equipmentId: string) {
  * Buscar equipamentos reservados para um projeto
  */
 export async function getProjectEquipmentBookings(projectId: string) {
+  const organizationId = await getUserOrganization()
   const supabase = await createClient()
+
+  // Verify project belongs to org
+  const { data: projectCheck } = await supabase
+    .from('projects').select('id')
+    .eq('id', projectId).eq('organization_id', organizationId).single()
+  if (!projectCheck) throw new Error('Projeto não encontrado')
 
   const { data, error } = await supabase
     .from('equipment_bookings')
@@ -444,8 +476,22 @@ export async function getProjectEquipmentBookings(projectId: string) {
  * Atualizar reserva (ex: registrar devolução)
  */
 export async function updateEquipmentBooking(id: string, updates: Partial<EquipmentBooking>) {
+  const organizationId = await getUserOrganization()
   const supabase = await createClient()
 
+  // Verify booking's project belongs to org
+  const { data: booking } = await supabase
+    .from('equipment_bookings')
+    .select('project_id')
+    .eq('id', id)
+    .single()
+
+  if (!booking) throw new Error('Reserva não encontrada')
+
+  const { data: projectCheck } = await supabase
+    .from('projects').select('id')
+    .eq('id', booking.project_id).eq('organization_id', organizationId).single()
+  if (!projectCheck) throw new Error('Projeto não encontrado')
 
   const updatePayload: any = {}
   if (updates.projectId) updatePayload.project_id = updates.projectId
@@ -524,6 +570,7 @@ export async function getEquipmentsInMaintenance() {
  * Adicionar log de manutenção
  */
 export async function addMaintenanceLog(log: MaintenanceLog) {
+  validateInput(maintenanceLogSchema, log)
   const organizationId = await getUserOrganization()
   const supabase = await createClient()
 

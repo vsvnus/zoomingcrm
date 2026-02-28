@@ -7,30 +7,11 @@ import {
   LayoutDashboard,
   DollarSign,
   Users,
-  Calendar,
-  Building2,
-  MapPin,
-  Video,
-  Monitor,
   FileText,
   Film,
-  Link as LinkIcon,
   Package,
-  Plus,
   Edit,
   Trash2,
-  X,
-  Check,
-  Clock,
-  CheckCircle2,
-  Circle,
-  TrendingUp,
-  TrendingDown,
-  Receipt,
-  AlertCircle,
-  Truck,
-  Utensils,
-  MoreHorizontal,
 } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -46,6 +27,11 @@ import { updateProjectMember, removeProjectMember, toggleProjectItemStatus, dele
 import { deleteExpense } from '@/actions/finances'
 import { useRouter } from 'next/navigation'
 import { ManageProjectItemModal } from './manage-project-item-modal'
+import { OverviewTab } from './tabs/overview-tab'
+import { ScopeTab } from './tabs/scope-tab'
+import { TeamTab } from './tabs/team-tab'
+import { EquipmentTab } from './tabs/equipment-tab'
+import { FinanceTab } from './tabs/finance-tab'
 
 interface ProjectDetailTabsProps {
   project: ProjectWithRelations
@@ -253,43 +239,6 @@ export function ProjectDetailTabs({
     setEditingTaskTitle('')
   }
 
-  // Cálculos financeiros
-  const teamCosts = project.project_members?.reduce(
-    (acc, member) => acc + (member.agreed_fee || 0),
-    0
-  ) || 0
-
-  const manualExpensesTotal = expenses?.reduce(
-    (acc, expense) => acc + (expense.actual_cost || expense.estimated_cost || 0),
-    0
-  ) || 0
-
-  const equipmentCosts = equipmentBookings?.reduce((acc, booking) => {
-    if (!booking.equipments?.daily_rate || !booking.start_date || !booking.end_date) return acc
-    const start = new Date(booking.start_date)
-    const end = new Date(booking.end_date)
-    const diffTime = Math.abs(end.getTime() - start.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
-    return acc + (Number(booking.equipments.daily_rate) * diffDays)
-  }, 0) || 0
-
-  const totalCosts = teamCosts + manualExpensesTotal + equipmentCosts
-
-  // Calcular total do escopo (itens)
-  const scopeTotal = project.items?.reduce(
-    (acc, item) => acc + Number(item.total_price),
-    0
-  ) || 0
-
-  // Se houver itens no escopo, usamos a soma deles como valor do projeto
-  // Caso contrário, usamos o valor aprovado/budget
-  const projectValue = scopeTotal > 0
-    ? scopeTotal
-    : (financialSummary?.total_revenue || financialSummary?.approved_value || Number(project.budget) || 0)
-
-  const profitMargin = projectValue > 0 ? ((projectValue - totalCosts) / projectValue) * 100 : 0
-  const profit = projectValue - totalCosts
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -324,7 +273,7 @@ export function ProjectDetailTabs({
               >
                 {PROJECT_STATUS_LABELS[project.status]}
               </div>
-              <span className="text-text-tertiary">•</span>
+              <span className="text-text-tertiary">&bull;</span>
               <span className="text-text-tertiary">
                 {project.clients.company || project.clients.name}
               </span>
@@ -397,536 +346,36 @@ export function ProjectDetailTabs({
         transition={{ duration: 0.3 }}
       >
         {activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Project Info Cards */}
-            <div className="grid gap-6 lg:grid-cols-2">
-              {/* Informações Gerais */}
-              <div className="rounded-xl border border-border bg-card p-6 backdrop-blur-sm">
-                <h3 className="mb-4 text-lg font-semibold text-text-primary">
-                  Informações Gerais
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Building2 className="mt-0.5 h-5 w-5 text-text-tertiary" />
-                    <div className="flex-1">
-                      <p className="text-sm text-text-secondary">Cliente</p>
-                      <p className="font-medium text-text-primary">
-                        {project.clients.company || project.clients.name}
-                      </p>
-                      {project.clients.email && (
-                        <p className="text-xs text-text-tertiary">
-                          {project.clients.email}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {project.location && (
-                    <div className="flex items-start gap-3">
-                      <MapPin className="mt-0.5 h-5 w-5 text-text-tertiary" />
-                      <div>
-                        <p className="text-sm text-text-secondary">Localização</p>
-                        <p className="font-medium text-text-primary">
-                          {project.location}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {project.users && (
-                    <div className="flex items-start gap-3">
-                      <Users className="mt-0.5 h-5 w-5 text-text-tertiary" />
-                      <div>
-                        <p className="text-sm text-text-secondary">Responsável</p>
-                        <p className="font-medium text-text-primary">
-                          {project.users.name}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Timeline */}
-              <div className="rounded-xl border border-border bg-card p-6 backdrop-blur-sm">
-                <h3 className="mb-4 text-lg font-semibold text-text-primary">
-                  Cronograma
-                </h3>
-                <div className="space-y-4">
-                  {/* Data Principal */}
-                  <div className="flex items-start gap-3">
-                    <Calendar className="mt-0.5 h-5 w-5 text-text-tertiary" />
-                    <div>
-                      <p className="text-sm text-text-secondary">Data Principal de Gravação</p>
-                      <p className="font-medium text-text-primary">
-                        {formatDate(project.shooting_date)}
-                      </p>
-                      {project.shooting_end_date && (
-                        <p className="text-xs text-text-tertiary">
-                          até {formatDate(project.shooting_end_date)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Múltiplas Datas de Gravação */}
-                  {project.shooting_dates && project.shooting_dates.length > 0 && (
-                    <div className="border-t border-border pt-3">
-                      <p className="mb-2 text-sm font-medium text-blue-500">
-                        Datas de Gravação Adicionais
-                      </p>
-                      <div className="space-y-2">
-                        {project.shooting_dates.map((sd) => (
-                          <div
-                            key={sd.id}
-                            className="flex items-start gap-3 rounded-lg border border-blue-500/10 bg-blue-500/5 p-3"
-                          >
-                            <Calendar className="mt-0.5 h-4 w-4 text-blue-500" />
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-text-primary">
-                                  {formatDate(sd.date)}
-                                </span>
-                                {sd.time && (
-                                  <span className="flex items-center gap-1 text-xs text-text-tertiary">
-                                    <Clock className="h-3 w-3" />
-                                    {sd.time}
-                                  </span>
-                                )}
-                              </div>
-                              {sd.location && (
-                                <div className="mt-1 flex items-center gap-1 text-xs text-text-tertiary">
-                                  <MapPin className="h-3 w-3" />
-                                  {sd.location}
-                                </div>
-                              )}
-                              {sd.notes && (
-                                <p className="mt-1 text-xs text-text-secondary">{sd.notes}</p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Prazo Principal */}
-                  <div className="flex items-start gap-3 border-t border-border pt-3">
-                    <Calendar className="mt-0.5 h-5 w-5 text-text-tertiary" />
-                    <div>
-                      <p className="text-sm text-text-secondary">
-                        Prazo de Entrega
-                      </p>
-                      <p className="font-medium text-text-primary">
-                        {formatDate(project.deadline_date)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Múltiplas Datas de Entrega */}
-                  {project.delivery_dates && project.delivery_dates.length > 0 && (
-                    <div className="border-t border-border pt-3">
-                      <p className="mb-2 text-sm font-medium text-green-500">
-                        Entregáveis
-                      </p>
-                      <div className="space-y-2">
-                        {project.delivery_dates.map((dd) => (
-                          <div
-                            key={dd.id}
-                            className={`flex items-start gap-3 rounded-lg border p-3 ${dd.completed
-                              ? 'border-green-500/20 bg-green-500/10'
-                              : 'border-border bg-secondary'
-                              }`}
-                          >
-                            {dd.completed ? (
-                              <CheckCircle2 className="mt-0.5 h-4 w-4 text-green-500" />
-                            ) : (
-                              <Circle className="mt-0.5 h-4 w-4 text-text-tertiary" />
-                            )}
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <span
-                                  className={`font-medium ${dd.completed ? 'text-green-500' : 'text-text-primary'
-                                    }`}
-                                >
-                                  {dd.description}
-                                </span>
-                                <span className="text-xs text-text-tertiary">
-                                  {formatDate(dd.date)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Specs Técnicas */}
-            <div className="grid gap-6 lg:grid-cols-2">
-              {/* Especificações de Vídeo */}
-              <div className="rounded-xl border border-border bg-card p-6 backdrop-blur-sm">
-                <h3 className="mb-4 text-lg font-semibold text-text-primary">
-                  Especificações Técnicas
-                </h3>
-                <div className="space-y-3">
-                  {project.video_format ? (
-                    <div className="flex items-start gap-3">
-                      <Video className="mt-0.5 h-5 w-5 text-text-tertiary" />
-                      <div>
-                        <p className="text-sm text-text-secondary">Formato</p>
-                        <p className="font-medium text-text-primary">
-                          {project.video_format}
-                        </p>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {project.resolution ? (
-                    <div className="flex items-start gap-3">
-                      <Monitor className="mt-0.5 h-5 w-5 text-text-tertiary" />
-                      <div>
-                        <p className="text-sm text-text-secondary">Resolução</p>
-                        <p className="font-medium text-text-primary">
-                          {project.resolution}
-                        </p>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {!project.video_format && !project.resolution && (
-                    <p className="text-sm text-text-tertiary">
-                      Nenhuma especificação definida
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Links e Documentos */}
-              <div className="rounded-xl border border-border bg-card p-6 backdrop-blur-sm">
-                <h3 className="mb-4 text-lg font-semibold text-text-primary">
-                  Documentos e Links
-                </h3>
-                <div className="space-y-3">
-                  {project.drive_folder_link && (
-                    <a
-                      href={project.drive_folder_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-lg border border-border bg-secondary p-3 transition-all hover:bg-bg-hover"
-                    >
-                      <LinkIcon className="h-5 w-5 text-text-tertiary" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-text-primary">
-                          Pasta do Drive
-                        </p>
-                        <p className="text-xs text-text-tertiary">Google Drive</p>
-                      </div>
-                    </a>
-                  )}
-
-                  {project.script_link && (
-                    <a
-                      href={project.script_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-lg border border-border bg-secondary p-3 transition-all hover:bg-bg-hover"
-                    >
-                      <FileText className="h-5 w-5 text-text-tertiary" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-text-primary">
-                          Roteiro
-                        </p>
-                        <p className="text-xs text-text-tertiary">Documento</p>
-                      </div>
-                    </a>
-                  )}
-
-                  {!project.drive_folder_link && !project.script_link && (
-                    <p className="text-sm text-text-tertiary">
-                      Nenhum documento vinculado
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            {project.description && (
-              <div className="rounded-xl border border-border bg-card p-6 backdrop-blur-sm">
-                <h3 className="mb-4 text-lg font-semibold text-text-primary">
-                  Descrição do Projeto
-                </h3>
-                <p className="whitespace-pre-wrap text-text-secondary">
-                  {project.description}
-                </p>
-              </div>
-            )}
-
-            {/* To-Do List */}
-            <div className="rounded-xl border border-border bg-card p-6 backdrop-blur-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-text-primary">
-                  Checklist do Projeto
-                </h3>
-                {(!project.tasks || project.tasks.length === 0) && (
-                  <button
-                    onClick={handleInitDefaultTasks}
-                    className="flex items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-text-secondary transition-all hover:bg-bg-hover"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Criar Tarefas Padrão
-                  </button>
-                )}
-              </div>
-
-              {/* Task List */}
-              <div className="space-y-2">
-                {project.tasks && project.tasks.length > 0 ? (
-                  <>
-                    {project.tasks.map((task: any) => (
-                      <div
-                        key={task.id}
-                        className={`group flex items-center gap-3 rounded-lg border p-3 transition-all ${task.completed
-                          ? 'border-green-500/20 bg-green-500/5'
-                          : 'border-border bg-secondary hover:border-text-tertiary'
-                          }`}
-                      >
-                        <button
-                          onClick={() => handleToggleTask(task.id, !task.completed)}
-                          className={`flex h-5 w-5 items-center justify-center rounded-full border transition-all ${task.completed
-                            ? 'border-green-500 bg-green-500 text-white'
-                            : 'border-text-tertiary bg-transparent text-transparent hover:border-text-primary'
-                            }`}
-                        >
-                          <Check className="h-3 w-3" />
-                        </button>
-                        <span
-                          className={`flex-1 text-sm ${task.completed
-                            ? 'text-text-tertiary line-through'
-                            : 'text-text-primary'
-                            }`}
-                        >
-                          {editingTaskId === task.id ? (
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                value={editingTaskTitle}
-                                onChange={(e) => setEditingTaskTitle(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleSaveEditTask(task.id)
-                                  if (e.key === 'Escape') handleCancelEditTask()
-                                }}
-                                className="flex-1 rounded border border-border bg-secondary px-2 py-0.5 text-sm text-text-primary focus:outline-none focus:border-primary/50"
-                                autoFocus
-                              />
-                              <button
-                                onClick={() => handleSaveEditTask(task.id)}
-                                className="rounded p-1 text-green-500 hover:bg-green-500/10"
-                              >
-                                <Check className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={handleCancelEditTask}
-                                className="rounded p-1 text-text-tertiary hover:bg-bg-hover"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            task.title
-                          )}
-                        </span>
-                        {editingTaskId !== task.id && (
-                          <>
-                            <button
-                              onClick={() => handleStartEditTask(task)}
-                              className="rounded p-1 text-text-tertiary opacity-0 transition-all hover:bg-bg-hover hover:text-text-primary group-hover:opacity-100"
-                              title="Editar"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteTask(task.id)}
-                              className="rounded p-1 text-text-tertiary opacity-0 transition-all hover:bg-red-500/10 hover:text-red-500 group-hover:opacity-100"
-                              title="Excluir"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    ))}
-
-                    {/* Progress */}
-                    <div className="mt-4 pt-4 border-t border-border">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-text-secondary">Progresso</span>
-                        <span className="text-xs font-medium text-text-primary">
-                          {project.tasks.filter((t: any) => t.completed).length} / {project.tasks.length}
-                        </span>
-                      </div>
-                      <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500"
-                          style={{
-                            width: `${(project.tasks.filter((t: any) => t.completed).length / project.tasks.length) * 100}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-text-tertiary text-center py-4">
-                    Nenhuma tarefa ainda. Adicione tarefas ou use as padrão.
-                  </p>
-                )}
-              </div>
-
-              {/* Add Task Form */}
-              <form onSubmit={handleAddTask} className="mt-4 flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Nova tarefa..."
-                  value={newTaskTitle}
-                  onChange={(e) => setNewTaskTitle(e.target.value)}
-                  className="flex-1 rounded-lg border border-border bg-secondary px-4 py-2 text-sm text-text-primary placeholder-text-quaternary transition-all focus:border-primary/50 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  disabled={isAddingTask || !newTaskTitle.trim()}
-                  className="flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 text-sm font-medium text-bg-primary transition-all hover:bg-text-secondary disabled:opacity-50"
-                >
-                  <Plus className="h-4 w-4" />
-                  Adicionar
-                </button>
-              </form>
-            </div>
-          </div>
+          <OverviewTab
+            project={project}
+            formatCurrency={formatCurrency}
+            formatDate={formatDate}
+            onToggleTask={handleToggleTask}
+            onDeleteTask={handleDeleteTask}
+            onAddTask={handleAddTask}
+            onStartEditTask={handleStartEditTask}
+            onSaveEditTask={handleSaveEditTask}
+            onCancelEditTask={handleCancelEditTask}
+            onInitDefaultTasks={handleInitDefaultTasks}
+            newTaskTitle={newTaskTitle}
+            setNewTaskTitle={setNewTaskTitle}
+            isAddingTask={isAddingTask}
+            editingTaskId={editingTaskId}
+            editingTaskTitle={editingTaskTitle}
+            setEditingTaskTitle={setEditingTaskTitle}
+          />
         )}
 
         {activeTab === 'scope' && (
-          <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm">
-            <div className="border-b border-white/10 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-text-primary">Escopo do Projeto</h3>
-                  <p className="mt-1 text-sm text-text-secondary">
-                    Itens e entregáveis importados da proposta
-                  </p>
-                </div>
-                <button
-                  onClick={handleAddItem}
-                  className="flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 text-sm font-medium text-bg-primary transition-all hover:bg-text-secondary"
-                >
-                  <Plus className="h-4 w-4" />
-                  Adicionar Item
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6">
-              {project.items && project.items.length > 0 ? (
-                <div className="space-y-3">
-                  {project.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`flex items-start gap-4 rounded-lg border p-4 transition-all ${item.status === 'DONE'
-                        ? 'border-green-500/20 bg-green-500/5'
-                        : 'border-border bg-card'
-                        }`}
-                    >
-                      <button
-                        onClick={() =>
-                          handleToggleItem(
-                            item.id,
-                            item.status === 'DONE' ? 'PENDING' : 'DONE'
-                          )
-                        }
-                        className={`mt-1 flex h-6 w-6 items-center justify-center rounded-full border transition-all ${item.status === 'DONE'
-                          ? 'border-green-500 bg-green-500 text-white'
-                          : 'border-text-tertiary bg-transparent text-transparent hover:border-text-primary'
-                          }`}
-                      >
-                        <Check className="h-4 w-4" />
-                      </button>
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between">
-                          <p
-                            className={`font-medium ${item.status === 'DONE'
-                              ? 'text-text-tertiary line-through'
-                              : 'text-text-primary'
-                              }`}
-                          >
-                            {item.description}
-                          </p>
-                          <span className="text-sm font-medium text-text-primary">
-                            {formatCurrency(Number(item.total_price))}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex items-center gap-4 text-sm text-text-tertiary">
-                          <span>
-                            {item.quantity}x {formatCurrency(Number(item.unit_price))}
-                          </span>
-                          {item.due_date && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(item.due_date).toLocaleDateString('pt-BR')}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="ml-4 flex items-start gap-2">
-                        <button
-                          onClick={() => handleEditItem(item)}
-                          className="rounded-lg p-2 text-text-tertiary transition-all hover:bg-bg-hover hover:text-text-primary"
-                          title="Editar"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="rounded-lg p-2 text-text-tertiary transition-all hover:bg-red-500/10 hover:text-red-500"
-                          title="Remover"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="mt-6 flex justify-end border-t border-border pt-4">
-                    <div className="text-right">
-                      <p className="text-sm text-text-secondary">Total do Escopo</p>
-                      <p className="text-xl font-bold text-text-primary">
-                        {formatCurrency(
-                          project.items.reduce(
-                            (acc, item) => acc + Number(item.total_price),
-                            0
-                          )
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="py-12 text-center">
-                  <FileText className="mx-auto mb-4 h-12 w-12 text-text-tertiary" />
-                  <p className="mb-2 text-lg font-medium text-text-primary">
-                    Nenhum item de escopo
-                  </p>
-                  <p className="text-sm text-text-secondary">
-                    Este projeto não possui itens vinculados da proposta
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )
-        }
+          <ScopeTab
+            project={project}
+            formatCurrency={formatCurrency}
+            onToggleItem={handleToggleItem}
+            onDeleteItem={handleDeleteItem}
+            onEditItem={handleEditItem}
+            onAddItem={handleAddItem}
+          />
+        )}
 
         {activeTab === 'script' && (
           <div className="space-y-6">
@@ -956,583 +405,81 @@ export function ProjectDetailTabs({
           </div>
         )}
 
-        {
-          activeTab === 'team' && (
-            <div className="rounded-xl border border-border bg-card backdrop-blur-sm">
-              <div className="border-b border-border p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-text-primary">
-                      Equipe do Projeto
-                    </h3>
-                    <p className="mt-1 text-sm text-text-secondary">
-                      Freelancers e membros alocados neste projeto
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setIsAddTeamMemberOpen(true)}
-                    className="flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 text-sm font-medium text-bg-primary transition-all hover:bg-text-secondary"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Adicionar Membro
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6">
-                {project.project_members && project.project_members.length > 0 ? (
-                  <div className="space-y-3">
-                    {project.project_members.map((member) => (
-                      <div
-                        key={member.id}
-                        className="flex items-center justify-between rounded-lg border border-border bg-card p-4"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-text-primary">
-                            {member.freelancers.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-medium text-text-primary">
-                              {member.freelancers.name}
-                            </p>
-                            <p className="text-sm text-text-secondary">{member.role}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          {member.agreed_fee && (
-                            <p className="text-sm font-medium text-text-primary">
-                              {formatCurrency(member.agreed_fee)}
-                            </p>
-                          )}
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-medium ${member.status === 'CONFIRMED'
-                              ? 'bg-green-500/10 text-green-400'
-                              : member.status === 'INVITED'
-                                ? 'bg-yellow-500/10 text-yellow-400'
-                                : 'bg-red-500/10 text-red-400'
-                              }`}
-                          >
-                            {member.status === 'CONFIRMED'
-                              ? 'Confirmado'
-                              : member.status === 'INVITED'
-                                ? 'Convidado'
-                                : member.status === 'DECLINED'
-                                  ? 'Recusou'
-                                  : 'Removido'}
-                          </span>
-
-                          {/* Action Buttons */}
-                          <div className="flex gap-2">
-                            {member.status === 'INVITED' && (
-                              <button
-                                onClick={() => handleConfirmMember(member.id)}
-                                className="rounded-lg border border-green-500/20 bg-green-500/10 p-2 text-green-400 transition-all hover:bg-green-500/20"
-                                title="Confirmar"
-                              >
-                                <Check className="h-4 w-4" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleRemoveMember(member.id)}
-                              className="rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-red-400 transition-all hover:bg-red-500/20"
-                              title="Remover"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-12 text-center">
-                    <Users className="mx-auto mb-4 h-12 w-12 text-text-tertiary" />
-                    <p className="mb-2 text-lg font-medium text-text-primary">
-                      Nenhum membro na equipe
-                    </p>
-                    <p className="text-sm text-text-secondary">
-                      Adicione freelancers e membros ao projeto
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        }
-
-        {
-          activeTab === 'equipment' && (
-            <div className="rounded-xl border border-border bg-card backdrop-blur-sm">
-              <div className="border-b border-border p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-text-primary">
-                      Equipamentos Reservados
-                    </h3>
-                    <p className="mt-1 text-sm text-text-secondary">
-                      Lista de equipamentos reservados para este projeto
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setIsAddEquipmentOpen(true)}
-                    className="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-purple-700"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Adicionar Equipamento
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6">
-                {equipmentBookings && equipmentBookings.length > 0 ? (
-                  <div className="space-y-3">
-                    {equipmentBookings.map((booking: any) => (
-                      <div
-                        key={booking.id}
-                        className="flex items-center justify-between rounded-lg border border-border bg-card p-4"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
-                            <Package className="h-5 w-5 text-text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-text-primary">
-                              {booking.equipments?.name || 'Equipamento'}
-                            </p>
-                            <p className="text-sm text-text-secondary">
-                              {booking.equipments?.category || 'Sem categoria'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-text-primary">
-                            {new Date(booking.start_date).toLocaleDateString(
-                              'pt-BR'
-                            )}{' '}
-                            -{' '}
-                            {new Date(booking.end_date).toLocaleDateString(
-                              'pt-BR'
-                            )}
-                          </p>
-                          {booking.equipments?.serial_number && (
-                            <p className="text-xs text-text-tertiary">
-                              S/N: {booking.equipments.serial_number}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-12 text-center">
-                    <Package className="mx-auto mb-4 h-12 w-12 text-text-tertiary" />
-                    <p className="mb-2 text-lg font-medium text-text-primary">
-                      Nenhum equipamento reservado
-                    </p>
-                    <p className="text-sm text-text-secondary">
-                      Reservas de equipamentos aparecerão aqui
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        }
-
-        {
-          activeTab === 'financial' && (
-            <div className="space-y-6">
-              {/* Summary Cards */}
-              <div className="grid gap-4 md:grid-cols-4">
-                {/* Valor do Projeto */}
-                <div className="rounded-xl border border-border bg-card p-4 backdrop-blur-sm">
-                  <div className="flex items-center gap-2 text-text-tertiary">
-                    <DollarSign className="h-4 w-4" />
-                    <span className="text-sm">Valor do Projeto</span>
-                  </div>
-
-
-                  <p className="mt-2 text-2xl font-bold text-text-primary">
-                    {formatCurrency(projectValue)}
-                  </p>
-                </div>
-
-
-                {/* Total de Custos */}
-                <div className="rounded-xl border border-border bg-card p-4 backdrop-blur-sm">
-                  <div className="flex items-center gap-2 text-text-tertiary">
-                    <Receipt className="h-4 w-4" />
-                    <span className="text-sm">Total de Custos</span>
-                  </div>
-                  <p className="mt-2 text-2xl font-bold text-red-400">
-                    {formatCurrency(totalCosts)}
-                  </p>
-                </div>
-
-                {/* Lucro */}
-                <div className="rounded-xl border border-border bg-card p-4 backdrop-blur-sm">
-                  <div className="flex items-center gap-2 text-text-tertiary">
-                    {profit >= 0 ? (
-                      <TrendingUp className="h-4 w-4" />
-                    ) : (
-                      <TrendingDown className="h-4 w-4" />
-                    )}
-                    <span className="text-sm">Lucro</span>
-                  </div>
-                  <p
-                    className={`mt-2 text-2xl font-bold ${profit >= 0 ? 'text-green-500' : 'text-red-500'
-                      }`}
-                  >
-                    {formatCurrency(profit)}
-                  </p>
-                </div>
-
-                {/* Margem */}
-                <div className="rounded-xl border border-border bg-card p-4 backdrop-blur-sm">
-                  <div className="flex items-center gap-2 text-text-tertiary">
-                    <TrendingUp className="h-4 w-4" />
-                    <span className="text-sm">Margem</span>
-                  </div>
-                  <p
-                    className={`mt-2 text-2xl font-bold ${profitMargin >= 0 ? 'text-green-400' : 'text-red-400'
-                      }`}
-                  >
-                    {profitMargin.toFixed(1)}%
-                  </p>
-                </div>
-              </div>
-
-              {/* Alerta se não houver valor aprovado definido */}
-              {!projectValue && (
-                <div className="flex items-center gap-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4">
-                  <AlertCircle className="h-5 w-5 text-yellow-500" />
-                  <div>
-                    <p className="font-medium text-yellow-600">
-                      Valor do projeto não definido
-                    </p>
-                    <p className="text-sm text-text-tertiary">
-                      Configure o valor aprovado na tabela project_finances ou através da proposta aprovada.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Custos da Equipe */}
-              <div className="rounded-xl border border-border bg-card backdrop-blur-sm">
-                <div className="border-b border-border p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-text-primary">
-                        Custos da Equipe
-                      </h3>
-                      <p className="mt-1 text-sm text-text-secondary">
-                        Valores acordados com freelancers
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-text-tertiary">Subtotal</p>
-                      <p className="text-xl font-bold text-text-primary">
-                        {formatCurrency(teamCosts)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  {project.project_members && project.project_members.length > 0 ? (
-                    <div className="space-y-3">
-                      {project.project_members.map((member) => (
-                        <div
-                          key={member.id}
-                          className="flex items-center justify-between rounded-lg border border-border bg-card p-4"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 text-blue-500">
-                              <Users className="h-5 w-5" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-text-primary">
-                                {member.freelancers.name}
-                              </p>
-                              <p className="text-sm text-text-secondary">{member.role}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium text-text-primary">
-                              {member.agreed_fee
-                                ? formatCurrency(member.agreed_fee)
-                                : 'Não definido'}
-                            </p>
-                            <span
-                              className={`text-xs ${member.status === 'CONFIRMED'
-                                ? 'text-green-500'
-                                : 'text-yellow-500'
-                                }`}
-                            >
-                              {member.status === 'CONFIRMED'
-                                ? 'Confirmado'
-                                : 'Pendente'}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="py-8 text-center">
-                      <Users className="mx-auto mb-3 h-10 w-10 text-text-tertiary" />
-                      <p className="text-sm text-text-secondary">
-                        Nenhum membro na equipe ainda
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Despesas Manuais */}
-              <div className="rounded-xl border border-border bg-card backdrop-blur-sm">
-                <div className="border-b border-border p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-text-primary">
-                        Outras Despesas
-                      </h3>
-                      <p className="mt-1 text-sm text-text-secondary">
-                        Equipamentos, logística e outros custos
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-sm text-text-tertiary">Subtotal</p>
-                        <p className="text-xl font-bold text-text-primary">
-                          {formatCurrency(manualExpensesTotal)}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setIsAddExpenseOpen(true)}
-                        className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-green-700"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Nova Despesa
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  {expenses && expenses.length > 0 ? (
-                    <div className="space-y-3">
-                      {expenses.map((expense: any) => (
-                        <div
-                          key={expense.id}
-                          className="flex items-center justify-between rounded-lg border border-border bg-card p-4"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div
-                              className={`flex h-10 w-10 items-center justify-center rounded-full ${expense.category === 'CREW_TALENT'
-                                ? 'bg-purple-500/10 text-purple-500'
-                                : expense.category === 'EQUIPMENT'
-                                  ? 'bg-blue-500/10 text-blue-500'
-                                  : expense.category === 'LOGISTICS'
-                                    ? 'bg-orange-500/10 text-orange-500'
-                                    : expense.category === 'FOOD'
-                                      ? 'bg-red-500/10 text-red-500'
-                                      : 'bg-zinc-500/10 text-zinc-500'
-                                }`}
-                            >
-                              {expense.category === 'CREW_TALENT' ? (
-                                <Users className="h-5 w-5" />
-                              ) : expense.category === 'EQUIPMENT' ? (
-                                <Package className="h-5 w-5" />
-                              ) : expense.category === 'LOGISTICS' ? (
-                                <Truck className="h-5 w-5" />
-                              ) : expense.category === 'FOOD' ? (
-                                <Utensils className="h-5 w-5" />
-                              ) : (
-                                <MoreHorizontal className="h-5 w-5" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium text-text-primary">
-                                {expense.description}
-                              </p>
-                              <p className="text-sm text-text-secondary">
-                                {expense.category === 'CREW_TALENT'
-                                  ? 'Crew & Talents'
-                                  : expense.category === 'EQUIPMENT'
-                                    ? 'Equipamento'
-                                    : expense.category === 'LOGISTICS'
-                                      ? 'Logística'
-                                      : expense.category === 'FOOD'
-                                        ? 'Alimentação'
-                                        : 'Outros'}
-                                {expense.freelancers?.name &&
-                                  ` • ${expense.freelancers.name}`}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <p className="font-medium text-text-primary">
-                                {formatCurrency(
-                                  expense.actual_cost || expense.estimated_cost || 0
-                                )}
-                              </p>
-                              <span
-                                className={`text-xs ${expense.payment_status === 'PAID'
-                                  ? 'text-green-500'
-                                  : expense.payment_status === 'SCHEDULED'
-                                    ? 'text-yellow-500'
-                                    : 'text-red-500'
-                                  }`}
-                              >
-                                {expense.payment_status === 'PAID'
-                                  ? 'Pago'
-                                  : expense.payment_status === 'SCHEDULED'
-                                    ? 'Agendado'
-                                    : 'A Pagar'}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => handleDeleteExpense(expense.id)}
-                              className="rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-red-500 transition-all hover:bg-red-500/20"
-                              title="Remover"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="py-8 text-center">
-                      <Receipt className="mx-auto mb-3 h-10 w-10 text-text-tertiary" />
-                      <p className="mb-2 text-sm text-text-secondary">
-                        Nenhuma despesa adicional
-                      </p>
-                      <button
-                        onClick={() => setIsAddExpenseOpen(true)}
-                        className="text-sm text-green-500 hover:underline"
-                      >
-                        Adicionar primeira despesa
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Resumo Geral */}
-              <div className="rounded-xl border border-border bg-gradient-to-br from-card to-secondary p-6 backdrop-blur-sm">
-                <h3 className="mb-4 text-lg font-semibold text-text-primary">
-                  Resumo do Job Costing
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-text-secondary">Valor do Projeto</span>
-                    <span className="font-medium text-text-primary">
-                      {formatCurrency(projectValue)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-text-secondary">(-) Custos da Equipe</span>
-                    <span className="font-medium text-red-500">
-                      {formatCurrency(teamCosts)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-text-secondary">(-) Custos de Equipamento</span>
-                    <span className="font-medium text-red-500">
-                      {formatCurrency(equipmentCosts)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-text-secondary">(-) Outras Despesas</span>
-                    <span className="font-medium text-red-500">
-                      {formatCurrency(manualExpensesTotal)}
-                    </span>
-                  </div>
-                  <div className="border-t border-border pt-3">
-                    <div className="flex justify-between">
-                      <span className="font-medium text-text-primary">Lucro Líquido</span>
-                      <span
-                        className={`text-xl font-bold ${profit >= 0 ? 'text-green-500' : 'text-red-500'
-                          }`}
-                      >
-                        {formatCurrency(profit)}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex justify-between text-sm">
-                      <span className="text-text-secondary">Margem de Lucro</span>
-                      <span
-                        className={`font-medium ${profitMargin >= 0 ? 'text-green-500' : 'text-red-500'
-                          }`}
-                      >
-                        {profitMargin.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        }
-      </motion.div >
-
-
-      {/* ... rest of JSX ... */}
-      {/* Modals */}
-      {
-        isEditModalOpen && (
-          <EditProjectModal
-            isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-            onDelete={handleDeleteProject}
+        {activeTab === 'team' && (
+          <TeamTab
             project={project}
+            formatCurrency={formatCurrency}
+            onConfirmMember={handleConfirmMember}
+            onRemoveMember={handleRemoveMember}
+            onAddTeamMember={() => setIsAddTeamMemberOpen(true)}
           />
-        )
-      }
+        )}
 
-      {
-        isAddTeamMemberOpen && (
-          <AddTeamMemberModal
-            isOpen={isAddTeamMemberOpen}
-            onClose={() => setIsAddTeamMemberOpen(false)}
-            projectId={project.id}
+        {activeTab === 'equipment' && (
+          <EquipmentTab
+            equipmentBookings={equipmentBookings}
+            onAddEquipment={() => setIsAddEquipmentOpen(true)}
           />
-        )
-      }
+        )}
 
-      {
-        isAddEquipmentOpen && (
-          <AddEquipmentModal
-            isOpen={isAddEquipmentOpen}
-            onClose={() => setIsAddEquipmentOpen(false)}
-            projectId={project.id}
+        {activeTab === 'financial' && (
+          <FinanceTab
+            project={project}
+            expenses={expenses}
+            equipmentBookings={equipmentBookings}
+            financialSummary={financialSummary}
+            formatCurrency={formatCurrency}
+            onDeleteExpense={handleDeleteExpense}
+            onAddExpense={() => setIsAddExpenseOpen(true)}
           />
-        )
-      }
+        )}
+      </motion.div>
 
-      {
-        isAddExpenseOpen && (
-          <AddExpenseModal
-            projectId={project.id}
-            onClose={() => setIsAddExpenseOpen(false)}
-          />
-        )
-      }
 
-      {
-        isManageItemOpen && (
-          <ManageProjectItemModal
-            isOpen={isManageItemOpen}
-            onClose={() => {
-              setIsManageItemOpen(false)
-              setEditingItem(null)
-            }}
-            projectId={project.id}
-            item={editingItem}
-          />
-        )
-      }
-    </div >
+      {/* Modals */}
+      {isEditModalOpen && (
+        <EditProjectModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onDelete={handleDeleteProject}
+          project={project}
+        />
+      )}
+
+      {isAddTeamMemberOpen && (
+        <AddTeamMemberModal
+          isOpen={isAddTeamMemberOpen}
+          onClose={() => setIsAddTeamMemberOpen(false)}
+          projectId={project.id}
+        />
+      )}
+
+      {isAddEquipmentOpen && (
+        <AddEquipmentModal
+          isOpen={isAddEquipmentOpen}
+          onClose={() => setIsAddEquipmentOpen(false)}
+          projectId={project.id}
+        />
+      )}
+
+      {isAddExpenseOpen && (
+        <AddExpenseModal
+          projectId={project.id}
+          onClose={() => setIsAddExpenseOpen(false)}
+        />
+      )}
+
+      {isManageItemOpen && (
+        <ManageProjectItemModal
+          isOpen={isManageItemOpen}
+          onClose={() => {
+            setIsManageItemOpen(false)
+            setEditingItem(null)
+          }}
+          projectId={project.id}
+          item={editingItem}
+        />
+      )}
+    </div>
   )
 }

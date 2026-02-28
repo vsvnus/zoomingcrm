@@ -2,6 +2,7 @@
 
 import { createClient, getUserOrganization } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { validateInput, createFreelancerSchema, updateFreelancerSchema } from '@/lib/validations'
 
 export async function getFreelancers() {
   const supabase = await createClient()
@@ -57,6 +58,7 @@ export type CreateFreelancerData = {
 }
 
 export async function createFreelancer(data: CreateFreelancerData) {
+  validateInput(createFreelancerSchema, { name: data.name, email: data.email, phone: data.phone, notes: data.notes })
   const supabase = await createClient()
 
   const organizationId = await getUserOrganization()
@@ -107,6 +109,7 @@ export async function updateFreelancerRate(id: string, daily_rate: number) {
 }
 
 export async function updateFreelancer(id: string, data: Partial<CreateFreelancerData>) {
+  validateInput(updateFreelancerSchema, { name: data.name, email: data.email, phone: data.phone, notes: data.notes })
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
 

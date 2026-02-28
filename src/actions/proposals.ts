@@ -23,6 +23,19 @@
 import { createClient, getUserOrganization } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { createNotificationInternal } from '@/actions/notifications'
+import { validateInput, createProposalSchema, updateProposalSchema, proposalItemSchema, proposalOptionalSchema, proposalVideoSchema } from '@/lib/validations'
+
+// =============================================
+// HELPER: Verify Proposal Ownership
+// =============================================
+
+async function verifyProposalOwnership(supabase: any, proposalId: string, organizationId: string) {
+  const { data } = await supabase
+    .from('proposals').select('id')
+    .eq('id', proposalId).eq('organization_id', organizationId).single()
+  if (!data) throw new Error('Proposta não encontrada')
+  return data
+}
 
 // =============================================
 // HELPER: Recalcular valores da proposta
@@ -30,6 +43,8 @@ import { createNotificationInternal } from '@/actions/notifications'
 
 async function recalculateProposalValues(proposalId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProposalOwnership(supabase, proposalId, organizationId)
 
   // 1. Buscar proposta (para pegar desconto)
   const { data: proposal } = await supabase
@@ -132,11 +147,14 @@ export async function getProposal(proposalId: string) {
  */
 export async function getProposalLinkedProject(proposalId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProposalOwnership(supabase, proposalId, organizationId)
 
   const { data } = await supabase
     .from('projects')
     .select('id, title')
     .eq('proposal_id', proposalId)
+    .eq('organization_id', organizationId)
     .single()
 
   return data
@@ -173,6 +191,17 @@ export async function getProposalByToken(token: string) {
     return null
   }
 
+  // Protect sensitive data
+  if (data && data.organizations) {
+    const org = data.organizations as any
+    if (!org.show_bank_info) {
+      delete org.bank_name
+      delete org.agency
+      delete org.account_number
+      delete org.pix_key
+    }
+  }
+
   // Marcar como visualizada (se ainda não foi)
   if (data && !data.viewed_at) {
     await supabase
@@ -197,6 +226,7 @@ export async function addProposal(formData: {
   client_id: string
   description?: string
 }) {
+  const validated = validateInput(createProposalSchema, formData)
   const supabase = await createClient()
 
   const organizationId = await getUserOrganization()
@@ -205,11 +235,11 @@ export async function addProposal(formData: {
   const { data: clientCheck, error: clientError } = await supabase
     .from('clients')
     .select('id, name, organization_id')
-    .eq('id', formData.client_id)
+    .eq('id', validated.client_id)
     .single()
 
   if (!clientCheck) {
-    console.error('Cliente nao encontrado:', formData.client_id)
+    console.error('Cliente nao encontrado:', validated.client_id)
     throw new Error('Cliente nao encontrado. Por favor, crie um novo cliente.')
   }
 
@@ -222,7 +252,7 @@ export async function addProposal(formData: {
   }
 
   // Gerar token único para a proposta
-  const token = `prop_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+  const token = crypto.randomUUID()
 
   // Criar proposta com valores zerados - trigger SQL recalculará com base nos itens
   const { data, error } = await supabase
@@ -230,9 +260,9 @@ export async function addProposal(formData: {
     .insert([
       {
         token,
-        title: formData.title,
-        description: formData.description,
-        client_id: formData.client_id,
+        title: validated.title,
+        description: validated.description,
+        client_id: validated.client_id,
         organization_id: organizationId,
         base_value: 0, // Calculado pelo trigger baseado nos itens
         discount: 0,
@@ -270,16 +300,19 @@ export async function updateProposal(
     paymentSchedule?: any[]
   }
 ) {
+  const validated = validateInput(updateProposalSchema, formData)
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
 
   // Separar paymentSchedule do objeto antes de enviar ao Supabase
   // pois paymentSchedule NÃO é coluna da tabela proposals
-  const { paymentSchedule, ...proposalUpdates } = formData
+  const { paymentSchedule, ...proposalUpdates } = validated
 
   const { data, error } = await supabase
     .from('proposals')
     .update(proposalUpdates)
     .eq('id', proposalId)
+    .eq('organization_id', organizationId)
     .select('*, clients(id, name, company)')
     .single()
 
@@ -350,6 +383,8 @@ export async function updateProposal(
  */
 export async function sendProposal(proposalId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProposalOwnership(supabase, proposalId, organizationId)
 
   const { data, error } = await supabase
     .from('proposals')
@@ -358,6 +393,7 @@ export async function sendProposal(proposalId: string) {
       sent_at: new Date().toISOString(),
     })
     .eq('id', proposalId)
+    .eq('organization_id', organizationId)
     .select('*, clients(id, name, company, email)')
     .single()
 
@@ -380,6 +416,8 @@ export async function sendProposal(proposalId: string) {
  */
 export async function approveProposal(proposalId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProposalOwnership(supabase, proposalId, organizationId)
   const user = (await supabase.auth.getUser()).data.user
 
   // Se não tiver user (edge case), passa null, mas idealmente internal action tem user
@@ -410,6 +448,8 @@ export async function approveProposal(proposalId: string) {
  */
 export async function rejectProposal(proposalId: string, reason?: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProposalOwnership(supabase, proposalId, organizationId)
 
   const { data, error } = await supabase
     .from('proposals')
@@ -418,6 +458,7 @@ export async function rejectProposal(proposalId: string, reason?: string) {
       description: reason ? `${reason}` : undefined,
     })
     .eq('id', proposalId)
+    .eq('organization_id', organizationId)
     .select('*, clients(id, name, company)')
     .single()
 
@@ -521,7 +562,7 @@ export async function duplicateProposal(proposalId: string) {
   }
 
   // Gerar novo token único
-  const token = `prop_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+  const token = crypto.randomUUID()
 
   // Calcular valores base a partir dos itens originais
   const baseValue = original.items?.reduce((sum: number, item: any) => {
@@ -753,7 +794,10 @@ export async function addProposalItem(
     show_dates?: boolean
   }
 ) {
+  const validated = validateInput(proposalItemSchema, item)
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProposalOwnership(supabase, proposalId, organizationId)
 
   // Buscar último order
   const { data: lastItem } = await supabase
@@ -909,6 +953,7 @@ export async function updateProposalItem(
   }
 ) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
 
   // Buscar item atual
   const { data: currentItem } = await supabase
@@ -920,6 +965,9 @@ export async function updateProposalItem(
   if (!currentItem) {
     throw new Error('Item não encontrado')
   }
+
+  // Verify proposal belongs to org
+  await verifyProposalOwnership(supabase, currentItem.proposal_id, organizationId)
 
   const quantity = updates.quantity ?? currentItem.quantity
   const unitPrice = updates.unit_price ?? currentItem.unit_price
@@ -950,6 +998,7 @@ export async function updateProposalItem(
  */
 export async function deleteProposalItem(itemId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
 
   // Buscar proposal_id antes de deletar
   const { data: item } = await supabase
@@ -961,6 +1010,9 @@ export async function deleteProposalItem(itemId: string) {
   if (!item) {
     throw new Error('Item no encontrado')
   }
+
+  // Verify proposal belongs to org
+  await verifyProposalOwnership(supabase, item.proposal_id, organizationId)
 
   const { error } = await supabase
     .from('proposal_items')
@@ -981,6 +1033,8 @@ export async function deleteProposalItem(itemId: string) {
  */
 export async function reorderProposalItems(proposalId: string, itemIds: string[]) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProposalOwnership(supabase, proposalId, organizationId)
 
   // Atualizar order de cada item
   const updates = itemIds.map((id, index) =>
@@ -1012,7 +1066,10 @@ export async function addProposalOptional(
     dependency?: string
   }
 ) {
+  const validated = validateInput(proposalOptionalSchema, optional)
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProposalOwnership(supabase, proposalId, organizationId)
 
   // Buscar último order
   const { data: lastOptional } = await supabase
@@ -1029,10 +1086,10 @@ export async function addProposalOptional(
     .from('proposal_optionals')
     .insert({
       proposal_id: proposalId,
-      title: optional.title,
-      description: optional.description,
-      price: optional.price,
-      dependency: optional.dependency,
+      title: validated.title,
+      description: validated.description,
+      price: validated.price,
+      dependency: validated.dependency,
       is_selected: false,
       order: nextOrder,
     })
@@ -1064,12 +1121,20 @@ export async function updateProposalOptional(
   }
 ) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
 
   const { data: currentOptional } = await supabase
     .from('proposal_optionals')
     .select('proposal_id')
     .eq('id', optionalId)
     .single()
+
+  if (!currentOptional) {
+    throw new Error('Opcional não encontrado')
+  }
+
+  // Verify proposal belongs to org
+  await verifyProposalOwnership(supabase, currentOptional.proposal_id, organizationId)
 
   const { data, error } = await supabase
     .from('proposal_optionals')
@@ -1082,9 +1147,7 @@ export async function updateProposalOptional(
     throw new Error('Erro ao atualizar opcional: ' + error.message)
   }
 
-  if (currentOptional) {
-    await recalculateProposalValues(currentOptional.proposal_id)
-  }
+  await recalculateProposalValues(currentOptional.proposal_id)
 
   revalidatePath(`/proposals`)
   return data
@@ -1095,6 +1158,7 @@ export async function updateProposalOptional(
  */
 export async function deleteProposalOptional(optionalId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
 
   // Buscar proposal_id antes de deletar
   const { data: optional } = await supabase
@@ -1102,6 +1166,13 @@ export async function deleteProposalOptional(optionalId: string) {
     .select('proposal_id')
     .eq('id', optionalId)
     .single()
+
+  if (!optional) {
+    throw new Error('Opcional não encontrado')
+  }
+
+  // Verify proposal belongs to org
+  await verifyProposalOwnership(supabase, optional.proposal_id, organizationId)
 
   const { error } = await supabase
     .from('proposal_optionals')
@@ -1124,6 +1195,8 @@ export async function deleteProposalOptional(optionalId: string) {
  */
 export async function reorderProposalOptionals(proposalId: string, optionalIds: string[]) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProposalOwnership(supabase, proposalId, organizationId)
 
   // Atualizar order de cada opcional
   const updates = optionalIds.map((id, index) =>
@@ -1151,7 +1224,10 @@ export async function addProposalVideo(
     video_url: string
   }
 ) {
+  const validated = validateInput(proposalVideoSchema, video)
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProposalOwnership(supabase, proposalId, organizationId)
 
   // Buscar último order
   const { data: lastVideo } = await supabase
@@ -1168,8 +1244,8 @@ export async function addProposalVideo(
     .from('proposal_videos')
     .insert({
       proposal_id: proposalId,
-      title: video.title,
-      video_url: video.video_url,
+      title: validated.title,
+      video_url: validated.video_url,
       order: nextOrder,
     })
     .select()
@@ -1188,6 +1264,20 @@ export async function addProposalVideo(
  */
 export async function deleteProposalVideo(videoId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+
+  // Fetch video to get proposal_id, then verify ownership
+  const { data: video } = await supabase
+    .from('proposal_videos')
+    .select('proposal_id')
+    .eq('id', videoId)
+    .single()
+
+  if (!video) {
+    throw new Error('Vídeo não encontrado')
+  }
+
+  await verifyProposalOwnership(supabase, video.proposal_id, organizationId)
 
   const { error } = await supabase
     .from('proposal_videos')
@@ -1206,6 +1296,8 @@ export async function deleteProposalVideo(videoId: string) {
  */
 export async function reorderProposalVideos(proposalId: string, videoIds: string[]) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProposalOwnership(supabase, proposalId, organizationId)
 
   const updates = videoIds.map((id, index) =>
     supabase
@@ -1230,6 +1322,8 @@ export async function reorderProposalVideos(proposalId: string, videoIds: string
  */
 export async function acceptProposalManual(proposalId: string) {
   const supabase = await createClient()
+  const organizationId = await getUserOrganization()
+  await verifyProposalOwnership(supabase, proposalId, organizationId)
   const user = (await supabase.auth.getUser()).data.user
 
   if (!user) {

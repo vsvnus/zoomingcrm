@@ -29,12 +29,18 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
 
   const organizationId = await getUserOrganization()
 
-  // SPRINT 0: Buscar saldo atual
-  const currentBalance = await getCurrentBalance(organizationId)
-
   // Definir filtros de data para contagens
   // Se houver dateRange, aplicamos ele para filtrar "novos" projetos/clientes no período
   // Se não houver, mantemos o comportamento padrão (ativos no momento)
+
+  // Buscar próximos eventos (unificando lógica do calendário)
+  const today = startOfDay(new Date())
+
+  // Se tiver dateRange, usa ele, senão pega de hoje pra frente
+  const eventsStart = dateRange ? dateRange.start : today
+  const eventsEnd = dateRange ? dateRange.end : undefined
+
+  // Build all query objects (these are lazy - no network call until awaited)
 
   // Buscar projetos ativos ordenados por deadline/última alteração
   let projectsQuery = supabase
@@ -47,22 +53,7 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
     .order('updated_at', { ascending: false })
     .limit(5)
 
-  if (dateRange) {
-    // Se tem filtro, talvez o usuário queira ver projetos criados/ativos nesse período?
-    // Para "Projetos Ativos" geralmente queremos ver o estado atual, independente de data.
-    // Mas para contadores (stats) podemos filtrar.
-    // Vamos manter a lista de projetos ativos como "o que está na mesa agora", independente da data.
-  }
-
-  const { data: projects } = await projectsQuery
-
-  // Contar total de projetos ativos
-  // Se tiver dateRange, contamos quantos projetos foram CRIADOS ou tiveram ATIVIDADE nesse período?
-  // O padrão de dashboard geralmente é "no período selecionado".
-  // Mas "Projetos Ativos" é um estado momentâneo (snapshot). 
-  // Vamos manter o filtro de "ativos agora" para o card, mas se o usuário filtrou data, 
-  // podemos mostrar quantos projetos estiveram ativos nesse período (criados ou atualizados).
-
+  // Contar total de projetos ativos (snapshot)
   let activeProjectsQuery = supabase
     .from('projects')
     .select('*', { count: 'exact', head: true })
@@ -70,31 +61,13 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
     .neq('status', 'DELIVERED')
     .neq('status', 'ARCHIVED')
 
-  if (dateRange) {
-    // Se tem filtro de data, vamos mostrar projetos criados neste período para dar um contexto diferente?
-    // Ou mantemos "Ativos Agora"? O "Saldo" é "Agora". 
-    // Vamos manter a consistência do SNAPSHOT para Active Projects e Current Balance.
-    // O DateRange vai afetar principalmente FLUXO DE CAIXA e NOVOS CLIENTES.
-  }
-
-  const { count: activeProjectsCount } = await activeProjectsQuery
-
   // Contar novos clientes
-  const { count: newClientsCount } = await supabase
+  const newClientsQuery = supabase
     .from('clients')
     .select('*', { count: 'exact', head: true })
     .eq('organization_id', organizationId)
     .gte('created_at', dateRange ? dateRange.start.toISOString() : startOfMonth(new Date()).toISOString())
     .lte('created_at', dateRange ? dateRange.end.toISOString() : new Date().toISOString())
-
-  // Buscar próximos eventos (unificando lógica do calendário)
-  const today = startOfDay(new Date())
-
-  // Se tiver dateRange, usa ele, senão pega de hoje pra frente
-  const eventsStart = dateRange ? dateRange.start : today
-  const eventsEnd = dateRange ? dateRange.end : undefined // Se undefined, sem limite superior (ou definimos um limite razoável)
-
-  const upcomingEvents: any[] = []
 
   // 1. Projetos com Shooting Date
   let projectShootsQuery = supabase
@@ -109,7 +82,106 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
     projectShootsQuery = projectShootsQuery.lte('shooting_date', eventsEnd.toISOString())
   }
 
-  const { data: projectShoots } = await projectShootsQuery.limit(10)
+  // 2. Shooting Dates (multiplas datas)
+  let shootingDatesQuery = supabase
+    .from('shooting_dates')
+    .select('id, date, time, location, notes, project_id, projects(id, title, clients(name))')
+    .eq('projects.organization_id', organizationId)
+    .gte('date', eventsStart.toISOString())
+    .order('date', { ascending: true })
+
+  if (eventsEnd) {
+    shootingDatesQuery = shootingDatesQuery.lte('date', eventsEnd.toISOString())
+  }
+
+  // 3. Prazos de Entrega (Projects Deadline)
+  let deadlineQuery = supabase
+    .from('projects')
+    .select('id, title, deadline, clients(name)')
+    .eq('organization_id', organizationId)
+    .not('deadline', 'is', null)
+    .gte('deadline', eventsStart.toISOString())
+    .order('deadline', { ascending: true })
+
+  if (eventsEnd) {
+    deadlineQuery = deadlineQuery.lte('deadline', eventsEnd.toISOString())
+  }
+
+  // 4. Delivery Dates (multiplas entregas)
+  let deliveryDatesQuery = supabase
+    .from('delivery_dates')
+    .select('id, date, description, project_id, projects(id, title, clients(name))')
+    .eq('projects.organization_id', organizationId)
+    .gte('date', eventsStart.toISOString())
+    .order('date', { ascending: true })
+
+  if (eventsEnd) {
+    deliveryDatesQuery = deliveryDatesQuery.lte('date', eventsEnd.toISOString())
+  }
+
+  // 5. Eventos Manuais (Calendar Events)
+  let manualEventsQuery = supabase
+    .from('calendar_events')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .gte('start_date', eventsStart.toISOString())
+    .order('start_date', { ascending: true })
+
+  if (eventsEnd) {
+    manualEventsQuery = manualEventsQuery.lte('start_date', eventsEnd.toISOString())
+  }
+
+  // Pendentes (a receber e a pagar) filtrados por due_date ate o fim do periodo
+  let receivablesQuery = supabase
+    .from('financial_transactions')
+    .select('amount')
+    .eq('organization_id', organizationId)
+    .eq('type', 'INCOME')
+    .in('status', ['PENDING', 'SCHEDULED'])
+
+  let payablesQuery = supabase
+    .from('financial_transactions')
+    .select('amount')
+    .eq('organization_id', organizationId)
+    .eq('type', 'EXPENSE')
+    .in('status', ['PENDING', 'SCHEDULED'])
+
+  if (dateRange) {
+    receivablesQuery = receivablesQuery.or(`due_date.lte.${dateRange.end.toISOString()},due_date.is.null`)
+    payablesQuery = payablesQuery.or(`due_date.lte.${dateRange.end.toISOString()},due_date.is.null`)
+  }
+
+  // Execute ALL independent queries in parallel
+  const [
+    currentBalance,
+    { data: projects },
+    { count: activeProjectsCount },
+    { count: newClientsCount },
+    { data: projectShoots },
+    { data: shootingDates },
+    { data: deadlines },
+    { data: deliveryDates },
+    { data: manualEvents },
+    cashFlowData,
+    { data: pendingReceivablesData },
+    { data: pendingPayablesData },
+  ] = await Promise.all([
+    getCurrentBalance(organizationId),
+    projectsQuery,
+    activeProjectsQuery,
+    newClientsQuery,
+    projectShootsQuery.limit(10),
+    shootingDatesQuery.limit(10),
+    deadlineQuery.limit(10),
+    deliveryDatesQuery.limit(10),
+    manualEventsQuery.limit(10),
+    getCashFlowData(organizationId, dateRange),
+    receivablesQuery,
+    payablesQuery,
+  ])
+
+  // Assemble upcoming events from all sources
+  const upcomingEvents: any[] = []
 
   if (projectShoots) {
     projectShoots.forEach((project) => {
@@ -126,20 +198,6 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
       })
     })
   }
-
-  // 2. Shooting Dates (múltiplas datas)
-  let shootingDatesQuery = supabase
-    .from('shooting_dates')
-    .select('id, date, time, location, notes, project_id, projects(id, title, clients(name))')
-    .eq('projects.organization_id', organizationId)
-    .gte('date', eventsStart.toISOString())
-    .order('date', { ascending: true })
-
-  if (eventsEnd) {
-    shootingDatesQuery = shootingDatesQuery.lte('date', eventsEnd.toISOString())
-  }
-
-  const { data: shootingDates } = await shootingDatesQuery.limit(10)
 
   if (shootingDates) {
     shootingDates.forEach((sd) => {
@@ -160,21 +218,6 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
     })
   }
 
-  // 3. Prazos de Entrega (Projects Deadline)
-  let deadlineQuery = supabase
-    .from('projects')
-    .select('id, title, deadline, clients(name)')
-    .eq('organization_id', organizationId)
-    .not('deadline', 'is', null)
-    .gte('deadline', eventsStart.toISOString())
-    .order('deadline', { ascending: true })
-
-  if (eventsEnd) {
-    deadlineQuery = deadlineQuery.lte('deadline', eventsEnd.toISOString())
-  }
-
-  const { data: deadlines } = await deadlineQuery.limit(10)
-
   if (deadlines) {
     deadlines.forEach((project) => {
       upcomingEvents.push({
@@ -190,20 +233,6 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
       })
     })
   }
-
-  // 4. Delivery Dates (múltiplas entregas)
-  let deliveryDatesQuery = supabase
-    .from('delivery_dates')
-    .select('id, date, description, project_id, projects(id, title, clients(name))')
-    .eq('projects.organization_id', organizationId)
-    .gte('date', eventsStart.toISOString())
-    .order('date', { ascending: true })
-
-  if (eventsEnd) {
-    deliveryDatesQuery = deliveryDatesQuery.lte('date', eventsEnd.toISOString())
-  }
-
-  const { data: deliveryDates } = await deliveryDatesQuery.limit(10)
 
   if (deliveryDates) {
     deliveryDates.forEach((dd) => {
@@ -224,20 +253,6 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
     })
   }
 
-  // 5. Eventos Manuais (Calendar Events)
-  let manualEventsQuery = supabase
-    .from('calendar_events')
-    .select('*')
-    .eq('organization_id', organizationId)
-    .gte('start_date', eventsStart.toISOString())
-    .order('start_date', { ascending: true })
-
-  if (eventsEnd) {
-    manualEventsQuery = manualEventsQuery.lte('start_date', eventsEnd.toISOString())
-  }
-
-  const { data: manualEvents } = await manualEventsQuery.limit(10)
-
   if (manualEvents) {
     manualEvents.forEach((ev) => {
       upcomingEvents.push({
@@ -246,7 +261,7 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
         date: ev.start_date,
         time: !ev.all_day ? format(new Date(ev.start_date), 'HH:mm') : null,
         location: ev.location,
-        client: null, // Eventos manuais podem não ter cliente vinculado diretamente aqui, ou poderiam ter
+        client: null,
         type: ev.type || 'other',
         link_id: null,
         link_type: 'manual'
@@ -254,36 +269,9 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
     })
   }
 
-  // Ordenar todos por data e pegar os 6 mais próximos
+  // Ordenar todos por data e pegar os 6 mais proximos
   upcomingEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   const finalUpcomingEvents = upcomingEvents.slice(0, 6)
-
-  // Buscar dados de fluxo de caixa (respeitando o dateRange)
-  const cashFlowData = await getCashFlowData(organizationId, dateRange)
-
-
-  // Buscar pendentes (a receber e a pagar) filtrados por due_date até o fim do período
-  let receivablesQuery = supabase
-    .from('financial_transactions')
-    .select('amount')
-    .eq('organization_id', organizationId)
-    .eq('type', 'INCOME')
-    .in('status', ['PENDING', 'SCHEDULED'])
-
-  let payablesQuery = supabase
-    .from('financial_transactions')
-    .select('amount')
-    .eq('organization_id', organizationId)
-    .eq('type', 'EXPENSE')
-    .in('status', ['PENDING', 'SCHEDULED'])
-
-  if (dateRange) {
-    receivablesQuery = receivablesQuery.or(`due_date.lte.${dateRange.end.toISOString()},due_date.is.null`)
-    payablesQuery = payablesQuery.or(`due_date.lte.${dateRange.end.toISOString()},due_date.is.null`)
-  }
-
-  const { data: pendingReceivablesData } = await receivablesQuery
-  const { data: pendingPayablesData } = await payablesQuery
 
   const pendingReceivables = pendingReceivablesData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0
   const pendingPayables = pendingPayablesData?.reduce((sum, item) => sum + Math.abs(Number(item.amount)), 0) || 0
