@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
 
     // Buscar em Financial Entries (org-isolated)
     const { data: financialEntries } = await supabase
-      .from('financial_entries')
+      .from('financial_transactions')
       .select('id, description, amount, type, category, due_date')
       .eq('organization_id', organizationId)
       .ilike('description', searchTerm)
