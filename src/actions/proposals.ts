@@ -495,7 +495,15 @@ export async function deleteProposal(proposalId: string, deleteLinkedProject: bo
       .eq('id', proposalId)
   }
 
-  // 3. Deletar projeto vinculado se solicitado
+  // 3. Deletar transações financeiras vinculadas à proposta
+  // (ON DELETE SET NULL no banco apenas anula o campo, não remove a transação)
+  await supabase
+    .from('financial_transactions')
+    .delete()
+    .eq('proposal_id', proposalId)
+    .eq('organization_id', organizationId)
+
+  // 4. Deletar projeto vinculado se solicitado
   if (deleteLinkedProject) {
     const { data: linkedProject } = await supabase
       .from('projects')
@@ -505,6 +513,13 @@ export async function deleteProposal(proposalId: string, deleteLinkedProject: bo
       .single()
 
     if (linkedProject) {
+      // Deletar transações financeiras do projeto
+      await supabase
+        .from('financial_transactions')
+        .delete()
+        .eq('project_id', linkedProject.id)
+        .eq('organization_id', organizationId)
+
       // Deletar eventos do calendário do projeto
       await supabase
         .from('calendar_events')
@@ -534,6 +549,7 @@ export async function deleteProposal(proposalId: string, deleteLinkedProject: bo
 
   revalidatePath('/proposals')
   revalidatePath('/projects')
+  revalidatePath('/financeiro')
 }
 
 /**
