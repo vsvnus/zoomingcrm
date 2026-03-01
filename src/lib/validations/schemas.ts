@@ -65,7 +65,7 @@ export const updateProposalSchema = z.object({
   description: z.string().max(2000).optional(),
   discount: z.number().min(0).max(100).optional(),
   valid_until: optionalDateSchema,
-  cover_image: z.string().url().max(2000).optional(),
+  cover_image: z.string().max(2000).optional(),
   primary_color: z.string().max(20).optional(),
   payment_date: optionalDateSchema,
   installments: z.number().int().min(1).max(120).optional(),

@@ -335,14 +335,15 @@ export async function updateProposal(
     // 2. Insert new schedule
     if (paymentSchedule.length > 0) {
       const scheduleToInsert = paymentSchedule.map((item: any) => ({
+        id: crypto.randomUUID(),
         proposal_id: proposalId,
         description: item.description,
-        due_date: item.dueDate,
+        due_date: item.dueDate || item.due_date || null,
         amount: item.amount,
         percentage: item.percentage,
         order: item.order,
         paid: item.paid || false,
-        paid_at: item.paidAt || null
+        paid_at: item.paidAt || item.paid_at || null
       }))
 
       const { error: scheduleError } = await supabase

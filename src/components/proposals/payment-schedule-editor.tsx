@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Plus, Trash2, GripVertical, Calendar, DollarSign } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -27,26 +27,10 @@ export function PaymentScheduleEditor({
     initialSchedule,
     onScheduleChange,
 }: PaymentScheduleEditorProps) {
-    const [schedule, setSchedule] = useState<PaymentScheduleItem[]>(initialSchedule)
+    const [schedule, setSchedule] = useState<PaymentScheduleItem[]>([])
     const [useCustomMode, setUseCustomMode] = useState(false)
-
-    // Initialize schedule based on installments if empty or meaningful change in installments
-    useEffect(() => {
-        // Determine if we should be in custom mode
-        // If we have items and they don't look like auto-generated ones (simple division)
-        if (initialSchedule && initialSchedule.length > 0) {
-            // Simple heuristic: if we have schedule items, assume we might be editing them
-            setSchedule(initialSchedule.sort((a, b) => a.order - b.order))
-            setUseCustomMode(true)
-        }
-    }, [initialSchedule])
-
-    // React to installments change from parent
-    useEffect(() => {
-        if (!useCustomMode) {
-            generateDefaultSchedule(installments)
-        }
-    }, [installments, totalValue])
+    const initializedRef = useRef(false)
+    const prevInstallmentsRef = useRef(installments)
 
     const formatLocalDate = (d: Date): string => {
         const year = d.getFullYear()
@@ -56,7 +40,7 @@ export function PaymentScheduleEditor({
     }
 
     const generateDefaultSchedule = (count: number) => {
-        if (count <= 0) return
+        if (count <= 0 || totalValue <= 0) return
 
         const baseAmount = Math.floor((totalValue / count) * 100) / 100
         const remainder = Math.round((totalValue - baseAmount * count) * 100) / 100
@@ -65,11 +49,11 @@ export function PaymentScheduleEditor({
         const today = new Date()
 
         for (let i = 0; i < count; i++) {
-            // Todas as parcelas iniciam com a data de hoje para o usuário ajustar
             const date = new Date(today)
+            date.setMonth(date.getMonth() + i) // Espaçar parcelas por 1 mês
 
             let amount = baseAmount
-            if (i === 0) amount += remainder // Add remainder to first installment
+            if (i === 0) amount += remainder
 
             newSchedule.push({
                 description: count === 1 ? 'À vista' : `Parcela ${i + 1}/${count}`,
@@ -82,6 +66,40 @@ export function PaymentScheduleEditor({
         setSchedule(newSchedule)
         onScheduleChange(newSchedule)
     }
+
+    // Initialize from saved schedule on mount only
+    useEffect(() => {
+        if (!initializedRef.current && initialSchedule && initialSchedule.length > 0) {
+            const sorted = [...initialSchedule].sort((a, b) => a.order - b.order)
+            setSchedule(sorted)
+            setUseCustomMode(true)
+            initializedRef.current = true
+        }
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Generate default schedule when no initial data and totalValue is ready
+    useEffect(() => {
+        if (!initializedRef.current && totalValue > 0) {
+            generateDefaultSchedule(installments)
+            initializedRef.current = true
+        }
+    }, [totalValue]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // React to installments change from parent - ALWAYS regenerate when count changes
+    useEffect(() => {
+        if (prevInstallmentsRef.current !== installments) {
+            prevInstallmentsRef.current = installments
+            setUseCustomMode(false)
+            generateDefaultSchedule(installments)
+        }
+    }, [installments]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // React to totalValue change - recalculate amounts when not in custom mode
+    useEffect(() => {
+        if (initializedRef.current && schedule.length > 0 && !useCustomMode) {
+            generateDefaultSchedule(schedule.length)
+        }
+    }, [totalValue]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleUpdateItem = (index: number, field: keyof PaymentScheduleItem, value: any) => {
         const newSchedule = [...schedule]
@@ -101,8 +119,10 @@ export function PaymentScheduleEditor({
         setUseCustomMode(true)
         let dueDateStr: string
         if (schedule.length > 0) {
-            // Usar a mesma data da última parcela como sugestão (usuário ajusta)
-            dueDateStr = schedule[schedule.length - 1].due_date
+            // Próxima parcela: +1 mês da última
+            const lastDate = new Date(schedule[schedule.length - 1].due_date + 'T12:00:00')
+            lastDate.setMonth(lastDate.getMonth() + 1)
+            dueDateStr = formatLocalDate(lastDate)
         } else {
             dueDateStr = formatLocalDate(new Date())
         }
@@ -152,7 +172,7 @@ export function PaymentScheduleEditor({
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, height: 0 }}
-                            key={index}
+                            key={`${index}-${item.order}`}
                             className="flex gap-2 items-center"
                         >
                             <div className="w-8 flex justify-center text-text-tertiary text-xs">

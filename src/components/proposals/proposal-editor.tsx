@@ -206,6 +206,19 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
     }
   }
 
+  const buildPaymentSchedulePayload = () => {
+    if (!editForm.paymentSchedule || editForm.paymentSchedule.length === 0) return undefined
+    return editForm.paymentSchedule.map((item: any) => ({
+      description: item.description || `Parcela ${item.order || 1}`,
+      dueDate: item.due_date || item.dueDate || new Date().toISOString().split('T')[0],
+      amount: Number(item.amount) || 0,
+      percentage: Number(item.percentage) || 0,
+      order: Number(item.order) || 1,
+      paid: item.paid || false,
+      paidAt: item.paidAt || item.paid_at || null,
+    }))
+  }
+
   const handleSaveEdit = async () => {
     try {
       await updateProposal(proposal.id, {
@@ -216,11 +229,7 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
         payment_date: editForm.payment_date || undefined,
         installments: editForm.installments,
         is_recurring: editForm.is_recurring,
-        paymentSchedule: editForm.paymentSchedule?.map((item: any) => ({
-          ...item,
-          dueDate: item.due_date || undefined,
-          paidAt: item.paidAt || item.paid_at
-        }))
+        paymentSchedule: buildPaymentSchedulePayload(),
       })
       setProposal({
         ...proposal,
@@ -263,11 +272,7 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
           payment_date: editForm.payment_date || undefined,
           installments: editForm.installments,
           is_recurring: editForm.is_recurring,
-          paymentSchedule: editForm.paymentSchedule?.map((item: any) => ({
-            ...item,
-            dueDate: item.due_date || undefined,
-            paidAt: item.paidAt || item.paid_at
-          }))
+          paymentSchedule: buildPaymentSchedulePayload(),
         })
       }
 
