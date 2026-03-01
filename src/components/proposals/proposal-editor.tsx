@@ -367,12 +367,18 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <label className="mb-1 block text-sm text-text-secondary">Data Pagamento</label>
-                    <input
-                      type="date"
-                      value={editForm.payment_date}
-                      onChange={(e) => setEditForm({ ...editForm, payment_date: e.target.value })}
-                      className="w-full rounded-lg border border-border bg-secondary px-4 py-2 text-text-primary focus:border-border focus:outline-none"
-                    />
+                    {editForm.installments > 1 || editForm.paymentSchedule.length > 1 ? (
+                      <div className="w-full rounded-lg border border-border bg-secondary/50 px-4 py-2 text-text-tertiary text-sm cursor-not-allowed">
+                        Definido no cronograma abaixo
+                      </div>
+                    ) : (
+                      <input
+                        type="date"
+                        value={editForm.payment_date}
+                        onChange={(e) => setEditForm({ ...editForm, payment_date: e.target.value })}
+                        className="w-full rounded-lg border border-border bg-secondary px-4 py-2 text-text-primary focus:border-border focus:outline-none"
+                      />
+                    )}
                   </div>
                   <div className="flex-1">
                     <label className="mb-1 block text-sm text-text-secondary">Parcelas</label>
@@ -381,7 +387,10 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                       min="1"
                       max="48"
                       value={editForm.installments}
-                      onChange={(e) => setEditForm({ ...editForm, installments: parseInt(e.target.value) || 1 })}
+                      onChange={(e) => {
+                        const newInstallments = parseInt(e.target.value) || 1
+                        setEditForm({ ...editForm, installments: newInstallments })
+                      }}
                       className="w-full rounded-lg border border-border bg-secondary px-4 py-2 text-text-primary focus:border-border focus:outline-none"
                     />
                   </div>
@@ -398,25 +407,23 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
                   </div>
                 </div>
 
-                {/* Custom Payment Schedule Editor */}
-                {editForm.installments > 1 && (
-                  <PaymentScheduleEditor
-                    totalValue={totalValue}
-                    installments={editForm.installments}
-                    initialSchedule={editForm.paymentSchedule as any[]} // Type casting to avoid strict issues
-                    onScheduleChange={(newSchedule) => {
-                      setEditForm(prev => ({
-                        ...prev,
-                        installments: newSchedule.length,
-                        paymentSchedule: newSchedule.map(item => ({
-                          ...item,
-                          paid: false, // Default for new schedule items
-                          paidAt: undefined
-                        }))
+                {/* Custom Payment Schedule Editor - aparece com qualquer número de parcelas */}
+                <PaymentScheduleEditor
+                  totalValue={totalValue}
+                  installments={editForm.installments}
+                  initialSchedule={editForm.paymentSchedule as any[]}
+                  onScheduleChange={(newSchedule) => {
+                    setEditForm(prev => ({
+                      ...prev,
+                      installments: newSchedule.length,
+                      paymentSchedule: newSchedule.map(item => ({
+                        ...item,
+                        paid: false,
+                        paidAt: undefined
                       }))
-                    }}
-                  />
-                )}
+                    }))
+                  }}
+                />
 
                 <div className="flex gap-2">
                   <button

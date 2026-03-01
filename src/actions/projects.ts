@@ -529,11 +529,14 @@ export async function addProjectMember(formData: AddProjectMemberData) {
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
 
+  // Extrair payment_date do formData pois não existe na tabela project_members
+  const { payment_date, ...memberData } = formData
+
   const { data, error } = await supabase
     .from('project_members')
     .insert([
       {
-        ...formData,
+        ...memberData,
         organization_id: organizationId,
         status: 'INVITED',
       },
@@ -557,7 +560,7 @@ export async function addProjectMember(formData: AddProjectMemberData) {
       .single()
 
     if (freelancer) {
-      const paymentDate = formData.payment_date || new Date().toISOString().split('T')[0]
+      const paymentDate = payment_date || new Date().toISOString().split('T')[0]
 
       await upsertFreelancerPayable({
         projectId: formData.project_id,
