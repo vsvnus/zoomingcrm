@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Plus, X, DollarSign, Calendar, Percent, FileText, Video, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { motion, AnimatePresence } from 'framer-motion'
+import { PaymentScheduleEditor } from './payment-schedule-editor'
 import type { ProposalItem, ProposalOptional, PaymentScheduleItem } from '@/types/proposal'
 
 interface ProposalBuilderProps {
@@ -35,15 +36,8 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
   })
 
   // Cronograma de pagamento
+  const [installments, setInstallments] = useState(1)
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentScheduleItem[]>([])
-  const [showPaymentForm, setShowPaymentForm] = useState(false)
-  const [newPayment, setNewPayment] = useState<PaymentScheduleItem>({
-    description: '',
-    dueDate: '',
-    amount: 0,
-    percentage: 0,
-    order: 1,
-  })
 
   // Opcionais
   const [optionals, setOptionals] = useState<ProposalOptional[]>([])
@@ -67,16 +61,6 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
     }))
   }, [newItem.quantity, newItem.unitPrice])
 
-  // Atualizar amount do pagamento baseado na porcentagem
-  useEffect(() => {
-    if (newPayment.percentage && totalValue > 0) {
-      setNewPayment((prev) => ({
-        ...prev,
-        amount: (totalValue * (prev.percentage || 0)) / 100,
-      }))
-    }
-  }, [newPayment.percentage, totalValue])
-
   const addItem = () => {
     if (newItem.description && newItem.unitPrice > 0) {
       setItems([...items, { ...newItem, order: items.length + 1 }])
@@ -87,18 +71,6 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
 
   const removeItem = (index: number) => {
     setItems(items.filter((_, i) => i !== index))
-  }
-
-  const addPayment = () => {
-    if (newPayment.description && newPayment.dueDate && newPayment.amount > 0) {
-      setPaymentSchedule([...paymentSchedule, { ...newPayment, order: paymentSchedule.length + 1 }])
-      setNewPayment({ description: '', dueDate: '', amount: 0, percentage: 0, order: 1 })
-      setShowPaymentForm(false)
-    }
-  }
-
-  const removePayment = (index: number) => {
-    setPaymentSchedule(paymentSchedule.filter((_, i) => i !== index))
   }
 
   const addOptional = () => {
@@ -390,154 +362,46 @@ export function ProposalBuilder({ clientId, onSave, onCancel }: ProposalBuilderP
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-text-primary">Cronograma de Recebimento</h3>
-              <Button
-                onClick={() => setShowPaymentForm(!showPaymentForm)}
-                className="h-9 gap-2 rounded-lg bg-green-600 px-4 text-sm hover:bg-green-700"
-              >
-                <Plus className="h-4 w-4" />
-                Adicionar Parcela
-              </Button>
             </div>
 
-            <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-3">
-              <p className="text-xs text-yellow-600">
-                💡 <strong>Valor Total:</strong> R$ {totalValue.toFixed(2)} - Use porcentagens
-                para facilitar (ex: 50% entrada, 25% em 30 dias, 25% em 60 dias)
-              </p>
-            </div>
-
-            <AnimatePresence>
-              {showPaymentForm && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-3 overflow-hidden rounded-lg border border-green-500/20 bg-green-500/5 p-4"
-                >
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-text-secondary">
-                      Descrição *
-                    </label>
-                    <input
-                      type="text"
-                      value={newPayment.description}
-                      onChange={(e) => setNewPayment({ ...newPayment, description: e.target.value })}
-                      placeholder="Ex: Entrada (50%), 30 dias (25%), 60 dias (25%)"
-                      className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary placeholder-text-quaternary focus:border-primary/50 focus:outline-none"
-                    />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="mb-1.5 block text-xs font-medium text-text-secondary">
-                        Data Prevista *
-                      </label>
-                      <input
-                        type="date"
-                        value={newPayment.dueDate as string}
-                        onChange={(e) => setNewPayment({ ...newPayment, dueDate: e.target.value })}
-                        className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary focus:border-primary/50 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-medium text-text-secondary">
-                        Porcentagem (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
-                        value={newPayment.percentage}
-                        onChange={(e) =>
-                          setNewPayment({
-                            ...newPayment,
-                            percentage: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                        className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary focus:border-primary/50 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-medium text-text-secondary">
-                        Valor (R$) *
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={newPayment.amount}
-                        onChange={(e) =>
-                          setNewPayment({ ...newPayment, amount: parseFloat(e.target.value) || 0 })
-                        }
-                        className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-text-primary focus:border-primary/50 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={addPayment}
-                      disabled={!newPayment.description || !newPayment.dueDate || newPayment.amount <= 0}
-                      className="flex-1 h-9 rounded-lg bg-green-600 text-sm hover:bg-green-700 disabled:opacity-50"
-                    >
-                      Adicionar
-                    </Button>
-                    <Button
-                      onClick={() => setShowPaymentForm(false)}
-                      className="h-9 rounded-lg bg-secondary px-4 text-sm text-text-primary hover:bg-bg-hover border border-border"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div className="space-y-2">
-              {paymentSchedule.length > 0 ? (
-                paymentSchedule.map((payment, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-between rounded-lg border border-border bg-card p-4 shadow-sm"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-text-primary">{payment.description}</p>
-                      <div className="mt-1 flex items-center gap-3 text-sm text-text-tertiary">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5" />
-                          {new Date(payment.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="h-3.5 w-3.5" />
-                          R$ {payment.amount.toFixed(2)}
-                        </span>
-                        {payment.percentage && payment.percentage > 0 && (
-                          <span className="flex items-center gap-1">
-                            <Percent className="h-3.5 w-3.5" />
-                            {payment.percentage.toFixed(0)}%
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => removePayment(index)}
-                      className="ml-4 rounded-lg p-2 text-text-tertiary transition-colors hover:bg-red-500/10 hover:text-red-500"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="rounded-lg border border-dashed border-border bg-secondary/50 p-12 text-center">
-                  <Calendar className="mx-auto h-12 w-12 text-text-quaternary" />
-                  <p className="mt-3 text-sm text-text-tertiary">
-                    Nenhuma parcela configurada. Clique em "Adicionar Parcela" para criar o
-                    cronograma.
-                  </p>
-                </div>
+            {/* Seletor de Parcelas */}
+            <div className="rounded-xl border border-border bg-card p-4">
+              <label className="mb-2 block text-sm font-medium text-text-secondary">
+                Número de Parcelas
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="48"
+                value={installments}
+                onChange={(e) => setInstallments(parseInt(e.target.value) || 1)}
+                className="w-32 rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/10"
+              />
+              {totalValue <= 0 && (
+                <p className="mt-2 text-xs text-yellow-500">
+                  Adicione itens primeiro para gerar o cronograma automaticamente.
+                </p>
               )}
             </div>
+
+            {/* Cronograma gerado automaticamente */}
+            {totalValue > 0 && (
+              <PaymentScheduleEditor
+                totalValue={totalValue}
+                installments={installments}
+                initialSchedule={[]}
+                onScheduleChange={(newSchedule) => {
+                  setPaymentSchedule(newSchedule.map(item => ({
+                    description: item.description,
+                    dueDate: item.due_date,
+                    amount: item.amount,
+                    percentage: item.percentage,
+                    order: item.order,
+                  })))
+                  setInstallments(newSchedule.length)
+                }}
+              />
+            )}
           </div>
         )}
 
