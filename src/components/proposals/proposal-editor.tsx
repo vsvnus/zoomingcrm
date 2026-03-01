@@ -112,16 +112,16 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
     description: proposal.description || '',
     discount: proposal.discount,
     valid_until: proposal.valid_until
-      ? new Date(proposal.valid_until).toISOString().split('T')[0]
+      ? String(proposal.valid_until).split('T')[0]
       : '',
     payment_date: proposal.payment_date
-      ? new Date(proposal.payment_date).toISOString().split('T')[0]
+      ? String(proposal.payment_date).split('T')[0]
       : '',
     installments: proposal.installments || 1,
     is_recurring: proposal.is_recurring || false,
     paymentSchedule: proposal.paymentSchedule ? proposal.paymentSchedule.map(p => ({
       ...p,
-      due_date: p.due_date ? new Date(p.due_date).toISOString().split('T')[0] : '', // Format date
+      due_date: p.due_date ? String(p.due_date).split('T')[0] : '', // Preserve date without timezone conversion
     })) : []
   })
   const [origin, setOrigin] = useState('')
@@ -252,6 +252,25 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
     if (!confirm(confirmMessage)) return
 
     try {
+      // Auto-save payment schedule and proposal data before accepting
+      // to ensure the RPC uses the correct installment dates
+      if (isEditing || editForm.paymentSchedule.length > 0) {
+        await updateProposal(proposal.id, {
+          title: editForm.title,
+          description: editForm.description,
+          discount: editForm.discount,
+          valid_until: editForm.valid_until || undefined,
+          payment_date: editForm.payment_date || undefined,
+          installments: editForm.installments,
+          is_recurring: editForm.is_recurring,
+          paymentSchedule: editForm.paymentSchedule?.map((item: any) => ({
+            ...item,
+            dueDate: item.due_date || undefined,
+            paidAt: item.paidAt || item.paid_at
+          }))
+        })
+      }
+
       const result = await acceptProposalManual(proposal.id)
 
       setProposal({

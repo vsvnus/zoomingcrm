@@ -48,6 +48,13 @@ export function PaymentScheduleEditor({
         }
     }, [installments, totalValue])
 
+    const formatLocalDate = (d: Date): string => {
+        const year = d.getFullYear()
+        const month = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+    }
+
     const generateDefaultSchedule = (count: number) => {
         if (count <= 0) return
 
@@ -66,7 +73,7 @@ export function PaymentScheduleEditor({
 
             newSchedule.push({
                 description: count === 1 ? 'À vista' : `Parcela ${i + 1}/${count}`,
-                due_date: date.toISOString().split('T')[0],
+                due_date: formatLocalDate(date),
                 amount: amount,
                 percentage: (amount / totalValue) * 100,
                 order: i + 1
@@ -92,16 +99,17 @@ export function PaymentScheduleEditor({
 
     const handleAddInstallment = () => {
         setUseCustomMode(true)
-        const nextDate = new Date()
+        let dueDateStr: string
         if (schedule.length > 0) {
             // Usar a mesma data da última parcela como sugestão (usuário ajusta)
-            const lastDate = new Date(schedule[schedule.length - 1].due_date)
-            nextDate.setTime(lastDate.getTime())
+            dueDateStr = schedule[schedule.length - 1].due_date
+        } else {
+            dueDateStr = formatLocalDate(new Date())
         }
 
         const newItem: PaymentScheduleItem = {
             description: `Parcela ${schedule.length + 1}`,
-            due_date: nextDate.toISOString().split('T')[0],
+            due_date: dueDateStr,
             amount: 0,
             percentage: 0,
             order: schedule.length + 1
