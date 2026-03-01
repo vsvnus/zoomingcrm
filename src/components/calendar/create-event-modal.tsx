@@ -71,8 +71,6 @@ export function CreateEventModal({
           location: formData.location.trim() || undefined,
         })
 
-        onSuccess()
-        onClose()
         setFormData({
           title: '',
           description: '',
@@ -84,6 +82,7 @@ export function CreateEventModal({
           type: 'meeting',
           location: '',
         })
+        onSuccess()
       } catch (err: any) {
         setError(err.message || 'Erro ao criar evento')
       }

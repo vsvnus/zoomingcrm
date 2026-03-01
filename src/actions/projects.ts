@@ -557,16 +557,14 @@ export async function addProjectMember(formData: AddProjectMemberData) {
       .single()
 
     if (freelancer) {
-      // Data de vencimento padrão: 30 dias após hoje, ou data do projeto?
-      // Por enquanto usamos hoje como placeholder para ser editado depois no financeiro
-      const defaultDate = new Date().toISOString().split('T')[0]
+      const paymentDate = formData.payment_date || new Date().toISOString().split('T')[0]
 
       await upsertFreelancerPayable({
         projectId: formData.project_id,
         freelancerId: formData.freelancer_id,
         freelancerName: freelancer.name,
         amount: formData.agreed_fee,
-        date: defaultDate,
+        date: paymentDate,
         organizationId
       })
     }

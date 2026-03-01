@@ -39,6 +39,7 @@ export function AddTeamMemberModal({
     freelancer_id: '',
     role: '',
     agreed_fee: '',
+    payment_date: '',
     notes: '',
   })
 
@@ -72,6 +73,7 @@ export function AddTeamMemberModal({
         freelancer_id: formData.freelancer_id,
         role: formData.role,
         agreed_fee: formData.agreed_fee ? parseFloat(formData.agreed_fee) : undefined,
+        payment_date: formData.payment_date || undefined,
         notes: formData.notes || undefined,
       })
 
@@ -79,6 +81,7 @@ export function AddTeamMemberModal({
         freelancer_id: '',
         role: '',
         agreed_fee: '',
+        payment_date: '',
         notes: '',
       })
 
@@ -231,6 +234,24 @@ export function AddTeamMemberModal({
             </p>
           )}
         </div>
+
+        {/* Payment Date */}
+        {formData.agreed_fee && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-text-secondary">
+              Data de Pagamento
+            </label>
+            <input
+              type="date"
+              value={formData.payment_date}
+              onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+              className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-text-primary transition-all focus:border-border focus:outline-none focus:ring-2 focus:ring-primary/10"
+            />
+            <p className="mt-1 text-xs text-text-tertiary">
+              Data de vencimento para o financeiro
+            </p>
+          </div>
+        )}
 
         {/* Notes */}
         <div>

@@ -250,6 +250,7 @@ export interface AddProjectMemberData {
   freelancer_id: string
   role: string
   agreed_fee?: number
+  payment_date?: string
   notes?: string
 }
 

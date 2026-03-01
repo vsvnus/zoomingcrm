@@ -58,8 +58,8 @@ export function PaymentScheduleEditor({
         const today = new Date()
 
         for (let i = 0; i < count; i++) {
+            // Todas as parcelas iniciam com a data de hoje para o usuário ajustar
             const date = new Date(today)
-            date.setMonth(date.getMonth() + i)
 
             let amount = baseAmount
             if (i === 0) amount += remainder // Add remainder to first installment
@@ -94,9 +94,9 @@ export function PaymentScheduleEditor({
         setUseCustomMode(true)
         const nextDate = new Date()
         if (schedule.length > 0) {
+            // Usar a mesma data da última parcela como sugestão (usuário ajusta)
             const lastDate = new Date(schedule[schedule.length - 1].due_date)
             nextDate.setTime(lastDate.getTime())
-            nextDate.setMonth(nextDate.getMonth() + 1)
         }
 
         const newItem: PaymentScheduleItem = {

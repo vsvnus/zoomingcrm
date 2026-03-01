@@ -27,10 +27,19 @@ export function CalendarContent({ initialEvents }: CalendarContentProps) {
     setSelectedEvent(event)
   }, [])
 
-  const handleCreateSuccess = useCallback(() => {
+  const handleCreateSuccess = useCallback(async () => {
     setIsCreateModalOpen(false)
-    window.location.reload()
-  }, [])
+    // Recarregar eventos do servidor ao invés de reload completo (evita duplicatas)
+    try {
+      const now = new Date()
+      const start = new Date(now.getFullYear(), now.getMonth(), 1)
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      const newEvents = await getCalendarEvents(start, end)
+      setEvents(newEvents)
+    } catch {
+      router.refresh()
+    }
+  }, [router])
 
   const handleCloseCreateModal = useCallback(() => {
     setIsCreateModalOpen(false)
