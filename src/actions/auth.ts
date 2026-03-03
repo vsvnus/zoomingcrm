@@ -148,6 +148,43 @@ export async function signUp(
   return { success: true }
 }
 
+export async function resetPassword(email: string) {
+  const validated = validateInput(
+    signInSchema.pick({ email: true }),
+    { email }
+  )
+  const supabase = await createClient()
+
+  const { error } = await supabase.auth.resetPasswordForEmail(validated.email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback?next=/reset-password`,
+  })
+
+  if (error) {
+    throw new Error('Erro ao enviar email de recuperação. Tente novamente.')
+  }
+
+  return { success: true }
+}
+
+export async function updatePassword(password: string) {
+  const validated = validateInput(
+    signInSchema.pick({ password: true }),
+    { password }
+  )
+  const supabase = await createClient()
+
+  const { error } = await supabase.auth.updateUser({
+    password: validated.password,
+  })
+
+  if (error) {
+    throw new Error('Erro ao atualizar senha. Tente novamente.')
+  }
+
+  revalidatePath('/', 'layout')
+  return { success: true }
+}
+
 export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
