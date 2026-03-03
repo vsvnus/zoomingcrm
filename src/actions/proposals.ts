@@ -767,14 +767,14 @@ export async function acceptProposalPublic(token: string) {
 
   // Notificar Dono da Organização (Assumindo admin)
   const { data: orgUsers } = await supabase
-    .from('user_roles')
-    .select('user_id')
-    .eq('organization_id', proposal.organization_id)
-    .eq('role', 'admin')
+    .from('users')
+    .select('id')
+    .eq('organizationId', proposal.organization_id)
+    .eq('role', 'ADMIN')
     .limit(1)
 
   if (orgUsers && orgUsers.length > 0) {
-    const recipientId = orgUsers[0].user_id
+    const recipientId = orgUsers[0].id
     const clientName = (proposal.clients as any)?.name || 'Cliente'
 
     await createNotificationInternal(recipientId, {
