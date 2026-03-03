@@ -16,6 +16,6 @@ export const config = {
      * - p/ (public proposal pages)
      * - static asset extensions
      */
-    '/((?!_next/static|_next/image|favicon.ico|login|p/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|login|p/|auth/callback|reset-password|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
