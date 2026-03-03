@@ -164,7 +164,7 @@ export interface UpdateSceneData {
 // UI State Types
 // ============================================
 
-export type ScriptViewMode = 'script' | 'storyboard' | 'timeline'
+export type ScriptViewMode = 'script' | 'storyboard' | 'timeline' | 'roteiro'
 
 // ============================================
 // Constants

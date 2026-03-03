@@ -27,6 +27,8 @@ import {
   Scissors,
   MapPin,
   Wrench,
+  Table2,
+  Image as ImageIcon,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -81,6 +83,14 @@ function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
   return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
+function formatTimeHMS(seconds: number): string {
+  if (!seconds || seconds < 0) seconds = 0
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
 }
 
 // ============================================
@@ -443,6 +453,218 @@ function TimelineView({
 }
 
 // ============================================
+// ROTEIRO TABLE VIEW (Tabela de Roteiro)
+// ============================================
+
+function SortableRoteiroRow({
+  scene,
+  index,
+  scriptId,
+  onFieldChange,
+  onDelete,
+}: {
+  scene: Scene
+  index: number
+  scriptId: string
+  onFieldChange: (sceneId: string, field: keyof UpdateSceneData, value: any) => void
+  onDelete: (sceneId: string) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: scene.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`grid grid-cols-[72px_80px_120px_1fr_1fr_1fr_36px] border-b border-border transition-colors group/row ${
+        isDragging ? 'opacity-50 z-50 bg-bg-secondary shadow-lg' : 'hover:bg-bg-hover/30'
+      }`}
+    >
+      {/* Cena - Drag Handle + Number */}
+      <div className="flex items-center gap-1 px-2 py-3 border-r border-border">
+        <button
+          className="shrink-0 cursor-grab touch-none text-text-tertiary/40 hover:text-text-secondary transition-colors"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+        <span className="text-sm font-bold text-text-secondary">#{index + 1}</span>
+      </div>
+
+      {/* Time */}
+      <div className="flex flex-col items-center justify-center px-2 py-3 border-r border-border gap-0.5">
+        <span className="text-[11px] font-medium text-text-primary tabular-nums">
+          {formatTimeHMS(scene.start_time || 0)}
+        </span>
+        <div className="flex items-center gap-0.5">
+          <Timer className="h-2.5 w-2.5 text-text-tertiary" />
+          <input
+            type="number"
+            min="0"
+            max="3600"
+            value={scene.duration || 0}
+            onChange={(e) => onFieldChange(scene.id, 'duration', parseInt(e.target.value) || 0)}
+            className="w-7 bg-transparent text-[10px] text-text-tertiary text-center tabular-nums focus:outline-none focus:text-text-primary transition-colors"
+          />
+          <span className="text-[10px] text-text-tertiary">s</span>
+        </div>
+      </div>
+
+      {/* Image */}
+      <div className="p-2 border-r border-border">
+        <StoryboardUpload
+          sceneId={scene.id}
+          scriptId={scriptId}
+          currentUrl={scene.storyboard_url}
+          onUpload={(url) => onFieldChange(scene.id, 'storyboard_url', url)}
+          onRemove={() => onFieldChange(scene.id, 'storyboard_url', null)}
+          compact
+        />
+      </div>
+
+      {/* Descrição */}
+      <div className="border-r border-border">
+        <textarea
+          value={scene.description || ''}
+          onChange={(e) => onFieldChange(scene.id, 'description', e.target.value)}
+          placeholder="Descrição da cena..."
+          className="w-full h-full min-h-[100px] resize-none bg-transparent px-3 py-3 text-sm text-text-primary placeholder:text-text-tertiary/30 focus:outline-none focus:bg-accent-500/[0.02] transition-colors"
+        />
+      </div>
+
+      {/* Texto */}
+      <div className="border-r border-border">
+        <textarea
+          value={scene.dialogue || ''}
+          onChange={(e) => onFieldChange(scene.id, 'dialogue', e.target.value)}
+          placeholder="Texto / Diálogos..."
+          className="w-full h-full min-h-[100px] resize-none bg-transparent px-3 py-3 text-sm text-text-primary placeholder:text-text-tertiary/30 focus:outline-none focus:bg-accent-500/[0.02] transition-colors"
+        />
+      </div>
+
+      {/* Locução */}
+      <div className="border-r border-border">
+        <textarea
+          value={scene.voiceover || ''}
+          onChange={(e) => onFieldChange(scene.id, 'voiceover', e.target.value)}
+          placeholder="Locução / Narração..."
+          className="w-full h-full min-h-[100px] resize-none bg-transparent px-3 py-3 text-sm text-text-primary placeholder:text-text-tertiary/30 focus:outline-none focus:bg-accent-500/[0.02] transition-colors"
+        />
+      </div>
+
+      {/* Delete */}
+      <div className="flex items-start justify-center py-3">
+        <button
+          onClick={() => onDelete(scene.id)}
+          className="text-text-tertiary/30 hover:text-red-400 transition-colors p-1 rounded-md hover:bg-red-500/10 opacity-0 group-hover/row:opacity-100"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function RoteiroTableView({
+  scenes,
+  scriptId,
+  onFieldChange,
+  onDeleteScene,
+  onAddScene,
+  onDragEnd,
+  sensors,
+}: {
+  scenes: Scene[]
+  scriptId: string
+  onFieldChange: (sceneId: string, field: keyof UpdateSceneData, value: any) => void
+  onDeleteScene: (sceneId: string) => void
+  onAddScene: () => void
+  onDragEnd: (event: DragEndEvent) => void
+  sensors: any
+}) {
+  return (
+    <div className="p-4">
+      <div className="rounded-xl border border-border overflow-hidden bg-card">
+        {/* Header */}
+        <div className="grid grid-cols-[72px_80px_120px_1fr_1fr_1fr_36px] border-b-2 border-border bg-bg-secondary/80">
+          <div className="px-3 py-2.5 text-[11px] font-semibold text-accent-500 tracking-wider border-r border-border">
+            Cena
+          </div>
+          <div className="px-3 py-2.5 text-[11px] font-semibold text-accent-500 tracking-wider border-r border-border text-center tabular-nums">
+            00:00:00
+          </div>
+          <div className="px-3 py-2.5 text-[11px] font-semibold text-accent-500 tracking-wider border-r border-border text-center">
+            Imagem
+          </div>
+          <div className="px-3 py-2.5 text-[11px] font-semibold text-accent-500 tracking-wider border-r border-border">
+            Descrição
+          </div>
+          <div className="px-3 py-2.5 text-[11px] font-semibold text-accent-500 tracking-wider border-r border-border">
+            Texto
+          </div>
+          <div className="px-3 py-2.5 text-[11px] font-semibold text-accent-500 tracking-wider border-r border-border">
+            Locução
+          </div>
+          <div className="px-3 py-2.5" />
+        </div>
+
+        {/* Body */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
+          <SortableContext
+            items={scenes.map((s) => s.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {scenes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-text-tertiary">
+                <Film className="h-10 w-10 opacity-20 mb-3" />
+                <p className="text-sm">Nenhuma cena ainda</p>
+                <p className="text-xs mt-1">Clique abaixo para adicionar a primeira cena</p>
+              </div>
+            ) : (
+              scenes.map((scene, index) => (
+                <SortableRoteiroRow
+                  key={scene.id}
+                  scene={scene}
+                  index={index}
+                  scriptId={scriptId}
+                  onFieldChange={onFieldChange}
+                  onDelete={onDeleteScene}
+                />
+              ))
+            )}
+          </SortableContext>
+        </DndContext>
+
+        {/* Add Scene */}
+        <button
+          onClick={onAddScene}
+          className="flex w-full items-center justify-center gap-2 py-4 text-sm text-text-tertiary hover:text-text-secondary hover:bg-bg-hover/50 transition-colors border-t border-dashed border-border"
+        >
+          <Plus className="h-4 w-4" />
+          Adicionar Cena
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ============================================
 // MAIN SCRIPT EDITOR COMPONENT
 // ============================================
 
@@ -459,7 +681,7 @@ export function ScriptEditor({ script, projectId, projectTitle, studioMode }: Sc
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(
     script.scenes?.[0]?.id || null
   )
-  const [viewMode, setViewMode] = useState<ScriptViewMode>('script')
+  const [viewMode, setViewMode] = useState<ScriptViewMode>('roteiro')
   const [isSaving, setIsSaving] = useState(false)
   const [scriptTitle, setScriptTitle] = useState(script.title)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -509,6 +731,19 @@ export function ScriptEditor({ script, projectId, projectTitle, studioMode }: Sc
       autoSaveScene(selectedSceneId, { [field]: value })
     },
     [selectedSceneId, autoSaveScene]
+  )
+
+  // Generic scene field change (for roteiro table view - any scene)
+  const handleAnySceneFieldChange = useCallback(
+    (sceneId: string, field: keyof UpdateSceneData, value: any) => {
+      setScenes((prev) =>
+        prev.map((s) =>
+          s.id === sceneId ? { ...s, [field]: value } : s
+        )
+      )
+      autoSaveScene(sceneId, { [field]: value })
+    },
+    [autoSaveScene]
   )
 
   // Drag end handler
@@ -604,7 +839,8 @@ export function ScriptEditor({ script, projectId, projectTitle, studioMode }: Sc
   }, [])
 
   const viewModes: { id: ScriptViewMode; label: string; icon: any }[] = [
-    { id: 'script', label: 'Roteiro', icon: FileText },
+    { id: 'roteiro', label: 'Tabela', icon: Table2 },
+    { id: 'script', label: 'Editor', icon: FileText },
     { id: 'storyboard', label: 'Storyboard', icon: LayoutGrid },
     { id: 'timeline', label: 'Timeline', icon: Clock },
   ]
@@ -746,6 +982,26 @@ export function ScriptEditor({ script, projectId, projectTitle, studioMode }: Sc
         {/* Main Editor Area */}
         <div className="flex-1 overflow-y-auto">
           <AnimatePresence mode="wait">
+            {viewMode === 'roteiro' && (
+              <motion.div
+                key="roteiro"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="h-full overflow-y-auto"
+              >
+                <RoteiroTableView
+                  scenes={scenes}
+                  scriptId={script.id}
+                  onFieldChange={handleAnySceneFieldChange}
+                  onDeleteScene={handleDeleteScene}
+                  onAddScene={handleAddScene}
+                  onDragEnd={handleDragEnd}
+                  sensors={sensors}
+                />
+              </motion.div>
+            )}
+
             {viewMode === 'storyboard' && (
               <motion.div
                 key="storyboard"
