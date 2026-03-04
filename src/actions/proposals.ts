@@ -300,77 +300,146 @@ export async function updateProposal(
     paymentSchedule?: any[]
   }
 ) {
-  const validated = validateInput(updateProposalSchema, formData)
-  const supabase = await createClient()
-  const organizationId = await getUserOrganization()
+  // 1. Validar dados
+  let validated
+  try {
+    validated = validateInput(updateProposalSchema, formData)
+  } catch (err: any) {
+    console.error('[updateProposal] Validation failed:', err.message, 'formData keys:', Object.keys(formData))
+    throw new Error('Erro de validação: ' + err.message)
+  }
 
-  // Separar paymentSchedule do objeto antes de enviar ao Supabase
+  let supabase
+  let organizationId: string
+  try {
+    supabase = await createClient()
+    organizationId = await getUserOrganization()
+  } catch (err: any) {
+    console.error('[updateProposal] Auth/org error:', err.message)
+    throw new Error('Erro de autenticação: ' + err.message)
+  }
+
+  // 2. Separar paymentSchedule do objeto antes de enviar ao Supabase
   // pois paymentSchedule NÃO é coluna da tabela proposals
   const { paymentSchedule, ...proposalUpdates } = validated
 
+  // Limpar campos undefined para evitar envio ao Supabase
+  const cleanUpdates: Record<string, any> = {}
+  for (const [key, value] of Object.entries(proposalUpdates)) {
+    if (value !== undefined) {
+      cleanUpdates[key] = value
+    }
+  }
+
+  // 3. Atualizar proposta
+  console.log('[updateProposal] Updating proposal:', proposalId, 'org:', organizationId, 'fields:', Object.keys(cleanUpdates))
   const { data, error } = await supabase
     .from('proposals')
-    .update(proposalUpdates)
+    .update(cleanUpdates)
     .eq('id', proposalId)
     .eq('organization_id', organizationId)
     .select('*, clients(id, name, company)')
     .single()
 
   if (error) {
-    console.error('Error updating proposal:', error)
+    console.error('[updateProposal] Supabase update error:', JSON.stringify(error), 'proposalId:', proposalId, 'org:', organizationId, 'updates:', JSON.stringify(cleanUpdates))
     throw new Error('Erro ao atualizar proposta: ' + error.message)
   }
 
-  // Recalcular valores (caso desconto tenha mudado)
-  await recalculateProposalValues(proposalId)
+  // 4. Recalcular valores (caso desconto tenha mudado)
+  try {
+    await recalculateProposalValues(proposalId)
+  } catch (err: any) {
+    console.error('[updateProposal] Recalculate error:', err.message)
+    // Non-critical: proposal was already saved
+  }
 
-  // Save Payment Schedule if provided
+  // 5. Save Payment Schedule if provided
   if (paymentSchedule) {
-    // 1. Delete existing schedule
-    await supabase
-      .from('payment_schedule')
-      .delete()
-      .eq('proposal_id', proposalId)
-
-    // 2. Insert new schedule
-    if (paymentSchedule.length > 0) {
-      const scheduleToInsert = paymentSchedule.map((item: any) => ({
-        id: crypto.randomUUID(),
-        proposal_id: proposalId,
-        description: item.description,
-        due_date: item.dueDate || item.due_date || null,
-        amount: item.amount,
-        percentage: item.percentage,
-        order: item.order,
-        paid: item.paid || false,
-        paid_at: item.paidAt || item.paid_at || null
-      }))
-
-      const { error: scheduleError } = await supabase
+    try {
+      // Detectar nomes de colunas (Prisma usa camelCase, SQL usa snake_case)
+      // Tentar deletar com ambas convenções
+      const { error: delError1 } = await supabase
         .from('payment_schedule')
-        .insert(scheduleToInsert)
+        .delete()
+        .eq('proposal_id', proposalId)
 
-      if (scheduleError) {
-        console.error('Error saving payment schedule:', scheduleError)
-        // Non-critical: don't throw, just log
+      if (delError1) {
+        // Tentar com camelCase (Prisma convention)
+        await supabase
+          .from('payment_schedule')
+          .delete()
+          .eq('proposalId', proposalId)
       }
+
+      // Insert new schedule
+      if (paymentSchedule.length > 0) {
+        // Tentar insert com snake_case primeiro
+        const scheduleSnake = paymentSchedule.map((item: any) => ({
+          id: crypto.randomUUID(),
+          proposal_id: proposalId,
+          description: item.description,
+          due_date: item.dueDate || item.due_date || null,
+          amount: item.amount,
+          percentage: item.percentage,
+          order: item.order,
+          paid: item.paid || false,
+          paid_at: item.paidAt || item.paid_at || null
+        }))
+
+        const { error: insertError } = await supabase
+          .from('payment_schedule')
+          .insert(scheduleSnake)
+
+        if (insertError) {
+          console.error('[updateProposal] payment_schedule insert (snake_case) failed:', insertError.message)
+          // Tentar com camelCase (Prisma convention)
+          const scheduleCamel = paymentSchedule.map((item: any) => ({
+            id: crypto.randomUUID(),
+            proposalId: proposalId,
+            description: item.description,
+            dueDate: item.dueDate || item.due_date || new Date().toISOString(),
+            amount: item.amount,
+            percentage: item.percentage,
+            order: item.order,
+            paid: item.paid || false,
+            paidAt: item.paidAt || item.paid_at || null,
+            updatedAt: new Date().toISOString()
+          }))
+
+          const { error: insertError2 } = await supabase
+            .from('payment_schedule')
+            .insert(scheduleCamel)
+
+          if (insertError2) {
+            console.error('[updateProposal] payment_schedule insert (camelCase) also failed:', insertError2.message)
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('[updateProposal] Payment schedule error:', err.message)
+      // Non-critical: proposal was already saved
     }
   }
 
-  // SINCRO: Se o titulo mudou, atualizar o nome do projeto vinculado (se existir)
+  // 6. SINCRO: Se o titulo mudou, atualizar o nome do projeto vinculado (se existir)
   if (proposalUpdates.title) {
-    // Tenta encontrar projeto vinculado pelo proposal_id
-    const { data: linkedProject } = await supabase
-      .from('projects')
-      .select('id')
-      .eq('proposal_id', proposalId)
-      .single()
-
-    if (linkedProject) {
-      await supabase
+    try {
+      const { data: linkedProject } = await supabase
         .from('projects')
-        .update({ title: formData.title })
-        .eq('id', linkedProject.id)
+        .select('id')
+        .eq('proposal_id', proposalId)
+        .single()
+
+      if (linkedProject) {
+        await supabase
+          .from('projects')
+          .update({ title: formData.title })
+          .eq('id', linkedProject.id)
+      }
+    } catch (err: any) {
+      console.error('[updateProposal] Project sync error:', err.message)
+      // Non-critical
     }
   }
 
