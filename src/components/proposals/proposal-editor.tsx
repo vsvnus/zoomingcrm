@@ -244,8 +244,9 @@ export function ProposalEditor({ proposal: initialProposal }: ProposalEditorProp
       })
       setIsEditing(false)
       alert('Proposta atualizada!')
-    } catch (error) {
-      alert('Erro ao atualizar proposta')
+    } catch (error: any) {
+      console.error('Erro ao salvar proposta:', error)
+      alert('Erro ao atualizar proposta: ' + (error?.message || 'Erro desconhecido'))
     }
   }
 
