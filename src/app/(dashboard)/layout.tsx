@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/sidebar'
-import { Header } from '@/components/layout/header'
-import { AIChatWidget } from '@/components/ai/ai-chat-widget'
+import { DashboardClient } from '@/components/layout/dashboard-client'
 
 /**
  * Dashboard layout -- async Server Component with auth guard.
@@ -32,15 +31,7 @@ export default async function DashboardLayout({
 
       <Sidebar />
 
-      <div className="pl-[280px]">
-        <Header />
-
-        <main className="relative min-h-[calc(100vh-4rem)] p-8">
-          {children}
-        </main>
-      </div>
-
-      <AIChatWidget />
+      <DashboardClient>{children}</DashboardClient>
     </div>
   )
 }

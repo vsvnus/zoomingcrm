@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, User, LogOut, UserCircle, Check } from 'lucide-react'
+import { Bell, User, LogOut, UserCircle, Check, Sparkles } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { signOut, getCurrentUserData } from '@/actions/auth'
 import { getNotifications, getUnreadCount, markAllAsRead, markAsRead, type Notification } from '@/actions/notifications'
@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useAIChat } from '@/components/ai/ai-chat-context'
 
 interface UserData {
   name: string
@@ -23,6 +24,7 @@ interface UserData {
 export function Header() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [userData, setUserData] = useState<UserData | null>(null)
+  const { isOpen: aiIsOpen, setIsOpen: setAiOpen } = useAIChat()
 
   // Notification State
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -108,8 +110,31 @@ export function Header() {
       className="sticky top-0 z-30 h-16 border-b border-[rgb(var(--border))] bg-background/80 backdrop-blur-xl"
     >
       <div className="flex h-full items-center justify-between px-8">
-        {/* Global Search */}
-        <GlobalSearch />
+        {/* Global Search + AI Button */}
+        <div className="flex items-center gap-2 flex-1 max-w-lg">
+          <GlobalSearch />
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setAiOpen(!aiIsOpen)}
+            className={cn(
+              "relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-all outline-none",
+              aiIsOpen
+                ? "bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.4)]"
+                : "bg-secondary text-text-tertiary hover:bg-bg-hover hover:text-text-primary"
+            )}
+            title="Zooming AI"
+          >
+            <Sparkles className="h-4 w-4" />
+            {!aiIsOpen && (
+              <motion.div
+                animate={{ opacity: [0.4, 1, 0.4], scale: [0.8, 1.1, 0.8] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute inset-0 rounded-xl bg-indigo-500/20 -z-10"
+              />
+            )}
+          </motion.button>
+        </div>
 
         {/* Actions */}
         <div className="flex items-center gap-3">

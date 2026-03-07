@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useChat } from 'ai/react';
 import { Message } from 'ai';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bot, X, Send, Sparkles, ChevronDown, Eraser, Loader2, Play } from 'lucide-react';
+import { Bot, X, Send, Sparkles, Eraser, Loader2, Play } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
@@ -12,9 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAIChat } from './ai-chat-context';
 
 export function AIChatWidget() {
-    const [isOpen, setIsOpen] = useState(false);
+    const { isOpen, setIsOpen } = useAIChat();
     const [inputValue, setInputValue] = useState('');
     const { messages, append, isLoading, stop, setMessages } = useChat({
         api: '/api/chat',
@@ -63,7 +64,7 @@ export function AIChatWidget() {
                         animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
                         exit={{ opacity: 0, y: 20, scale: 0.95, filter: "blur(10px)" }}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        className="mb-4 pointer-events-auto origin-bottom-right"
+                        className="pointer-events-auto origin-bottom-right"
                     >
                         <Card className="w-[400px] h-[650px] shadow-2xl border-white/10 bg-zinc-950/90 backdrop-blur-xl supports-[backdrop-filter]:bg-zinc-950/80 flex flex-col overflow-hidden rounded-[2rem] ring-1 ring-white/5 relative">
                             {/* Decorative Glows */}
@@ -278,74 +279,6 @@ export function AIChatWidget() {
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="relative group"
-            >
-                {/* Subtle Breathing Glow Layer */}
-                <motion.div
-                    animate={{ opacity: [0.2, 0.5, 0.2], scale: [0.8, 1.1, 0.8] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    className={cn(
-                        "absolute inset-0 rounded-full blur-xl -z-10 transition-colors duration-500",
-                        isOpen ? "bg-red-500/20" : "bg-indigo-500/30"
-                    )}
-                />
-
-                <Button
-                    onClick={() => setIsOpen(!isOpen)}
-                    size="lg"
-                    className={cn(
-                        "h-14 w-14 rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.1)] transition-all duration-500 pointer-events-auto border relative overflow-hidden",
-                        isOpen
-                            ? "bg-zinc-950 text-white border-white/10"
-                            : "bg-white/90 backdrop-blur-md text-zinc-800 border-white/20 hover:bg-white"
-                    )}
-                >
-                    <AnimatePresence mode="wait">
-                        {isOpen ? (
-                            <motion.div
-                                key="close"
-                                initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
-                                animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                                exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
-                                transition={{ duration: 0.2 }}
-                                className="relative z-10"
-                            >
-                                <ChevronDown className="h-6 w-6 text-zinc-400" />
-                            </motion.div>
-                        ) : (
-                            <motion.div
-                                key="open"
-                                initial={{ scale: 0.5, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.5, opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="relative z-10 flex items-center justify-center"
-                            >
-                                {/* Animated Star Icon */}
-                                <motion.div
-                                    animate={{ rotate: [0, 45, 0] }}
-                                    transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                                >
-                                    <Sparkles strokeWidth={2} className="h-6 w-6 text-indigo-600 fill-indigo-100" />
-                                </motion.div>
-
-                                {/* Orbital Dot */}
-                                <motion.div
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                                    className="absolute w-full h-full"
-                                >
-                                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full blur-[0.5px] absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 opacity-80" />
-                                </motion.div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </Button>
-            </motion.div>
         </div>
     );
 }
