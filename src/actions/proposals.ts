@@ -127,8 +127,7 @@ export async function getProposal(proposalId: string) {
       organizations (id, name, logo, email, phone, website, max_discount),
       items:proposal_items (*),
       optionals:proposal_optionals (*),
-      videos:proposal_videos (*),
-      paymentSchedule:payment_schedule (*)
+      videos:proposal_videos (*)
     `)
     .eq('id', proposalId)
     .eq('organization_id', organizationId)
@@ -139,7 +138,22 @@ export async function getProposal(proposalId: string) {
     return null
   }
 
-  return data
+  // Buscar payment_schedule separadamente para evitar erro de relação FK
+  let paymentSchedule: any[] = []
+  try {
+    const { data: scheduleData, error: scheduleError } = await supabase
+      .from('payment_schedule')
+      .select('id, description, due_date, amount, percentage, order, paid, paid_at, proposal_id')
+      .eq('proposal_id', proposalId)
+      .order('order', { ascending: true })
+    if (!scheduleError) {
+      paymentSchedule = scheduleData || []
+    }
+  } catch {
+    // tabela pode não existir ou ter problema de schema — não crítico
+  }
+
+  return { ...data, paymentSchedule }
 }
 
 /**
@@ -357,25 +371,13 @@ export async function updateProposal(
   // 5. Save Payment Schedule if provided
   if (paymentSchedule) {
     try {
-      // Detectar nomes de colunas (Prisma usa camelCase, SQL usa snake_case)
-      // Tentar deletar com ambas convenções
-      const { error: delError1 } = await supabase
+      await supabase
         .from('payment_schedule')
         .delete()
         .eq('proposal_id', proposalId)
 
-      if (delError1) {
-        // Tentar com camelCase (Prisma convention)
-        await supabase
-          .from('payment_schedule')
-          .delete()
-          .eq('proposalId', proposalId)
-      }
-
-      // Insert new schedule
       if (paymentSchedule.length > 0) {
-        // Tentar insert com snake_case primeiro
-        const scheduleSnake = paymentSchedule.map((item: any) => ({
+        const scheduleRows = paymentSchedule.map((item: any) => ({
           id: crypto.randomUUID(),
           proposal_id: proposalId,
           description: item.description,
@@ -384,36 +386,15 @@ export async function updateProposal(
           percentage: item.percentage,
           order: item.order,
           paid: item.paid || false,
-          paid_at: item.paidAt || item.paid_at || null
+          paid_at: item.paidAt || item.paid_at || null,
         }))
 
         const { error: insertError } = await supabase
           .from('payment_schedule')
-          .insert(scheduleSnake)
+          .insert(scheduleRows)
 
         if (insertError) {
-          console.error('[updateProposal] payment_schedule insert (snake_case) failed:', insertError.message)
-          // Tentar com camelCase (Prisma convention)
-          const scheduleCamel = paymentSchedule.map((item: any) => ({
-            id: crypto.randomUUID(),
-            proposalId: proposalId,
-            description: item.description,
-            dueDate: item.dueDate || item.due_date || new Date().toISOString(),
-            amount: item.amount,
-            percentage: item.percentage,
-            order: item.order,
-            paid: item.paid || false,
-            paidAt: item.paidAt || item.paid_at || null,
-            updatedAt: new Date().toISOString()
-          }))
-
-          const { error: insertError2 } = await supabase
-            .from('payment_schedule')
-            .insert(scheduleCamel)
-
-          if (insertError2) {
-            console.error('[updateProposal] payment_schedule insert (camelCase) also failed:', insertError2.message)
-          }
+          console.error('[updateProposal] payment_schedule insert failed:', insertError.message)
         }
       }
     } catch (err: any) {

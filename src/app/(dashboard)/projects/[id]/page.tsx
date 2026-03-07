@@ -20,7 +20,7 @@ export default async function ProjectDetailPage({
   const [financialSummary, expenses, equipmentBookings, script] = await Promise.all([
     getProjectFinancialSummary(id),
     getProjectExpenses(id),
-    getProjectEquipmentBookings(id),
+    getProjectEquipmentBookings(id).catch(() => []),
     getProjectScript(id),
   ])
 
