@@ -143,22 +143,11 @@ export async function getProposal(proposalId: string) {
   try {
     const { data: scheduleData, error: scheduleError } = await supabase
       .from('payment_schedule')
-      .select('id, description, dueDate, amount, percentage, order, paid, paidAt, proposalId')
-      .eq('proposalId', proposalId)
+      .select('id, description, due_date, amount, percentage, order, paid, paid_at, proposal_id')
+      .eq('proposal_id', proposalId)
       .order('order', { ascending: true })
     if (!scheduleError && scheduleData) {
-      // Normalizar colunas camelCase do DB para snake_case esperado pelo componente
-      paymentSchedule = scheduleData.map((row: any) => ({
-        id: row.id,
-        description: row.description,
-        due_date: row.dueDate ? String(row.dueDate).split('T')[0] : null,
-        amount: row.amount,
-        percentage: row.percentage,
-        order: row.order,
-        paid: row.paid,
-        paid_at: row.paidAt,
-        proposal_id: row.proposalId,
-      }))
+      paymentSchedule = scheduleData
     }
   } catch {
     // tabela pode não existir ou ter problema de schema — não crítico
@@ -385,20 +374,19 @@ export async function updateProposal(
       await supabase
         .from('payment_schedule')
         .delete()
-        .eq('proposalId', proposalId)
+        .eq('proposal_id', proposalId)
 
       if (paymentSchedule.length > 0) {
         const scheduleRows = paymentSchedule.map((item: any) => ({
           id: crypto.randomUUID(),
-          proposalId: proposalId,
+          proposal_id: proposalId,
           description: item.description,
-          dueDate: item.dueDate || item.due_date || null,
+          due_date: item.dueDate || item.due_date || null,
           amount: item.amount,
           percentage: item.percentage,
           order: item.order,
           paid: item.paid || false,
-          paidAt: item.paidAt || item.paid_at || null,
-          updatedAt: new Date().toISOString(),
+          paid_at: item.paidAt || item.paid_at || null,
         }))
 
         const { error: insertError } = await supabase
