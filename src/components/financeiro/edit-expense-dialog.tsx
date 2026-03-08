@@ -27,6 +27,9 @@ import type { Transaction } from '@/types/financial'
 import { format } from 'date-fns'
 import { getProjects } from '@/actions/projects'
 
+// Valor sentinela para categoria personalizada
+const CUSTOM_CATEGORY_VALUE = '__CUSTOM__'
+
 // Categorias de despesas (Same as AddExpenseDialog)
 const EXPENSE_CATEGORIES = {
     variable: [
@@ -36,6 +39,8 @@ const EXPENSE_CATEGORIES = {
         { value: 'LOGISTICS', label: 'Logística', type: 'Variável' },
         { value: 'POST_PRODUCTION', label: 'Pós-produção', type: 'Variável' },
         { value: 'PRODUCTION', label: 'Produção', type: 'Variável' },
+        { value: 'GENERAL_EXPENSE', label: 'Despesas', type: 'Variável' },
+        { value: CUSTOM_CATEGORY_VALUE, label: 'Outros (Personalizado)', type: 'Variável' },
     ],
     fixed: [
         { value: 'OFFICE_RENT', label: 'Aluguel Escritório', type: 'Fixo Mensal' },
@@ -61,6 +66,7 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
     const [isLoading, setIsLoading] = useState(false)
     const [expenseType, setExpenseType] = useState<'fixed' | 'variable'>('variable')
     const [isRecurring, setIsRecurring] = useState(false)
+    const [customCategory, setCustomCategory] = useState('')
     const [projects, setProjects] = useState<any[]>([])
     const [formData, setFormData] = useState({
         description: '',
@@ -79,14 +85,22 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
     useEffect(() => {
         if (transaction) {
             // Determine if fixed or variable based on category logic or existing data
-            // Simple heuristic: if category is in fixed list, set fixed.
             const isFixed = EXPENSE_CATEGORIES.fixed.some(c => c.value === transaction.category)
+            const isKnownVariable = EXPENSE_CATEGORIES.variable.some(c => c.value === transaction.category)
+            const isCustom = transaction.category && !isFixed && !isKnownVariable
+
             setExpenseType(isFixed ? 'fixed' : 'variable')
             setIsRecurring(transaction.is_recurring || false)
 
+            if (isCustom) {
+                setCustomCategory(transaction.category || '')
+            } else {
+                setCustomCategory('')
+            }
+
             setFormData({
                 description: transaction.description || '',
-                category: transaction.category || '',
+                category: isCustom ? CUSTOM_CATEGORY_VALUE : (transaction.category || ''),
                 amount: transaction.amount?.toString() || '',
                 dueDate: transaction.due_date ? format(new Date(transaction.due_date), 'yyyy-MM-dd') : '',
                 notes: transaction.notes || '',
@@ -113,14 +127,24 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
                 return
             }
 
+            if (formData.category === CUSTOM_CATEGORY_VALUE && !customCategory.trim()) {
+                alert('Digite o nome da categoria personalizada')
+                setIsLoading(false)
+                return
+            }
+
             if (expenseType === 'variable' && !formData.projectId) {
                 alert('Selecione um projeto para despesa variável')
                 setIsLoading(false)
                 return
             }
 
+            const finalCategory = formData.category === CUSTOM_CATEGORY_VALUE
+                ? customCategory.trim()
+                : formData.category
+
             await updateTransaction(transaction.id, {
-                category: formData.category as any,
+                category: finalCategory as any,
                 description: formData.description,
                 amount: amount,
                 due_date: formData.dueDate || undefined,
@@ -205,7 +229,10 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
                             <Label htmlFor="edit-category">Categoria</Label>
                             <Select
                                 value={formData.category}
-                                onValueChange={(value) => setFormData({ ...formData, category: value })}
+                                onValueChange={(value) => {
+                                    setFormData({ ...formData, category: value })
+                                    if (value !== CUSTOM_CATEGORY_VALUE) setCustomCategory('')
+                                }}
                                 required
                             >
                                 <SelectTrigger id="edit-category">
@@ -219,6 +246,15 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
                                     ))}
                                 </SelectContent>
                             </Select>
+                            {formData.category === CUSTOM_CATEGORY_VALUE && (
+                                <Input
+                                    placeholder="Nome da categoria (ex: Alimentação, Combustível...)"
+                                    value={customCategory}
+                                    onChange={(e) => setCustomCategory(e.target.value)}
+                                    autoFocus
+                                    required
+                                />
+                            )}
                         </div>
 
                         {/* Descrição */}

@@ -27,6 +27,9 @@ import { addTransaction, addInstallmentTransactions } from '@/actions/financeiro
 import { useRouter } from 'next/navigation'
 import { getProjects } from '@/actions/projects'
 
+// Valor sentinela para categoria personalizada
+const CUSTOM_CATEGORY_VALUE = '__CUSTOM__'
+
 // SPRINT 1: Categorias de despesas - Fixo e Variável
 const EXPENSE_CATEGORIES = {
   variable: [
@@ -36,6 +39,8 @@ const EXPENSE_CATEGORIES = {
     { value: 'LOGISTICS', label: 'Logística', type: 'Variável' },
     { value: 'POST_PRODUCTION', label: 'Pós-produção', type: 'Variável' },
     { value: 'PRODUCTION', label: 'Produção', type: 'Variável' },
+    { value: 'GENERAL_EXPENSE', label: 'Despesas', type: 'Variável' },
+    { value: CUSTOM_CATEGORY_VALUE, label: 'Outros (Personalizado)', type: 'Variável' },
   ],
   fixed: [
     { value: 'OFFICE_RENT', label: 'Aluguel Escritório', type: 'Fixo Mensal' },
@@ -63,6 +68,7 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
   const [isInstallment, setIsInstallment] = useState(false)
   const [installmentsCount, setInstallmentsCount] = useState(2)
   const [installments, setInstallments] = useState<{ date: string; amount: number }[]>([])
+  const [customCategory, setCustomCategory] = useState('')
 
   const [projects, setProjects] = useState<any[]>([])
   const [formData, setFormData] = useState({
@@ -154,6 +160,16 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
         return
       }
 
+      if (formData.category === CUSTOM_CATEGORY_VALUE && !customCategory.trim()) {
+        alert('Digite o nome da categoria personalizada')
+        setIsLoading(false)
+        return
+      }
+
+      const finalCategory = formData.category === CUSTOM_CATEGORY_VALUE
+        ? customCategory.trim()
+        : formData.category
+
       if (isInstallment) {
         // Validation for installments totals
         const installmentTotal = installments.reduce((sum, item) => sum + item.amount, 0)
@@ -167,7 +183,7 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
         const transactions = installments.map((inst, index) => ({
           organization_id: organizationId,
           type: 'EXPENSE' as const, // Cast needed for TS
-          category: formData.category as any,
+          category: finalCategory as any,
           description: `${formData.description} (${index + 1}/${installments.length})`,
           amount: inst.amount,
           status: 'PENDING' as const, // Cast needed
@@ -182,7 +198,7 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
         await addTransaction({
           organization_id: organizationId,
           type: 'EXPENSE',
-          category: formData.category as any,
+          category: finalCategory as any,
           description: formData.description,
           amount: amount,
           status: 'PENDING',
@@ -206,6 +222,7 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
       setIsRecurring(false)
       setIsInstallment(false)
       setInstallmentsCount(2)
+      setCustomCategory('')
       setOpen(false)
       router.refresh()
     } catch (error: any) {
@@ -285,7 +302,10 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
               <Label htmlFor="category">Categoria</Label>
               <Select
                 value={formData.category}
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, category: value })
+                  if (value !== CUSTOM_CATEGORY_VALUE) setCustomCategory('')
+                }}
                 required
               >
                 <SelectTrigger>
@@ -299,6 +319,15 @@ export function AddExpenseDialog({ organizationId, children }: AddExpenseDialogP
                   ))}
                 </SelectContent>
               </Select>
+              {formData.category === CUSTOM_CATEGORY_VALUE && (
+                <Input
+                  placeholder="Nome da categoria (ex: Alimentação, Combustível...)"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  autoFocus
+                  required
+                />
+              )}
             </div>
 
             {/* Descrição */}
