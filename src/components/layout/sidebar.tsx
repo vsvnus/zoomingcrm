@@ -13,6 +13,7 @@ import {
   Calendar,
   Building2,
   Clapperboard,
+  Calculator,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -80,6 +81,7 @@ export function Sidebar() {
       title: 'Produção',
       items: [
         { icon: Clapperboard, label: 'Zooming Studio', href: '/studio', badge: 'Novo!', badgeColor: 'bg-accent-500 text-white' },
+        { icon: Calculator, label: 'Calculadora de Orçamento', href: '/budget-calculator', badge: 'Pro', badgeColor: 'bg-accent-500/20 text-accent-500' },
       ]
     },
     {
