@@ -35,6 +35,7 @@ export function CreateScriptForm({ projectId, projectTitle }: CreateScriptFormPr
   const [videoFormat, setVideoFormat] = useState('')
   const [targetPlatform, setTargetPlatform] = useState('')
   const [tone, setTone] = useState('')
+  const [customTone, setCustomTone] = useState('')
   const [targetAudience, setTargetAudience] = useState('')
 
   const handleCreate = async () => {
@@ -52,7 +53,7 @@ export function CreateScriptForm({ projectId, projectTitle }: CreateScriptFormPr
         video_format: videoFormat || undefined,
         target_platform: targetPlatform || undefined,
         target_audience: targetAudience || undefined,
-        tone: tone || undefined,
+        tone: (tone === '__CUSTOM__' ? customTone.trim() : tone) || undefined,
       })
 
       router.refresh()
@@ -166,14 +167,28 @@ export function CreateScriptForm({ projectId, projectTitle }: CreateScriptFormPr
               </label>
               <select
                 value={tone}
-                onChange={(e) => setTone(e.target.value)}
+                onChange={(e) => {
+                  setTone(e.target.value)
+                  if (e.target.value !== '__CUSTOM__') setCustomTone('')
+                }}
                 className="w-full rounded-lg border border-border bg-bg-primary px-4 py-2.5 text-sm text-text-primary focus:border-accent-500/50 focus:outline-none"
               >
                 <option value="">Selecionar...</option>
                 {SCRIPT_TONES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
+                <option value="__CUSTOM__">Outro (Personalizado)</option>
               </select>
+              {tone === '__CUSTOM__' && (
+                <input
+                  type="text"
+                  value={customTone}
+                  onChange={(e) => setCustomTone(e.target.value)}
+                  placeholder="Digite o tom personalizado..."
+                  autoFocus
+                  className="w-full rounded-lg border border-border bg-bg-primary px-4 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary/50 focus:border-accent-500/50 focus:outline-none focus:ring-1 focus:ring-accent-500/25"
+                />
+              )}
             </div>
 
             {/* Target Audience */}
