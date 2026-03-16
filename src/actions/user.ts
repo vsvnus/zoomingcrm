@@ -25,7 +25,7 @@ export async function getUserProfile() {
     const { data: dbUser, error } = await supabase
         .from('users')
         .select('*')
-        .eq('email', user.email)
+        .eq('id', user.id)
         .single()
 
     if (error) {
@@ -52,7 +52,7 @@ export async function updateUserProfile(data: UserProfileFormData) {
             name: validatedData.name,
             avatar: validatedData.avatar,
         })
-        .eq('email', validatedData.email) // Assuming email is immutable key for linking auth to user table for now
+        .eq('id', user.id)
 
     if (error) {
         throw new Error('Error updating profile: ' + error.message)

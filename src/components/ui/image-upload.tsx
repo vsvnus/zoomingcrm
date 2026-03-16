@@ -34,6 +34,16 @@ export function ImageUpload({
         const file = e.target.files?.[0]
         if (!file) return
 
+        const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            alert('Formato não suportado. Use JPG, PNG, WebP ou GIF.')
+            return
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Imagem muito grande. Máximo 5MB.')
+            return
+        }
+
         setIsUploading(true)
         try {
             const fileExt = file.name.split('.').pop()
@@ -99,7 +109,7 @@ export function ImageUpload({
                 ref={fileInputRef}
                 onChange={handleUpload}
                 className="hidden"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 disabled={isUploading}
             />
         </div>

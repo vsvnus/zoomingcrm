@@ -186,7 +186,7 @@ export async function getProposalByToken(token: string) {
     .select(`
       *,
       clients (id, name, company, email, phone),
-      organizations (id, name, logo, email, phone, website, cnpj, address, bank_name, agency, account_number, pix_key, primary_color, default_terms, show_bank_info),
+      organizations (id, name, logo, email, phone, website, address, bank_name, agency, account_number, pix_key, primary_color, default_terms, show_bank_info),
       items:proposal_items (
         id, description, quantity, unit_price, total, order
       ),
@@ -756,6 +756,18 @@ export async function toggleProposalOptional(
 ) {
   const supabase = await createClient()
 
+  // Verify proposal exists and is in a modifiable status
+  const { data: proposal } = await supabase
+    .from('proposals')
+    .select('id, status')
+    .eq('id', proposalId)
+    .in('status', ['DRAFT', 'SENT', 'VIEWED'])
+    .single()
+
+  if (!proposal) {
+    throw new Error('Proposta não encontrada ou não pode ser alterada')
+  }
+
   const { error } = await supabase
     .from('proposal_optionals')
     .update({ is_selected: isSelected })
@@ -766,10 +778,9 @@ export async function toggleProposalOptional(
     throw new Error('Erro ao atualizar opcional: ' + error.message)
   }
 
-  // Recalcular valores
   await recalculateProposalValues(proposalId)
-
-  revalidatePath(`/p/*`)
+  revalidatePath(`/proposals`)
+  revalidatePath(`/p/${proposal.id}`)
 }
 
 /**

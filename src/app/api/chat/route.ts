@@ -14,10 +14,8 @@ const openai = new OpenAI({
 
 // --- Input validation schema ---
 const messageSchema = z.object({
-    role: z.enum(['user', 'assistant', 'system', 'function']),
+    role: z.enum(['user', 'assistant']),
     content: z.string().max(10000, 'Mensagem excede o limite de 10.000 caracteres').optional().nullable(),
-    name: z.string().optional(),
-    function_call: z.any().optional(),
 });
 
 const chatRequestSchema = z.object({
