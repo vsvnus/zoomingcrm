@@ -48,10 +48,6 @@ export function StudioNewScript({ projects, preselectedProjectId }: StudioNewScr
   }
 
   const handleCreate = async () => {
-    if (!projectId) {
-      alert('Selecione um projeto')
-      return
-    }
     if (!title.trim()) {
       alert('Informe um título para o roteiro')
       return
@@ -60,7 +56,7 @@ export function StudioNewScript({ projects, preselectedProjectId }: StudioNewScr
     setIsCreating(true)
     try {
       const script = await createScript({
-        project_id: projectId,
+        project_id: projectId || undefined,
         title: title.trim(),
         description: description || undefined,
         video_format: videoFormat || undefined,
@@ -114,7 +110,7 @@ export function StudioNewScript({ projects, preselectedProjectId }: StudioNewScr
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-text-primary flex items-center gap-2">
               <FolderOpen className="h-4 w-4 text-text-tertiary" />
-              Projeto *
+              Projeto (Opcional)
             </label>
             <select
               value={projectId}
@@ -238,7 +234,7 @@ export function StudioNewScript({ projects, preselectedProjectId }: StudioNewScr
           </Link>
           <button
             onClick={handleCreate}
-            disabled={isCreating || !title.trim() || !projectId}
+            disabled={isCreating || !title.trim()}
             className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all"
           >
             {isCreating ? (

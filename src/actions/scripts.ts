@@ -43,7 +43,7 @@ export async function getAllScripts(): Promise<ScriptWithProject[]> {
 
   const { data: scripts, error } = await supabase
     .from('scripts')
-    .select('*, projects!inner(title, status)')
+    .select('*, projects(title, status)')
     .eq('organization_id', organizationId)
     .order('updated_at', { ascending: false })
 
@@ -185,7 +185,7 @@ export async function createScript(formData: CreateScriptData): Promise<Script> 
   const { data, error } = await supabase
     .from('scripts')
     .insert({
-      project_id: formData.project_id,
+      project_id: formData.project_id || null,
       organization_id: organizationId,
       title: formData.title,
       description: formData.description || null,
@@ -214,7 +214,9 @@ export async function createScript(formData: CreateScriptData): Promise<Script> 
     start_time: 0,
   })
 
-  revalidatePath(`/projects/${formData.project_id}`)
+  if (formData.project_id) {
+    revalidatePath(`/projects/${formData.project_id}`)
+  }
   revalidatePath('/studio')
   return data
 }

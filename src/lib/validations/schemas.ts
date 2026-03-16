@@ -180,12 +180,7 @@ export const maintenanceLogSchema = z.object({
 // ============================================
 export const transactionSchema = z.object({
   type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
-  category: z.enum([
-    'CLIENT_PAYMENT', 'ADDITIVE', 'OTHER_INCOME',
-    'CREW_TALENT', 'EQUIPMENT_RENTAL', 'LOCATION', 'LOGISTICS',
-    'POST_PRODUCTION', 'PRODUCTION', 'OFFICE_RENT', 'UTILITIES',
-    'SOFTWARE', 'SALARY', 'INSURANCE', 'MARKETING', 'MAINTENANCE', 'OTHER_EXPENSE'
-  ]),
+  category: z.string().min(1, 'Categoria é obrigatória').max(100),
   description: z.string().min(1, 'Descrição é obrigatória').max(500),
   amount: positiveDecimalSchema,
   estimated_amount: positiveDecimalSchema.optional(),
@@ -254,7 +249,7 @@ export const signUpSchema = z.object({
 // SCRIPTS
 // ============================================
 export const createScriptSchema = z.object({
-  project_id: cuidSchema,
+  project_id: cuidSchema.optional().nullable(),
   title: z.string().min(1, 'Título é obrigatório').max(200),
   description: z.string().max(2000).optional().nullable(),
   video_format: z.string().max(50).optional().nullable(),

@@ -18,7 +18,7 @@ export type SceneTransition = 'Cut' | 'Fade In' | 'Fade Out' | 'Dissolve' | 'Wip
 
 export type VideoFormatScript = '16:9' | '9:16' | '1:1' | '4:5'
 export type TargetPlatform = 'YouTube' | 'Instagram' | 'TikTok' | 'TV' | 'Cinema' | 'LinkedIn' | 'Website'
-export type ScriptTone = 'Formal' | 'Casual' | 'Emocional' | 'Humorístico' | 'Inspirador' | 'Educativo' | 'Urgente'
+export type ScriptTone = 'Formal' | 'Casual' | 'Emocional' | 'Humorístico' | 'Inspirador' | 'Educativo' | 'Urgente' | 'Promocional' | 'Drama' | 'Suspense'
 
 // ============================================
 // Database Table Interfaces
@@ -26,7 +26,7 @@ export type ScriptTone = 'Formal' | 'Casual' | 'Emocional' | 'Humorístico' | 'I
 
 export interface Script {
   id: string
-  project_id: string
+  project_id?: string | null
   organization_id: string
   title: string
   description?: string
@@ -103,7 +103,7 @@ export interface ScriptWithScenes extends Script {
 // ============================================
 
 export interface CreateScriptData {
-  project_id: string
+  project_id?: string | null
   title: string
   description?: string
   video_format?: string
@@ -225,4 +225,7 @@ export const SCRIPT_TONES: { value: ScriptTone; label: string }[] = [
   { value: 'Inspirador', label: 'Inspirador' },
   { value: 'Educativo', label: 'Educativo' },
   { value: 'Urgente', label: 'Urgente' },
+  { value: 'Promocional', label: 'Promocional' },
+  { value: 'Drama', label: 'Drama' },
+  { value: 'Suspense', label: 'Suspense' },
 ]
