@@ -4,7 +4,9 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+  const rawNext = searchParams.get('next') ?? '/dashboard'
+  const ALLOWED_PATH_RE = /^\/(?!\/)[\w\-\/\.\?\&\=\%\#]*$/
+  const next = ALLOWED_PATH_RE.test(rawNext) ? rawNext : '/dashboard'
 
   if (code) {
     const supabase = await createClient()

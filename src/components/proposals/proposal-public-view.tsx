@@ -123,21 +123,25 @@ export function ProposalPublicView({ proposal: initialProposal }: ProposalPublic
     window.print()
   }
 
-  // Extract video ID from URLs
-  const getVideoEmbedUrl = (url: string) => {
-    if (url.includes('vimeo.com')) {
-      const videoId = url.split('/').pop()
-      return `https://player.vimeo.com/video/${videoId}`
-    }
-    if (url.includes('youtube.com/watch')) {
-      const videoId = url.split('v=')[1]?.split('&')[0]
-      return `https://www.youtube.com/embed/${videoId}`
-    }
-    if (url.includes('youtu.be')) {
-      const videoId = url.split('/').pop()
-      return `https://www.youtube.com/embed/${videoId}`
-    }
-    return url
+  // Extract video ID from URLs (validated)
+  const getVideoEmbedUrl = (url: string): string | null => {
+    try {
+      const parsed = new URL(url)
+      const hostname = parsed.hostname
+      if (hostname === 'vimeo.com' || hostname === 'www.vimeo.com') {
+        const videoId = parsed.pathname.split('/').pop()
+        if (videoId && /^\d+$/.test(videoId)) return `https://player.vimeo.com/video/${videoId}`
+      }
+      if (hostname === 'www.youtube.com' || hostname === 'youtube.com') {
+        const videoId = parsed.searchParams.get('v')
+        if (videoId && /^[\w-]{11}$/.test(videoId)) return `https://www.youtube.com/embed/${videoId}`
+      }
+      if (hostname === 'youtu.be') {
+        const videoId = parsed.pathname.slice(1)
+        if (videoId && /^[\w-]{11}$/.test(videoId)) return `https://www.youtube.com/embed/${videoId}`
+      }
+      return null
+    } catch { return null }
   }
 
   if (isAccepted) {
@@ -430,13 +434,22 @@ export function ProposalPublicView({ proposal: initialProposal }: ProposalPublic
                           className="group rounded-xl border border-neutral-200 overflow-hidden bg-white hover:shadow-md transition-all"
                         >
                           <div className="aspect-video bg-neutral-100 relative overflow-hidden">
-                            <iframe
-                              src={getVideoEmbedUrl(video.video_url)}
-                              title={video.title}
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                              className="h-full w-full"
-                            />
+                            {(() => {
+                              const embedUrl = getVideoEmbedUrl(video.video_url)
+                              return embedUrl ? (
+                                <iframe
+                                  src={embedUrl}
+                                  title={video.title}
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                  className="h-full w-full"
+                                />
+                              ) : (
+                                <div className="flex items-center justify-center h-full text-sm text-neutral-400">
+                                  Video indisponivel
+                                </div>
+                              )
+                            })()}
                           </div>
                           <div className="p-4 border-t border-neutral-100">
                             <p className="text-sm font-bold text-neutral-900">{video.title}</p>

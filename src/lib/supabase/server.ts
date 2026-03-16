@@ -73,12 +73,12 @@ export const getUserOrganization = cache(async (): Promise<string> => {
   // Usuário não existe na tabela users (conta legada) - criar automaticamente
   // Guard: disable auto-creation in production unless explicitly allowed
   if (!process.env.ALLOW_LEGACY_MIGRATION) {
-    console.error('Legacy user detected but ALLOW_LEGACY_MIGRATION is not set. User:', user.id)
+    console.warn('[legacy-migration] Legacy user detected but ALLOW_LEGACY_MIGRATION is not set. User:', user.id)
     throw new Error('Conta não encontrada. Entre em contato com o suporte.')
   }
 
   // Usar service role para bypass de RLS
-  console.log('Usuário legado detectado, criando organização e registro...')
+  console.warn('[legacy-migration] Usuário legado detectado, criando organização e registro...')
 
   const serviceClient = await createServiceClient()
 
@@ -111,14 +111,12 @@ export const getUserOrganization = cache(async (): Promise<string> => {
       .single()
 
     if (orgError) {
-      console.error('Erro ao criar organização para usuário legado:', JSON.stringify(orgError, null, 2))
+      console.warn('[legacy-migration] Erro ao criar organização para usuário legado:', JSON.stringify(orgError, null, 2))
       throw new Error('Erro ao criar organização')
     }
 
     organizationId = org.id
-    console.log('Organização criada:', organizationId)
   } else {
-    console.log('Organização já existe:', existingOrg.id)
     organizationId = existingOrg.id
   }
 
@@ -130,7 +128,6 @@ export const getUserOrganization = cache(async (): Promise<string> => {
     .single()
 
   if (existingUserById) {
-    console.log('Usuário já existe no banco (por ID)')
     return existingUserById.organization_id
   }
 
@@ -143,7 +140,6 @@ export const getUserOrganization = cache(async (): Promise<string> => {
 
   if (existingUserByEmail) {
     // Migrar: atualizar ID do usuário para o novo auth ID
-    console.log('Migrando usuário legado para novo auth ID:', user.id)
     const { error: updateError } = await serviceClient
       .from('users')
       .update({ id: user.id })
@@ -169,12 +165,9 @@ export const getUserOrganization = cache(async (): Promise<string> => {
   ])
 
   if (userError) {
-    console.error('Erro ao criar usuário legado:', JSON.stringify(userError, null, 2))
+    console.warn('[legacy-migration] Erro ao criar usuário legado:', JSON.stringify(userError, null, 2))
     throw new Error('Erro ao criar usuário')
   }
-  console.log('Usuário criado com sucesso')
-
-  console.log('Organização resolvida:', organizationId)
   return organizationId
 })
 

@@ -37,7 +37,11 @@ export async function addClient(formData: {
     .from('clients')
     .insert([
       {
-        ...validated,
+        name: validated.name,
+        email: validated.email,
+        phone: validated.phone,
+        company: validated.company,
+        notes: validated.notes,
         organization_id: organizationId,
       },
     ])

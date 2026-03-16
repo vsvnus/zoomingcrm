@@ -72,6 +72,11 @@ const categoryLabels: Record<string, string> = {
   OTHER: 'Outro',
 }
 
+function escapeHtml(str: string | undefined | null): string {
+  if (!str) return ''
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;')
+}
+
 export function EquipmentDetailModal({
   equipment,
   open,
@@ -127,7 +132,7 @@ export function EquipmentDetailModal({
       <!DOCTYPE html>
       <html>
         <head>
-          <title>QR Code - ${equipment.name}</title>
+          <title>QR Code - ${escapeHtml(equipment.name)}</title>
           <style>
             body {
               display: flex;
@@ -150,18 +155,18 @@ export function EquipmentDetailModal({
         </head>
         <body>
           <div class="qr-container">
-            <h2>${equipment.name}</h2>
+            <h2>${escapeHtml(equipment.name)}</h2>
             <div class="details">
-              ${equipment.brand && equipment.model ? `<p>${equipment.brand} ${equipment.model}</p>` : ''}
-              ${equipment.serial_number ? `<p>S/N: ${equipment.serial_number}</p>` : ''}
+              ${equipment.brand && equipment.model ? `<p>${escapeHtml(equipment.brand)} ${escapeHtml(equipment.model)}</p>` : ''}
+              ${equipment.serial_number ? `<p>S/N: ${escapeHtml(equipment.serial_number)}</p>` : ''}
             </div>
             <div id="qrcode"></div>
-            <div class="hash">${equipment.qr_code_hash}</div>
+            <div class="hash">${escapeHtml(equipment.qr_code_hash)}</div>
           </div>
           <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
           <script>
             new QRCode(document.getElementById("qrcode"), {
-              text: "${equipment.qr_code_hash}",
+              text: ${JSON.stringify(equipment.qr_code_hash || '')},
               width: 256,
               height: 256
             });

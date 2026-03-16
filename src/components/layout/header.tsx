@@ -34,17 +34,10 @@ export function Header() {
   const supabase = createClient()
 
   useEffect(() => {
-    // Verifica cache primeiro
-    const cached = sessionStorage.getItem('userData')
-    if (cached) {
-      setUserData(JSON.parse(cached))
-    }
-
     const loadUserData = async () => {
       const data = await getCurrentUserData()
       if (data) {
         setUserData(data)
-        sessionStorage.setItem('userData', JSON.stringify(data))
       }
     }
     loadUserData()

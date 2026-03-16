@@ -303,7 +303,7 @@ async function listProposals({ status, clientName }: any, supabase: SupabaseClie
 async function getClientInfo({ name }: any, supabase: SupabaseClient, organizationId: string) {
     const { data, error } = await supabase
         .from('clients')
-        .select('*')
+        .select('id, name, email, phone, company, notes, created_at')
         .eq('organization_id', organizationId)
         .ilike('name', `%${name}%`)
         .limit(3);
