@@ -35,7 +35,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { AddExpenseDialog } from './add-expense-dialog'
 import { EditExpenseDialog } from './edit-expense-dialog'
-import { markAsPaid, cancelTransaction, updateTransaction } from '@/actions/financeiro'
+import { markAsPaid, cancelTransaction, deleteTransaction, updateTransaction } from '@/actions/financeiro'
 
 interface PayablesTabProps {
   data: any[]
@@ -177,6 +177,25 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
     }
   }
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Apagar permanentemente esta despesa? Esta ação não pode ser desfeita.')) return
+
+    setIsLoading(id)
+    try {
+      await deleteTransaction(id)
+      const updatedPayables = payables.filter((p) => p.id !== id)
+      setPayables(updatedPayables)
+      onUpdate?.((prev: any) => ({
+        ...prev,
+        payables: updatedPayables,
+      }))
+    } catch (error: any) {
+      alert(error.message || 'Erro ao apagar despesa')
+    } finally {
+      setIsLoading(null)
+    }
+  }
+
   if (payables.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -227,6 +246,7 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
               // Se a categoria for variável, NÃO é fixo, mesmo se não tiver projeto (isso é um erro)
               const isFixed = !VARIABLE_CATEGORIES.includes(payable.category)
               const isPending = ['PENDING', 'SCHEDULED', 'OVERDUE'].includes(payable.status)
+              const isCancelled = payable.status === 'CANCELLED'
               const isPaid = payable.status === 'PAID'
               const hasValidProject = payable.project_id && payable.projects?.title
 
@@ -328,14 +348,30 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
                             )}
                           </>
                         )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleCancel(payable.id)}
-                          className="text-red-600"
-                        >
-                          <XCircle className="mr-2 h-4 w-4" />
-                          Cancelar
-                        </DropdownMenuItem>
+                        {!isCancelled && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleCancel(payable.id)}
+                              className="text-red-600"
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Cancelar
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {isCancelled && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(payable.id)}
+                              className="text-red-600"
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Apagar Permanentemente
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

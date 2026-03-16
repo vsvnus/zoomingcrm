@@ -33,7 +33,7 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { AddIncomeDialog } from './add-income-dialog'
-import { markAsPaid, cancelTransaction, updateTransaction } from '@/actions/financeiro'
+import { markAsPaid, cancelTransaction, deleteTransaction, updateTransaction } from '@/actions/financeiro'
 
 interface ReceivablesTabProps {
   data: any[]
@@ -156,6 +156,25 @@ export function ReceivablesTab({ data, onUpdate, organizationId }: ReceivablesTa
     }
   }
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Apagar permanentemente esta receita? Esta ação não pode ser desfeita.')) return
+
+    setIsLoading(id)
+    try {
+      await deleteTransaction(id)
+      const updatedReceivables = receivables.filter((r) => r.id !== id)
+      setReceivables(updatedReceivables)
+      onUpdate?.((prev: any) => ({
+        ...prev,
+        receivables: updatedReceivables,
+      }))
+    } catch (error: any) {
+      alert(error.message || 'Erro ao apagar receita')
+    } finally {
+      setIsLoading(null)
+    }
+  }
+
   if (receivables.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -201,6 +220,7 @@ export function ReceivablesTab({ data, onUpdate, organizationId }: ReceivablesTa
             {receivables.map((receivable) => {
               const isOverdue = receivable.is_overdue || false
               const isPending = receivable.status === 'PENDING' || receivable.status === 'SCHEDULED'
+              const isCancelled = receivable.status === 'CANCELLED'
               const hasValidProject = receivable.project_id && receivable.projects?.title
               const hasValidProposal = receivable.proposal_id && receivable.proposals?.title
 
@@ -308,13 +328,24 @@ export function ReceivablesTab({ data, onUpdate, organizationId }: ReceivablesTa
                           </>
                         )}
 
-                        <DropdownMenuItem
-                          onClick={() => handleCancel(receivable.id)}
-                          className="text-red-600 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-900/20"
-                        >
-                          <XCircle className="mr-2 h-4 w-4" />
-                          {isPending ? 'Cancelar' : 'Deletar Transação'}
-                        </DropdownMenuItem>
+                        {!isCancelled && (
+                          <DropdownMenuItem
+                            onClick={() => handleCancel(receivable.id)}
+                            className="text-red-600 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-900/20"
+                          >
+                            <XCircle className="mr-2 h-4 w-4" />
+                            Cancelar
+                          </DropdownMenuItem>
+                        )}
+                        {isCancelled && (
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(receivable.id)}
+                            className="text-red-600 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-900/20"
+                          >
+                            <XCircle className="mr-2 h-4 w-4" />
+                            Apagar Permanentemente
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

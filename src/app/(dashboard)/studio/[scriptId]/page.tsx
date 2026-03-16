@@ -15,13 +15,13 @@ export default async function StudioEditorPage({
     notFound()
   }
 
-  const project = await getProject(script.project_id)
+  const project = script.project_id ? await getProject(script.project_id) : null
 
   return (
     <ScriptEditor
       script={script}
-      projectId={script.project_id}
-      projectTitle={project?.title || 'Projeto'}
+      projectId={script.project_id || ''}
+      projectTitle={project?.title || 'Sem Projeto'}
       studioMode
     />
   )

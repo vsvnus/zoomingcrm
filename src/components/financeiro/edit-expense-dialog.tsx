@@ -133,12 +133,6 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
                 return
             }
 
-            if (expenseType === 'variable' && !formData.projectId) {
-                alert('Selecione um projeto para despesa variável')
-                setIsLoading(false)
-                return
-            }
-
             const finalCategory = formData.category === CUSTOM_CATEGORY_VALUE
                 ? customCategory.trim()
                 : formData.category
@@ -204,11 +198,10 @@ export function EditExpenseDialog({ organizationId, open, onOpenChange, transact
                         {/* Projeto (Apenas para Variável) */}
                         {expenseType === 'variable' && (
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-project">Projeto</Label>
+                                <Label htmlFor="edit-project">Projeto (Opcional)</Label>
                                 <Select
                                     value={formData.projectId}
                                     onValueChange={(value) => setFormData({ ...formData, projectId: value })}
-                                    required
                                 >
                                     <SelectTrigger id="edit-project">
                                         <SelectValue placeholder="Selecione o projeto" />
