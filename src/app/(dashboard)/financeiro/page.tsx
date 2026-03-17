@@ -13,15 +13,19 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
   const supabase = await createClient()
 
   // Buscar todas as transações (exceto canceladas) para cálculo preciso
-  const { data: transactions } = await supabase
+  const { data: transactions, error: transactionsError } = await supabase
     .from('financial_transactions')
     .select('*')
     .eq('organization_id', organizationId)
     .neq('status', 'CANCELLED')
 
+  if (transactionsError) {
+    console.error('Error fetching transactions:', transactionsError)
+  }
+
   // Buscar contas a pagar/receber para as tabelas
   // Filtrar contas que vencem DENTRO do período selecionado [from, to]
-  // Supabase JS usa sintaxe específica para OR/AND aninhados
+  // Usar .gte + .lte para o range, com .or para incluir due_date IS NULL
   const fromISO = from.toISOString()
   const toISO = to.toISOString()
   const [payablesData, receivablesData] = await Promise.all([
@@ -33,7 +37,8 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
         freelancers:freelancer_id(name)
       `)
       .eq('organization_id', organizationId)
-      .or(`and(due_date.gte.${fromISO},due_date.lte.${toISO}),due_date.is.null`)
+      .or(`due_date.gte.${fromISO},due_date.is.null`)
+      .or(`due_date.lte.${toISO},due_date.is.null`)
       .order('due_date', { ascending: true }),
     supabase
       .from('accounts_receivable')
@@ -44,9 +49,17 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
         proposals:proposal_id(title)
       `)
       .eq('organization_id', organizationId)
-      .or(`and(due_date.gte.${fromISO},due_date.lte.${toISO}),due_date.is.null`)
+      .or(`due_date.gte.${fromISO},due_date.is.null`)
+      .or(`due_date.lte.${toISO},due_date.is.null`)
       .order('due_date', { ascending: true }),
   ])
+
+  if (payablesData.error) {
+    console.error('Error fetching payables:', payablesData.error)
+  }
+  if (receivablesData.error) {
+    console.error('Error fetching receivables:', receivablesData.error)
+  }
 
   // Calcular métricas usando SEMPRE due_date como referência de período
   // due_date = data de vencimento selecionada na conta (a pagar ou a receber)
@@ -166,7 +179,27 @@ interface FinanceiroDataProps {
 
 async function FinanceiroData({ defaultTab, from, to }: FinanceiroDataProps) {
   const organizationId = await getUserOrganization()
-  const data = await getFinancialData(organizationId, from, to)
+
+  const emptyData = {
+    overview: {
+      total_income: 0,
+      total_expenses: 0,
+      net_profit: 0,
+      pending_receivable: 0,
+      pending_payable: 0,
+      profit_margin_percent: 0,
+      current_balance: 0,
+    },
+    payables: [],
+    receivables: [],
+  }
+
+  let data: Awaited<ReturnType<typeof getFinancialData>> = emptyData
+  try {
+    data = await getFinancialData(organizationId, from, to)
+  } catch (error) {
+    console.error('Error loading financial data:', error)
+  }
 
   return (
     <div className="space-y-6">
