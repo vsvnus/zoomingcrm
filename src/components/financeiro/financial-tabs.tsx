@@ -20,6 +20,10 @@ interface FinancialTabsProps {
       pending_payable: number
       profit_margin_percent: number
       current_balance: number
+      monthly_revenue: number
+      monthly_cost: number
+      opening_balance: number
+      real_profit: number
     }
     payables: any[]
     receivables: any[]

@@ -70,6 +70,9 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
   let pendingReceivable = 0
   let pendingPayable = 0
   let currentBalance = 0
+  let monthlyRevenue = 0
+  let monthlyCost = 0
+  let openingBalance = 0
 
   // Helper: parse date string as LOCAL date to avoid UTC timezone shift
   // "2025-01-15" deve ser 15/Jan local, não 14/Jan (que ocorre com new Date("2025-01-15") em UTC-3)
@@ -86,6 +89,25 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
       const dateStr = t.due_date || t.created_at
       const tDate = dateStr ? parseLocalDate(dateStr) : new Date()
 
+      // Saldo de abertura: todas as transações PAID com due_date anterior ao início do período
+      if (t.status === 'PAID' && tDate < from) {
+        if (t.type === 'INITIAL_CAPITAL' || t.type === 'INCOME') {
+          openingBalance += amount
+        } else if (t.type === 'EXPENSE') {
+          openingBalance -= amount
+        }
+      }
+
+      // Faturamento Mensal / Custo Mensal: TODAS as transações (exceto CANCELLED, já filtrado na query)
+      // com due_date dentro de [from, to], independente de status (assume tudo será pago/recebido)
+      if (tDate >= from && tDate <= to) {
+        if (t.type === 'INCOME') {
+          monthlyRevenue += amount
+        } else if (t.type === 'EXPENSE') {
+          monthlyCost += amount
+        }
+      }
+
       // Projeção: considerar tudo com due_date <= último dia selecionado
       if (tDate <= to) {
         if (t.type === 'INITIAL_CAPITAL') {
@@ -96,7 +118,7 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
         } else if (t.type === 'INCOME') {
           if (t.status === 'PAID') {
             currentBalance += amount
-            // Faturamento Total: apenas transações PAID com due_date dentro de [from, to]
+            // Entradas: apenas transações PAID com due_date dentro de [from, to]
             if (tDate >= from) {
               totalIncome += amount
             }
@@ -106,7 +128,7 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
         } else if (t.type === 'EXPENSE') {
           if (t.status === 'PAID') {
             currentBalance -= amount
-            // Custos Totais: apenas transações PAID com due_date dentro de [from, to]
+            // Saídas: apenas transações PAID com due_date dentro de [from, to]
             if (tDate >= from) {
               totalExpenses += amount
             }
@@ -154,6 +176,8 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
   // Current Balance is: Initial Capital (total paid) + Total Income (all time paid up to 'to') - Total Expenses (all time paid up to 'to')
   // My loop above calculated `currentBalance` correctly as "Accumulated Balance up to End Date".
 
+  const realProfit = monthlyRevenue - monthlyCost - openingBalance
+
   return {
     overview: {
       total_income: totalIncome,
@@ -163,6 +187,10 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
       pending_payable: pendingPayable,
       profit_margin_percent: profitMarginPercent,
       current_balance: currentBalance,
+      monthly_revenue: monthlyRevenue,
+      monthly_cost: monthlyCost,
+      opening_balance: openingBalance,
+      real_profit: realProfit,
     },
     payables: payablesData.data || [],
     receivables: receivablesData.data || [],
@@ -189,6 +217,10 @@ async function FinanceiroData({ defaultTab, from, to }: FinanceiroDataProps) {
       pending_payable: 0,
       profit_margin_percent: 0,
       current_balance: 0,
+      monthly_revenue: 0,
+      monthly_cost: 0,
+      opening_balance: 0,
+      real_profit: 0,
     },
     payables: [],
     receivables: [],

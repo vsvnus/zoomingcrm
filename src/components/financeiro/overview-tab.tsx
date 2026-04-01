@@ -18,6 +18,10 @@ interface OverviewTabProps {
     pending_payable: number
     profit_margin_percent: number
     current_balance: number
+    monthly_revenue: number
+    monthly_cost: number
+    opening_balance: number
+    real_profit: number
   }
 }
 
@@ -68,11 +72,11 @@ export function OverviewTab({ data }: OverviewTabProps) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Faturamento Total */}
+        {/* Entradas */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Faturamento Total
+              Entradas
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
@@ -81,15 +85,15 @@ export function OverviewTab({ data }: OverviewTabProps) {
               {formatCurrency(data.total_income)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Receitas consolidadas
+              Entradas confirmadas no período
             </p>
           </CardContent>
         </Card>
 
-        {/* Custos Totais */}
+        {/* Saídas */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custos Totais</CardTitle>
+            <CardTitle className="text-sm font-medium">Saídas</CardTitle>
             <TrendingDown className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
@@ -97,15 +101,15 @@ export function OverviewTab({ data }: OverviewTabProps) {
               {formatCurrency(data.total_expenses)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Despesas consolidadas
+              Saídas confirmadas no período
             </p>
           </CardContent>
         </Card>
 
-        {/* Lucro Líquido */}
+        {/* Diferença */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle>
+            <CardTitle className="text-sm font-medium">Diferença</CardTitle>
             <DollarSign
               className={`h-4 w-4 ${isProfit ? 'text-green-600' : 'text-red-600'}`}
             />
@@ -117,7 +121,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
               {formatCurrency(data.net_profit)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Margem: {safeNumber(data.profit_margin_percent).toFixed(1)}%
+              Diferença entre entradas e saídas
             </p>
           </CardContent>
         </Card>
@@ -170,6 +174,61 @@ export function OverviewTab({ data }: OverviewTabProps) {
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Final do período (Saldo + A Receber - A Pagar)
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Segunda linha: Faturamento Mensal, Custo Mensal, Lucro Real */}
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* Faturamento Mensal */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Faturamento Mensal</CardTitle>
+            <TrendingUp className="h-4 w-4 text-emerald-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600">
+              {formatCurrency(data.monthly_revenue)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Previsão total de receitas no período
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Custo Mensal */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Custo Mensal</CardTitle>
+            <TrendingDown className="h-4 w-4 text-rose-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-rose-600">
+              {formatCurrency(data.monthly_cost)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Previsão total de despesas no período
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Lucro Real */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Lucro Real</CardTitle>
+            <DollarSign
+              className={`h-4 w-4 ${data.real_profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}
+            />
+          </CardHeader>
+          <CardContent>
+            <div
+              className={`text-2xl font-bold ${data.real_profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}
+            >
+              {formatCurrency(data.real_profit)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Faturamento - Custo - Saldo inicial ({formatCurrency(data.opening_balance)})
             </p>
           </CardContent>
         </Card>
