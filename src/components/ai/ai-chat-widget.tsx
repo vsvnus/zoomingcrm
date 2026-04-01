@@ -81,7 +81,7 @@ export function AIChatWidget() {
                                         <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-zinc-950 rounded-full animate-pulse" />
                                     </div>
                                     <div>
-                                        <CardTitle className="text-sm font-semibold text-white tracking-wide">Zooming AI</CardTitle>
+                                        <CardTitle className="text-sm font-semibold text-white tracking-wide">Clapper AI</CardTitle>
                                         <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Conectado ao CRM</p>
                                     </div>
                                 </div>

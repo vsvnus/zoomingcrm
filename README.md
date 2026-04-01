@@ -1,4 +1,4 @@
-# Zooming CRM
+# Clapper
 
 Sistema de gestao para produtoras audiovisuais.
 
@@ -32,7 +32,7 @@ Acesse: http://localhost:3000
 ## Estrutura do Projeto
 
 ```
-zooming-crm/
+clapper/
 ├── src/
 │   ├── app/           # Rotas Next.js (App Router)
 │   ├── components/    # Componentes React
@@ -82,4 +82,4 @@ npm run lint         # Rodar linter
 
 ## Licenca
 
-Proprietary - Zooming CRM 2025
+Proprietary - Clapper 2025

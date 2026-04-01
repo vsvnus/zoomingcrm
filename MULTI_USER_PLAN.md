@@ -1,7 +1,7 @@
 # Plano de Implementação Multi-Usuários e Colaboração
 
 ## Visão Geral
-O Zooming CRM já possui uma arquitetura baseada em **Organizações** (`Organization`), onde cada usuário (`User`) pertence a uma organização. Isso é o fundamento para multi-tenancy. No entanto, para tornar a experiência "boa para multiusuários", precisamos implementar permissões granulares, fluxos de convite e auditoria.
+O Clapper já possui uma arquitetura baseada em **Organizações** (`Organization`), onde cada usuário (`User`) pertence a uma organização. Isso é o fundamento para multi-tenancy. No entanto, para tornar a experiência "boa para multiusuários", precisamos implementar permissões granulares, fluxos de convite e auditoria.
 
 ## Estrutura Atual (Análise)
 - **Model Organization**: Centraliza todos os dados (Projetos, Propostas, Clientes, etc. têm `organizationId`).

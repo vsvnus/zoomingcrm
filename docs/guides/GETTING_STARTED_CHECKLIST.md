@@ -1,4 +1,4 @@
-# Checklist de Início - Zooming CRM
+# Checklist de Início - Clapper
 ## Lista de Verificação para Começar o Desenvolvimento
 
 Use este checklist para garantir que tudo está configurado corretamente antes de começar a codificar.
@@ -51,7 +51,7 @@ Use este checklist para garantir que tudo está configurado corretamente antes d
 
 - [ ] Acessei [supabase.com](https://supabase.com) e criei conta
 - [ ] Criei novo projeto:
-  - Nome: **Zooming CRM**
+  - Nome: **Clapper**
   - Database Password: _________________ (guardar em gerenciador de senhas)
   - Region: **South America (São Paulo)**
   - Pricing Plan: **Free** (para desenvolvimento)
@@ -75,7 +75,7 @@ Use este checklist para garantir que tudo está configurado corretamente antes d
 ```bash
 cd "/Users/viniciuspimentel/ProjetosDev/CRM ZOOMER"
 
-pnpm create next-app@latest zooming-crm \
+pnpm create next-app@latest clapper \
   --typescript \
   --tailwind \
   --app \
@@ -93,7 +93,7 @@ pnpm create next-app@latest zooming-crm \
 - [ ] Customize import alias? **No**
 
 ```bash
-cd zooming-crm
+cd clapper
 ```
 
 ### 3.2 Copiar Arquivos de Configuração
@@ -341,7 +341,7 @@ git commit -m "chore: initial setup with Next.js, Prisma and Supabase"
 
 ```bash
 # Criar repositório no GitHub primeiro
-git remote add origin https://github.com/seu-usuario/zooming-crm.git
+git remote add origin https://github.com/seu-usuario/clapper.git
 git branch -M main
 git push -u origin main
 ```

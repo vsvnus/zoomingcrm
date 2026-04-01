@@ -1,4 +1,4 @@
-// Zooming CRM - Database Schema
+// Clapper - Database Schema
 // Compatible with Supabase (PostgreSQL) + Prisma ORM
 
 generator client {

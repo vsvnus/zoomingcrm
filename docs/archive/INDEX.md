@@ -1,4 +1,4 @@
-# Índice de Documentação - Zooming CRM
+# Índice de Documentação - Clapper
 ## Guia de Navegação dos Documentos do Projeto
 
 ---
@@ -7,10 +7,10 @@
 
 ### 1. [README.md](README.md) - Visão Geral do Projeto
 **Audiência:** Todos (desenvolvedores, stakeholders, novos membros)
-**Quando usar:** Primeiro documento a ler para entender o que é o Zooming
+**Quando usar:** Primeiro documento a ler para entender o que é o Clapper
 
 **Conteúdo:**
-- O que é Zooming e por que existe
+- O que é Clapper e por que existe
 - Funcionalidades principais (resumidas)
 - Tech stack
 - Como instalar (resumo)
@@ -122,7 +122,7 @@
 
 **Conteúdo:**
 - O problema de mercado (com números)
-- A solução (Zooming)
+- A solução (Clapper)
 - Diferencial competitivo (vs Pipedrive, Salesforce, Monday)
 - Funcionalidades core explicadas com ROI
 - Modelo de negócio (preços, receita projetada)
@@ -227,7 +227,7 @@
 ## 📊 Mapa Mental da Documentação
 
 ```
-Zooming CRM
+Clapper
 │
 ├─ Para Entender o Produto
 │  ├─ README.md (visão geral)
@@ -300,7 +300,7 @@ Estes documentos são vivos e serão atualizados conforme o projeto evolui.
 ---
 
 **Última Atualização deste Índice:** 2026-01-10
-**Responsável:** Arquitetura Zooming CRM
+**Responsável:** Arquitetura Clapper
 
 ---
 

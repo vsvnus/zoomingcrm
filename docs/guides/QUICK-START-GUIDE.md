@@ -28,7 +28,7 @@ psql "sua-connection-string-aqui"
 ### 2. Atualizar Schema Prisma
 
 ```bash
-cd zooming-crm
+cd clapper
 
 # Gerar cliente Prisma
 npx prisma generate

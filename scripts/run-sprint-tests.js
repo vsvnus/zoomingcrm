@@ -9,7 +9,7 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 const PROJECT_PATH = '/Users/viniciuspimentel/ProjetosDev/CRM ZOOMER/zooming-crm';
-const PROJECT_NAME = 'zooming-crm';
+const PROJECT_NAME = 'clapper';
 
 // Testes selecionados para Sprints 0 e 1
 const SELECTED_TESTS = [

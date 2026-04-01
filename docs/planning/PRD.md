@@ -1,5 +1,5 @@
 # Product Requirements Document (PRD)
-## Zooming - CRM para Produtoras Audiovisuais
+## Clapper - CRM para Produtoras Audiovisuais
 
 **Versão:** 1.0 (MVP)
 **Data:** Janeiro 2026
@@ -45,7 +45,7 @@ CRM especializado com:
 **Para** entender a qualidade do trabalho sem baixar arquivos ou abrir múltiplos links.
 
 **Critérios de Aceite:**
-- [ ] Proposta possui URL única e privada (ex: `zooming.app/p/ABC123`)
+- [ ] Proposta possui URL única e privada (ex: `clapper.app/p/ABC123`)
 - [ ] Player de vídeo embarcado (Vimeo/YouTube) funciona sem sair da página
 - [ ] Design responsivo (mobile-first)
 - [ ] Não requer login para o cliente visualizar
@@ -215,7 +215,7 @@ CRM especializado com:
 **Para** formalizar feedbacks sem emails confusos.
 
 **Critérios de Aceite:**
-- [ ] URL única por versão (ex: `zooming.app/review/XYZ/v1`)
+- [ ] URL única por versão (ex: `clapper.app/review/XYZ/v1`)
 - [ ] Player embarcado do Vimeo/YouTube
 - [ ] Dois botões grandes: "✅ Aprovar Final" e "✏️ Solicitar Mudanças"
 - [ ] Se "Solicitar Mudanças", abre textarea para comentários obrigatórios

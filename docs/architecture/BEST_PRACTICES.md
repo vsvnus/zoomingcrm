@@ -1,4 +1,4 @@
-# Boas Práticas - Zooming CRM
+# Boas Práticas - Clapper
 
 Este documento reúne as convenções de código, padrões arquiteturais e decisões técnicas do projeto.
 
@@ -357,7 +357,7 @@ import Image from 'next/image'
 // ✅ Sempre usar next/image
 <Image
   src="/logo.png"
-  alt="Zooming Logo"
+  alt="Clapper Logo"
   width={200}
   height={50}
   priority // Para imagens above-the-fold
@@ -655,7 +655,7 @@ Implementa sistema de aprovação de vídeos com versionamento.
 **Conectar repositório:**
 1. Criar conta no Vercel
 2. Import Git Repository
-3. Selecionar `zooming-crm`
+3. Selecionar `clapper`
 4. Adicionar variáveis de ambiente (Settings → Environment Variables)
 5. Deploy automático a cada push em `main`
 
@@ -738,4 +738,4 @@ export default function RootLayout({ children }) {
 ---
 
 **Última Atualização:** 2026-01-10
-**Mantenedor:** Equipe Zooming CRM
+**Mantenedor:** Equipe Clapper

@@ -54,7 +54,7 @@ export function CrmSimulator() {
                         <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-black shadow-lg shadow-emerald-500/20">
                             <Play className="w-4 h-4 fill-current" />
                         </div>
-                        <span className="font-bold text-sm text-white tracking-wide">Zooming</span>
+                        <span className="font-bold text-sm text-white tracking-wide">Clapper</span>
                     </div>
 
                     {/* Nav */}
@@ -118,7 +118,7 @@ export function CrmSimulator() {
                             <div className="w-6 h-6 rounded bg-emerald-500 flex items-center justify-center text-black">
                                 <Play className="w-3 h-3 fill-current" />
                             </div>
-                            <span className="font-bold text-sm text-white">Zooming</span>
+                            <span className="font-bold text-sm text-white">Clapper</span>
                         </div>
 
                         <div className="hidden md:flex items-center gap-3 text-zinc-500 bg-zinc-900/50 px-3 py-1.5 rounded-lg border border-zinc-800/50 w-64 focus-within:border-zinc-700 transition-colors">

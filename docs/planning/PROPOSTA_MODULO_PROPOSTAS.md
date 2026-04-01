@@ -1,5 +1,5 @@
 # 📋 ANÁLISE COMPLETA E PROPOSTA DE IMPLEMENTAÇÃO
-## Módulo de Propostas - CRM Zoomer
+## Módulo de Propostas - Clapper
 
 **Data:** 12 de Janeiro de 2026
 **Versão:** 2.0 - Proposta Definitiva
@@ -11,7 +11,7 @@
 ## 📊 ÍNDICE
 
 1. [Análise do Aplicativo](#1-análise-do-aplicativo)
-2. [Proposta de Valor do CRM Zoomer](#2-proposta-de-valor-do-crm-zoomer)
+2. [Proposta de Valor do Clapper](#2-proposta-de-valor-do-crm-zoomer)
 3. [Estado Atual do Módulo de Propostas](#3-estado-atual-do-módulo-de-propostas)
 4. [Gaps e Oportunidades](#4-gaps-e-oportunidades)
 5. [Integração com Triggers e Fluxos Financeiros](#5-integração-com-triggers-e-fluxos-financeiros)
@@ -22,13 +22,13 @@
 
 ## 1. ANÁLISE DO APLICATIVO
 
-### 1.1 Proposta de Valor do CRM Zoomer
+### 1.1 Proposta de Valor do Clapper
 
-O **Zooming CRM** é um sistema especializado para **produtoras audiovisuais** que resolve dores específicas que CRMs tradicionais (Salesforce, Pipedrive) não atendem:
+O **Clapper** é um sistema especializado para **produtoras audiovisuais** que resolve dores específicas que CRMs tradicionais (Salesforce, Pipedrive) não atendem:
 
 #### 🎯 Diferenciais Competitivos
 
-| Problema do Mercado | Solução Zooming | Impacto |
+| Problema do Mercado | Solução Clapper | Impacto |
 |---------------------|-----------------|---------|
 | Orçamentos em PDF estático não engajam | Propostas Interativas (landing pages) | +120% conversão |
 | Equipamentos em conflito de locação | Sistema Anti-Conflito com validação | R$ 8k/mês economizados |
@@ -95,7 +95,7 @@ Proposal (N) → (1) Organization       // Multi-tenancy
 
 2️⃣ PROPOSTA COMERCIAL ⭐ (FOCO DESTE DOCUMENTO)
    └─ Produtor cria Proposta Interativa
-   └─ Link único gerado: zooming.app/p/{token}
+   └─ Link único gerado: clapper.app/p/{token}
    └─ Cliente visualiza vídeos portfolio + opcionais
    └─ Cliente ACEITA proposta com 1 clique
    └─ 🔔 TRIGGER: Cria receita em financial_transactions (PENDING)
@@ -130,27 +130,27 @@ Proposal (N) → (1) Organization       // Multi-tenancy
    - Receitas vs Despesas
    - Projetos ativos
 
-2. **Clientes** ([clients.ts](zooming-crm/src/actions/clients.ts))
+2. **Clientes** ([clients.ts](clapper/src/actions/clients.ts))
    - CRUD completo
    - Histórico de projetos
 
-3. **Pipeline de Projetos** ([projects.ts](zooming-crm/src/actions/projects.ts))
+3. **Pipeline de Projetos** ([projects.ts](clapper/src/actions/projects.ts))
    - Kanban drag-and-drop
    - Etapas: LEAD → BRIEFING → PRE_PRODUCTION → SHOOTING → POST_PRODUCTION → REVIEW → DELIVERED
    - Validações por stage
 
-4. **Equipamentos** ([equipments.ts](zooming-crm/src/actions/equipments.ts))
+4. **Equipamentos** ([equipments.ts](clapper/src/actions/equipments.ts))
    - CRUD de inventário
    - Sistema anti-conflito de reservas
    - Kits pré-configurados
    - **TRIGGER SQL:** Reserva de equipamento → cria despesa automática
 
-5. **Freelancers** ([freelancers.ts](zooming-crm/src/actions/freelancers.ts))
+5. **Freelancers** ([freelancers.ts](clapper/src/actions/freelancers.ts))
    - Banco de talentos com tags
    - Avaliação interna (1-5 stars)
    - **TRIGGER SQL:** Adicionar freelancer ao projeto → cria despesa automática
 
-6. **Financeiro** ([finances.ts](zooming-crm/src/actions/finances.ts))
+6. **Financeiro** ([finances.ts](clapper/src/actions/finances.ts))
    - Tabela unificada: `financial_transactions`
    - Views agregadas: `financial_overview`, `project_financials`, `accounts_payable`, `accounts_receivable`
    - **TRIGGERS ATIVOS:**
@@ -168,14 +168,14 @@ Proposal (N) → (1) Organization       // Multi-tenancy
 #### 📂 Arquivos Implementados
 
 **Backend (Server Actions):**
-- [proposals.ts](zooming-crm/src/actions/proposals.ts) - 8 funções principais
+- [proposals.ts](clapper/src/actions/proposals.ts) - 8 funções principais
 
 **Frontend (Componentes):**
-- [proposals-list.tsx](zooming-crm/src/components/proposals/proposals-list.tsx) - Listagem em grid
-- [proposal-form-modal.tsx](zooming-crm/src/components/proposals/proposal-form-modal.tsx) - Modal de criação
+- [proposals-list.tsx](clapper/src/components/proposals/proposals-list.tsx) - Listagem em grid
+- [proposal-form-modal.tsx](clapper/src/components/proposals/proposal-form-modal.tsx) - Modal de criação
 
 **Rota:**
-- [page.tsx](zooming-crm/src/app/(dashboard)/proposals/page.tsx) - Server Component que renderiza lista
+- [page.tsx](clapper/src/app/(dashboard)/proposals/page.tsx) - Server Component que renderiza lista
 
 ---
 
@@ -2152,7 +2152,7 @@ export async function validateProposalDiscount(
 
 ### Resumo Executivo
 
-O módulo de Propostas é o **diferencial competitivo #1** do CRM Zoomer. A implementação completa irá:
+O módulo de Propostas é o **diferencial competitivo #1** do Clapper. A implementação completa irá:
 
 ✅ Aumentar conversão de vendas em **120%** (de 20% para 44%)
 ✅ Reduzir tempo de criação de propostas em **78%** (de 45min para 10min)
@@ -2227,7 +2227,7 @@ O módulo de Propostas é o **diferencial competitivo #1** do CRM Zoomer. A impl
 - [PRD.md](PRD.md) - Requisitos completos
 - [EXECUTIVE_SUMMARY.md](EXECUTIVE_SUMMARY.md) - Resumo executivo
 - [data-integration-improvements.sql](data-integration-improvements.sql) - Triggers SQL
-- [financial-module-unified.sql](zooming-crm/financial-module-unified.sql) - Módulo financeiro
+- [financial-module-unified.sql](clapper/financial-module-unified.sql) - Módulo financeiro
 
 ---
 

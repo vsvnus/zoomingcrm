@@ -3,7 +3,7 @@ import { createClient, getUserOrganization } from '@/lib/supabase/server'
 import { FinancialTabs } from '@/components/financeiro/financial-tabs'
 
 export const metadata = {
-  title: 'Financeiro - Zooming CRM',
+  title: 'Financeiro - Clapper',
   description: 'Gestão financeira unificada',
 }
 

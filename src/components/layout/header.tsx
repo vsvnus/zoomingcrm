@@ -116,7 +116,7 @@ export function Header() {
                 ? "bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.4)]"
                 : "bg-secondary text-text-tertiary hover:bg-bg-hover hover:text-text-primary"
             )}
-            title="Zooming AI"
+            title="Clapper AI"
           >
             <Sparkles className="h-4 w-4" />
             {!aiIsOpen && (

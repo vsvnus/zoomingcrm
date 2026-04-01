@@ -1,6 +1,6 @@
 -- =============================================
 -- SECURITY: RLS Hardening Migration
--- Zooming CRM - Security Remediation
+-- Clapper - Security Remediation
 -- =============================================
 -- This migration:
 -- 1. Creates a helper function auth_org_id()

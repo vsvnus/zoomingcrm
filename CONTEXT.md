@@ -1,4 +1,4 @@
-# 🚀 Zooming CRM - Contexto Atualizado (Jan 2026)
+# 🚀 Clapper - Contexto Atualizado (Jan 2026)
 
 ## 📌 Status Atual: Sprint 2 Concluída
 O sistema de gestão de projetos está funcional, com integração financeira automática e controle de escopo.

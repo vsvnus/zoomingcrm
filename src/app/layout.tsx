@@ -11,7 +11,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Zooming - CRM para Produtoras Audiovisuais',
+  title: 'Clapper - CRM para Produtoras Audiovisuais',
   description: 'CRM especializado para produtoras de vídeo e agências audiovisuais',
 }
 
@@ -28,7 +28,7 @@ export default function RootLayout({
           defaultTheme="dark"
           enableSystem={false}
           disableTransitionOnChange
-          storageKey="zooming-theme"
+          storageKey="clapper-theme"
         >
           {children}
         </ThemeProvider>
