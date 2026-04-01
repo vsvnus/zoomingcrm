@@ -178,7 +178,7 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
   // Current Balance is: Initial Capital (total paid) + Total Income (all time paid up to 'to') - Total Expenses (all time paid up to 'to')
   // My loop above calculated `currentBalance` correctly as "Accumulated Balance up to End Date".
 
-  const realProfit = monthlyRevenue - monthlyCost - openingBalance
+  const realProfit = monthlyRevenue - monthlyCost
 
   return {
     overview: {

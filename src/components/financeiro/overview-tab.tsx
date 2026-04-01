@@ -228,7 +228,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
               {formatCurrency(data.real_profit)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Faturamento - Custo - Saldo inicial ({formatCurrency(data.opening_balance)})
+              Faturamento Mensal - Custo Mensal
             </p>
           </CardContent>
         </Card>
