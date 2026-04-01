@@ -110,8 +110,10 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
 
   const getDeadlineStatus = (deadline: string | null) => {
     if (!deadline) return null
-    const deadlineDate = new Date(deadline)
+    // Extrair apenas YYYY-MM-DD e usar T00:00:00 para forçar timezone local
+    const deadlineDate = new Date(deadline.substring(0, 10) + 'T00:00:00')
     const today = new Date()
+    today.setHours(0, 0, 0, 0)
     const daysLeft = differenceInDays(deadlineDate, today)
 
     if (isPast(deadlineDate) && !isToday(deadlineDate)) {
@@ -377,7 +379,10 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
           {stats.upcomingEvents && stats.upcomingEvents.length > 0 ? (
             <div className="space-y-3">
               {stats.upcomingEvents.map((event, index) => {
-                const eventDate = event.date ? new Date(event.date) : null
+                // Datas normalizadas como YYYY-MM-DD no backend, append T00:00:00 para timezone local
+                const eventDate = event.date
+                  ? new Date(event.date + 'T00:00:00')
+                  : null
                 const isEventToday = eventDate && isToday(eventDate)
 
                 // Definir ícone e cor por tipo
@@ -430,7 +435,7 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
                             <span>
                               {eventDate && (
                                 event.time
-                                  ? format(eventDate, "dd/MM 'às' HH:mm", { locale: ptBR }) // Data fixa, hora do banco
+                                  ? `${format(eventDate, "dd/MM", { locale: ptBR })} às ${event.time}`
                                   : format(eventDate, "dd/MM", { locale: ptBR })
                               )}
                             </span>

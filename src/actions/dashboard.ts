@@ -49,6 +49,7 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
     .eq('organization_id', organizationId)
     .neq('status', 'ARCHIVED')
     .neq('status', 'DELIVERED')
+    .neq('status', 'DONE')
     .order('deadline_date', { ascending: true, nullsFirst: false })
     .order('updated_at', { ascending: false })
     .limit(5)
@@ -60,6 +61,7 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
     .eq('organization_id', organizationId)
     .neq('status', 'DELIVERED')
     .neq('status', 'ARCHIVED')
+    .neq('status', 'DONE')
 
   // Contar novos clientes
   const newClientsQuery = supabase
@@ -183,12 +185,18 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
   // Assemble upcoming events from all sources
   const upcomingEvents: any[] = []
 
+  // Extrai apenas YYYY-MM-DD de qualquer string de data/timestamp para evitar problemas de timezone
+  const toDateOnly = (d: string | null): string | null => {
+    if (!d) return null
+    return d.substring(0, 10) // "2026-03-20T00:00:00+00:00" → "2026-03-20"
+  }
+
   if (projectShoots) {
     projectShoots.forEach((project) => {
       upcomingEvents.push({
         id: `project-${project.id}`,
         title: project.title,
-        date: project.shooting_date,
+        date: toDateOnly(project.shooting_date),
         time: project.shooting_time,
         location: project.location,
         client: (project.clients as any)?.name,
@@ -206,7 +214,7 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
         upcomingEvents.push({
           id: `shooting-date-${sd.id}`,
           title: `Gravação: ${project.title}`,
-          date: sd.date,
+          date: toDateOnly(sd.date),
           time: sd.time,
           location: sd.location,
           client: project.clients?.name,
@@ -223,7 +231,7 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
       upcomingEvents.push({
         id: `deadline-${project.id}`,
         title: `Entrega: ${project.title}`,
-        date: project.deadline,
+        date: toDateOnly(project.deadline),
         time: null,
         location: null,
         client: (project.clients as any)?.name,
@@ -241,7 +249,7 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
         upcomingEvents.push({
           id: `delivery-date-${dd.id}`,
           title: `Entrega: ${dd.description || project.title}`,
-          date: dd.date,
+          date: toDateOnly(dd.date),
           time: null,
           location: null,
           client: project.clients?.name,
@@ -258,7 +266,7 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
       upcomingEvents.push({
         id: `manual-${ev.id}`,
         title: ev.title,
-        date: ev.start_date,
+        date: toDateOnly(ev.start_date),
         time: !ev.all_day ? format(new Date(ev.start_date), 'HH:mm') : null,
         location: ev.location,
         client: null,
@@ -269,8 +277,8 @@ export async function getDashboardStats(dateRange?: { start: Date; end: Date }):
     })
   }
 
-  // Ordenar todos por data e pegar os 6 mais proximos
-  upcomingEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  // Ordenar todos por data e pegar os 6 mais proximos (datas já normalizadas como YYYY-MM-DD)
+  upcomingEvents.sort((a, b) => (a.date || '').localeCompare(b.date || ''))
   const finalUpcomingEvents = upcomingEvents.slice(0, 6)
 
   const pendingReceivables = pendingReceivablesData?.reduce((sum, item) => sum + Number(item.amount), 0) || 0
