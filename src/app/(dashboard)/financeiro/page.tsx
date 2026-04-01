@@ -73,6 +73,8 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
   let monthlyRevenue = 0
   let monthlyCost = 0
   let openingBalance = 0
+  // Resumo mensal: sempre do dia 1 do mês até o último dia selecionado
+  const monthStart = startOfDay(startOfMonth(to))
 
   // Helper: parse date string as LOCAL date to avoid UTC timezone shift
   // "2025-01-15" deve ser 15/Jan local, não 14/Jan (que ocorre com new Date("2025-01-15") em UTC-3)
@@ -89,8 +91,8 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
       const dateStr = t.due_date || t.created_at
       const tDate = dateStr ? parseLocalDate(dateStr) : new Date()
 
-      // Saldo de abertura: todas as transações PAID com due_date anterior ao início do período
-      if (t.status === 'PAID' && tDate < from) {
+      // Saldo de abertura: todas as transações PAID com due_date anterior ao dia 1 do mês
+      if (t.status === 'PAID' && tDate < monthStart) {
         if (t.type === 'INITIAL_CAPITAL' || t.type === 'INCOME') {
           openingBalance += amount
         } else if (t.type === 'EXPENSE') {
@@ -99,8 +101,8 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
       }
 
       // Faturamento Mensal / Custo Mensal: TODAS as transações (exceto CANCELLED, já filtrado na query)
-      // com due_date dentro de [from, to], independente de status (assume tudo será pago/recebido)
-      if (tDate >= from && tDate <= to) {
+      // do dia 1 do mês até o último dia selecionado, independente de status (assume tudo será pago/recebido)
+      if (tDate >= monthStart && tDate <= to) {
         if (t.type === 'INCOME') {
           monthlyRevenue += amount
         } else if (t.type === 'EXPENSE') {
