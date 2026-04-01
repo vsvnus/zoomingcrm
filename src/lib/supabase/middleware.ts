@@ -10,6 +10,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 const PUBLIC_PREFIXES = ['/login', '/p/', '/auth/callback', '/reset-password']
 
 function isPublicRoute(pathname: string): boolean {
+  if (pathname === '/') return true
   return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))
 }
 
