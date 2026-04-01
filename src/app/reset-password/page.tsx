@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-bg-secondary to-bg-tertiary border border-border">
               <Play className="h-6 w-6 text-text-primary" fill="currentColor" />
             </div>
-            <h1 className="text-2xl font-bold text-text-primary">Zooming</h1>
+            <h1 className="text-2xl font-bold text-text-primary">Clapper</h1>
           </div>
 
           {success ? (

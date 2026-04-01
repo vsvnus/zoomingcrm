@@ -1,4 +1,4 @@
-# Guia de Setup - Zooming CRM
+# Guia de Setup - Clapper
 
 Este documento contém o passo a passo completo para inicializar o projeto do zero.
 
@@ -30,7 +30,7 @@ git --version
 Execute o comando para criar um novo projeto Next.js com TypeScript e Tailwind CSS:
 
 ```bash
-pnpm create next-app@latest zooming-crm --typescript --tailwind --app --eslint --src-dir --import-alias "@/*"
+pnpm create next-app@latest clapper --typescript --tailwind --app --eslint --src-dir --import-alias "@/*"
 ```
 
 **Respostas para as perguntas do setup:**
@@ -43,7 +43,7 @@ pnpm create next-app@latest zooming-crm --typescript --tailwind --app --eslint -
 
 Entre na pasta do projeto:
 ```bash
-cd zooming-crm
+cd clapper
 ```
 
 ---
@@ -80,7 +80,7 @@ pnpm add -D vitest @vitejs/plugin-react
 1. Acesse [supabase.com](https://supabase.com) e crie uma conta
 2. Clique em "New Project"
 3. Preencha:
-   - **Name:** Zooming CRM
+   - **Name:** Clapper
    - **Database Password:** Gere uma senha forte e **guarde**
    - **Region:** South America (São Paulo) - melhor latência
    - **Pricing Plan:** Free (para desenvolvimento)
@@ -549,7 +549,7 @@ git add .
 git commit -m "chore: initial setup"
 
 # Conectar ao GitHub
-git remote add origin https://github.com/seu-usuario/zooming-crm.git
+git remote add origin https://github.com/seu-usuario/clapper.git
 git push -u origin main
 ```
 
@@ -610,4 +610,4 @@ async headers() {
 ---
 
 **Última Atualização:** 2026-01-10
-**Autor:** Arquitetura Zooming CRM
+**Autor:** Arquitetura Clapper

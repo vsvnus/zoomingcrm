@@ -80,7 +80,7 @@ export function Sidebar() {
     {
       title: 'Produção',
       items: [
-        { icon: Clapperboard, label: 'Zooming Studio', href: '/studio', badge: 'Novo!', badgeColor: 'bg-accent-500 text-white' },
+        { icon: Clapperboard, label: 'Clapper Studio', href: '/studio', badge: 'Novo!', badgeColor: 'bg-accent-500 text-white' },
         { icon: Calculator, label: 'Calculadora de Orçamento', href: '/budget-calculator', badge: 'Pro', badgeColor: 'bg-accent-500/20 text-accent-500' },
       ]
     },
@@ -104,7 +104,7 @@ export function Sidebar() {
         </div>
         <div className="flex flex-col">
           <span className="text-lg font-bold tracking-tight text-text-primary leading-tight">
-            Zooming
+            Clapper
           </span>
           <span className="text-[9px] font-light tracking-wider text-text-tertiary uppercase -mt-0.5">
             By Trip Labz

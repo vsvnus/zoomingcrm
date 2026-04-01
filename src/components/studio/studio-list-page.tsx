@@ -70,7 +70,7 @@ export function StudioListPage({ scripts, projects }: StudioListPageProps) {
             <Clapperboard className="h-5 w-5 text-accent-500" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-text-primary">Zooming Studio</h1>
+            <h1 className="text-2xl font-bold text-text-primary">Clapper Studio</h1>
             <p className="text-sm text-text-tertiary">
               {scripts.length} {scripts.length === 1 ? 'roteiro' : 'roteiros'}
             </p>
@@ -210,7 +210,7 @@ export function StudioListPage({ scripts, projects }: StudioListPageProps) {
               Nenhum roteiro ainda
             </h3>
             <p className="text-sm text-text-secondary max-w-md mx-auto">
-              Crie seu primeiro roteiro para começar a usar o Zooming Studio.
+              Crie seu primeiro roteiro para começar a usar o Clapper Studio.
               Você pode criar roteiros livres ou vinculados a projetos.
             </p>
           </div>

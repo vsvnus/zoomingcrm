@@ -1,4 +1,4 @@
-# Plano de Implementação: Assistente IA Inteligente (Zooming CRM)
+# Plano de Implementação: Assistente IA Inteligente (Clapper)
 
 Este documento descreve a implementação de um assistente de IA integrado ao CRM, focado em fornecer respostas inteligentes sobre os dados do usuário com total segurança e isolamento por tenant (cliente).
 

@@ -1,7 +1,7 @@
 # Diagrama Entidade-Relacionamento (ERD)
-## Zooming CRM - Database Schema
+## Clapper - Database Schema
 
-Este documento apresenta a estrutura visual do banco de dados do Zooming CRM.
+Este documento apresenta a estrutura visual do banco de dados do Clapper.
 
 ---
 
@@ -485,4 +485,4 @@ USING (
 ---
 
 **Última Atualização:** 2026-01-10
-**Responsável:** Arquitetura de Dados - Zooming CRM
+**Responsável:** Arquitetura de Dados - Clapper

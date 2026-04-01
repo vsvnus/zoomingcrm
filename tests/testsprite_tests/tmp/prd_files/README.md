@@ -1,4 +1,4 @@
-# Zooming CRM 🎬
+# Clapper 🎬
 
 > CRM especializado para Produtoras de Vídeo e Agências Audiovisuais
 
@@ -6,7 +6,7 @@ Um sistema de gestão completo que resolve as dores específicas do mercado audi
 
 ---
 
-## Por que Zooming?
+## Por que Clapper?
 
 CRMs tradicionais (Salesforce, Pipedrive) não atendem o mercado audiovisual porque:
 
@@ -16,7 +16,7 @@ CRMs tradicionais (Salesforce, Pipedrive) não atendem o mercado audiovisual por
 - ❌ Falta controle de freelancers e disponibilidade
 - ❌ Revisão de vídeos desconectada do projeto
 
-### Zooming resolve tudo isso:
+### Clapper resolve tudo isso:
 
 ✅ **Propostas Interativas** - Landing pages com vídeos e seleção de opcionais em tempo real
 ✅ **Pipeline Audiovisual** - Kanban específico (Lead → Briefing → Shooting → Pós → Entrega)
@@ -96,8 +96,8 @@ CRMs tradicionais (Salesforce, Pipedrive) não atendem o mercado audiovisual por
 
 ### 1. Clone o repositório
 ```bash
-git clone https://github.com/seu-usuario/zooming-crm.git
-cd zooming-crm
+git clone https://github.com/seu-usuario/clapper.git
+cd clapper
 ```
 
 ### 2. Instale dependências
@@ -137,7 +137,7 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 ## Estrutura do Projeto
 
 ```
-zooming-crm/
+clapper/
 ├── src/
 │   ├── app/                    # Next.js App Router
 │   │   ├── (auth)/            # Login/Signup
@@ -237,10 +237,10 @@ chore: mudanças em configs/build
 
 ## Suporte
 
-- 📧 Email: suporte@zooming.app
-- 💬 Discord: [discord.gg/zooming](https://discord.gg/zooming)
-- 🐛 Bugs: [GitHub Issues](https://github.com/seu-usuario/zooming-crm/issues)
-- 📖 Docs: [docs.zooming.app](https://docs.zooming.app)
+- 📧 Email: suporte@clapper.app
+- 💬 Discord: [discord.gg/clapper](https://discord.gg/clapper)
+- 🐛 Bugs: [GitHub Issues](https://github.com/seu-usuario/clapper/issues)
+- 📖 Docs: [docs.clapper.app](https://docs.clapper.app)
 
 ---
 
@@ -289,6 +289,6 @@ Desenvolvido com ❤️ por profissionais do mercado audiovisual que entenderam 
 
 <div align="center">
 
-**[Website](https://zooming.app)** • **[Documentação](docs/)** • **[Roadmap](https://github.com/seu-usuario/zooming-crm/projects)** • **[Changelog](CHANGELOG.md)**
+**[Website](https://clapper.app)** • **[Documentação](docs/)** • **[Roadmap](https://github.com/seu-usuario/clapper/projects)** • **[Changelog](CHANGELOG.md)**
 
 </div>

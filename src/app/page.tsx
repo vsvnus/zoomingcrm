@@ -100,7 +100,7 @@ export default function Home() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="max-w-2xl text-lg md:text-xl text-text-tertiary mb-10 leading-relaxed"
           >
-            Do orçamento aprovado à entrega final, o Zooming centraliza
+            Do orçamento aprovado à entrega final, o Clapper centraliza
             projetos, equipe e financeiro em um único lugar.
           </motion.p>
 
@@ -207,7 +207,7 @@ export default function Home() {
               </h3>
               <p className="text-text-tertiary text-lg mb-10 leading-relaxed">
                 Esqueça o trabalho manual. Quando seu cliente aprova a proposta online,
-                o Zooming cria o projeto, lança o financeiro e gera o checklist.
+                o Clapper cria o projeto, lança o financeiro e gera o checklist.
               </p>
               <div className="space-y-6">
                 <FeatureItem
@@ -361,7 +361,7 @@ export default function Home() {
               </h3>
               <p className="text-text-tertiary text-lg mb-10 leading-relaxed">
                 Não espere o fim do mês para descobrir o prejuízo. Ao alocar um freelancer ou reservar um equipamento,
-                o Zooming atualiza sua margem instantaneamente.
+                o Clapper atualiza sua margem instantaneamente.
               </p>
               <div className="space-y-6">
                 <FeatureItem
@@ -442,7 +442,7 @@ function Header() {
           <div className="w-8 h-8 bg-text-primary rounded-lg flex items-center justify-center">
             <Play className="w-4 h-4 text-bg-primary fill-bg-primary" />
           </div>
-          Zooming
+          Clapper
         </div>
         <nav className="hidden md:flex gap-8 text-sm font-medium text-text-tertiary">
           <Link href="#features" className="hover:text-text-primary transition-colors">Funcionalidades</Link>
@@ -469,10 +469,10 @@ function Footer() {
             <div className="w-6 h-6 bg-secondary rounded flex items-center justify-center border border-border">
               <Play className="w-3 h-3 text-text-primary fill-text-primary" />
             </div>
-            Zooming
+            Clapper
           </div>
           <div className="text-text-tertiary text-sm max-w-xs">
-            © 2025 Zooming CRM. <br />
+            © 2025 Clapper. <br />
             Feito com <span className="text-red-500">♥</span> por quem entende de set.
           </div>
         </div>

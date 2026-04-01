@@ -1,4 +1,4 @@
-# Arquitetura do Projeto - Zooming CRM
+# Arquitetura do Projeto - Clapper
 
 ## Tech Stack Final
 
@@ -30,7 +30,7 @@
 ## Estrutura de Pastas
 
 ```
-zooming-crm/
+clapper/
 ├── README.md
 ├── PRD.md                          # Este documento
 ├── ARCHITECTURE.md                 # Você está aqui

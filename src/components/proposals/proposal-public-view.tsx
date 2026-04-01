@@ -627,7 +627,7 @@ export function ProposalPublicView({ proposal: initialProposal }: ProposalPublic
 
             <div className="bg-neutral-100 border-t border-neutral-200 px-8 py-4 text-center">
               <p className="text-xs font-medium text-neutral-500">
-                {proposal.organizations?.name} &copy; {new Date().getFullYear()} • Powered by Zooming
+                {proposal.organizations?.name} &copy; {new Date().getFullYear()} • Powered by Clapper
               </p>
             </div>
           </div>

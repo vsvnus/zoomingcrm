@@ -1,4 +1,4 @@
-# Executive Summary - Zooming CRM
+# Executive Summary - Clapper
 ## Resumo Executivo para Stakeholders
 
 **Data:** Janeiro 2026
@@ -36,13 +36,13 @@ Produtoras de vídeo e agências audiovisuais movimentam **R$ 12 bilhões/ano** 
 
 ---
 
-## A Solução: Zooming CRM
+## A Solução: Clapper
 
 CRM especializado que **aumenta conversão de vendas em 120%** e **reduz conflitos operacionais em 80%**.
 
 ### Diferencial Competitivo
 
-| Feature | Zooming | Pipedrive | Salesforce | Monday.com |
+| Feature | Clapper | Pipedrive | Salesforce | Monday.com |
 |---------|---------|-----------|------------|------------|
 | Propostas Interativas | ✅ | ❌ | ❌ | ❌ |
 | Pipeline Audiovisual | ✅ | ❌ | ❌ | Parcial |
@@ -299,7 +299,7 @@ CRM especializado que **aumenta conversão de vendas em 120%** e **reduz conflit
 
 **Versão:** 1.0
 **Última Atualização:** 2026-01-10
-**Responsável:** Arquiteto de Produto - Zooming CRM
+**Responsável:** Arquiteto de Produto - Clapper
 
 ---
 

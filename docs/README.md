@@ -1,6 +1,6 @@
 # Documentacao
 
-Indice completo da documentacao do Zooming CRM.
+Indice completo da documentacao do Clapper.
 
 ## Guias
 

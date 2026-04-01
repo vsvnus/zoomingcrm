@@ -1,5 +1,5 @@
 // ============================================
-// TYPES: Zooming Studio - Scripts & Storyboard Module
+// TYPES: Clapper Studio - Scripts & Storyboard Module
 // ============================================
 
 export type ScriptStatus =

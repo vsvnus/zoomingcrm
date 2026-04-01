@@ -1,4 +1,4 @@
-# 🚀 Melhorias de Integração de Dados - CRM Zoomer
+# 🚀 Melhorias de Integração de Dados - CRM Clapper
 
 **Data:** 12 de Janeiro de 2026
 **Versão:** 2.0
@@ -8,7 +8,7 @@
 
 ## 📋 Sumário Executivo
 
-Este documento descreve todas as melhorias implementadas para automatizar fluxos financeiros e evitar duplicidade de dados no CRM Zoomer. O objetivo principal é criar um sistema completamente integrado onde **dados financeiros são criados automaticamente** sempre que ações relevantes ocorrem no sistema.
+Este documento descreve todas as melhorias implementadas para automatizar fluxos financeiros e evitar duplicidade de dados no CRM Clapper. O objetivo principal é criar um sistema completamente integrado onde **dados financeiros são criados automaticamente** sempre que ações relevantes ocorrem no sistema.
 
 ---
 
@@ -611,7 +611,7 @@ Para dúvidas ou problemas, consulte:
 
 ## 🎉 Conclusão
 
-Com estas melhorias, o CRM Zoomer agora tem:
+Com estas melhorias, o CRM Clapper agora tem:
 
 ✅ **Zero duplicidade** - Dados financeiros criados automaticamente
 ✅ **Consistência total** - Triggers garantem que nada seja esquecido

@@ -24,7 +24,7 @@ echo "📋 Verificando dependências..."
 
 # Verificar se está no diretório correto
 if [ ! -f "package.json" ]; then
-  echo -e "${RED}❌ Erro: Execute este script do diretório raiz do projeto (zooming-crm)${NC}"
+  echo -e "${RED}❌ Erro: Execute este script do diretório raiz do projeto (clapper)${NC}"
   exit 1
 fi
 

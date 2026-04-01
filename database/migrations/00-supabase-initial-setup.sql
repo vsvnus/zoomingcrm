@@ -1,4 +1,4 @@
--- Zooming CRM - Setup do Banco de Dados no Supabase
+-- Clapper - Setup do Banco de Dados no Supabase
 -- Execute este SQL no SQL Editor do Supabase
 
 -- ============================================
@@ -294,4 +294,4 @@ CREATE POLICY "Allow all for now" ON freelancers FOR ALL USING (true);
 -- ✅ PRONTO! Banco configurado com sucesso
 -- ============================================
 
-SELECT 'Zooming CRM database setup completed! 🎉' AS message;
+SELECT 'Clapper database setup completed! 🎉' AS message;

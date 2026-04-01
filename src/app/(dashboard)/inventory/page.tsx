@@ -5,7 +5,7 @@ import { EquipmentInventory } from '@/components/inventory/equipment-inventory'
 import { getEquipmentsWithAvailability } from '@/actions/equipments'
 
 export const metadata = {
-  title: 'Equipamentos - Zooming CRM',
+  title: 'Equipamentos - Clapper',
   description: 'Gestão de inventário e reservas de equipamentos',
 }
 

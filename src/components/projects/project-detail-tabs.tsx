@@ -389,8 +389,8 @@ export function ProjectDetailTabs({
                 </h3>
                 <p className="text-sm text-text-secondary max-w-md mx-auto">
                   {scriptId
-                    ? 'Edite o roteiro do projeto no Zooming Studio com editor visual, storyboard, timeline e campos completos de produção.'
-                    : 'Crie o roteiro do projeto no Zooming Studio com editor visual, storyboard, timeline e campos completos de produção.'
+                    ? 'Edite o roteiro do projeto no Clapper Studio com editor visual, storyboard, timeline e campos completos de produção.'
+                    : 'Crie o roteiro do projeto no Clapper Studio com editor visual, storyboard, timeline e campos completos de produção.'
                   }
                 </p>
               </div>
@@ -399,7 +399,7 @@ export function ProjectDetailTabs({
                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-all"
               >
                 <Film className="h-4 w-4" />
-                {scriptId ? 'Abrir no Zooming Studio' : 'Criar Roteiro no Studio'}
+                {scriptId ? 'Abrir no Clapper Studio' : 'Criar Roteiro no Studio'}
               </Link>
             </div>
           </div>

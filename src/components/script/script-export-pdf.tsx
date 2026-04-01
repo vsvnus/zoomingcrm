@@ -238,7 +238,7 @@ export function ScriptExportPdf({ script, projectTitle }: ScriptExportPdfProps) 
           `).join('')}
 
           <div class="footer">
-            Gerado por Zooming CRM - ${new Date().toLocaleDateString('pt-BR')}
+            Gerado por Clapper - ${new Date().toLocaleDateString('pt-BR')}
           </div>
         </body>
         </html>
