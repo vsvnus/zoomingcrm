@@ -101,8 +101,8 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
       }
 
       // Faturamento Mensal / Custo Mensal: TODAS as transações (exceto CANCELLED, já filtrado na query)
-      // do dia 1 do mês até o último dia selecionado, independente de status (assume tudo será pago/recebido)
-      if (tDate >= monthStart && tDate <= to) {
+      // com due_date dentro de [from, to], independente de status (assume tudo será pago/recebido)
+      if (tDate >= from && tDate <= to) {
         if (t.type === 'INCOME') {
           monthlyRevenue += amount
         } else if (t.type === 'EXPENSE') {
