@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from 'next/server'
  * - /p/          -> public proposals shared with clients
  * - static assets are already excluded by the matcher in middleware.ts
  */
-const PUBLIC_PREFIXES = ['/login', '/p/', '/auth/callback', '/reset-password']
+const PUBLIC_PREFIXES = ['/login', '/p/', '/auth/callback', '/reset-password', '/privacy', '/terms']
 
 function isPublicRoute(pathname: string): boolean {
   if (pathname === '/') return true

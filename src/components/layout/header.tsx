@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, User, LogOut, UserCircle, Check, Sparkles } from 'lucide-react'
+import { Bell, User, LogOut, UserCircle, Check, Sparkles, Plug } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { signOut, getCurrentUserData } from '@/actions/auth'
 import { getNotifications, getUnreadCount, markAllAsRead, markAsRead, type Notification } from '@/actions/notifications'
@@ -102,9 +102,9 @@ export function Header() {
     <header
       className="sticky top-0 z-30 h-16 border-b border-[rgb(var(--border))] bg-background/80 backdrop-blur-xl"
     >
-      <div className="flex h-full items-center justify-between px-8">
+      <div className="flex h-full items-center justify-between px-4 md:px-8">
         {/* Global Search + AI Button */}
-        <div className="flex items-center gap-2 flex-1 max-w-lg">
+        <div className="hidden md:flex items-center gap-2 flex-1 max-w-lg">
           <GlobalSearch />
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -129,6 +129,11 @@ export function Header() {
           </motion.button>
         </div>
 
+        {/* Mobile Logo */}
+        <div className="flex items-center gap-2 md:hidden">
+          <span className="text-lg font-bold tracking-tight text-text-primary">Clapper</span>
+        </div>
+
         {/* Actions */}
         <div className="flex items-center gap-3">
           {/* Notifications Popover */}
@@ -147,7 +152,7 @@ export function Header() {
                 )}
               </motion.button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-0 mr-4" align="end">
+            <PopoverContent className="w-[calc(100vw-2rem)] md:w-80 p-0 mr-4" align="end">
               <div className="flex items-center justify-between border-b px-4 py-3">
                 <h4 className="font-semibold text-sm">Notificações</h4>
                 {unreadCount > 0 && (
@@ -248,10 +253,17 @@ export function Header() {
                     </div>
                     <a
                       href="/settings/profile"
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-text-secondary transition-all hover:bg-bg-hover hover:text-text-primary mb-1"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-text-secondary transition-all hover:bg-bg-hover hover:text-text-primary"
                     >
                       <UserCircle className="h-4 w-4" />
                       Meu Perfil
+                    </a>
+                    <a
+                      href="/settings/integrations"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-text-secondary transition-all hover:bg-bg-hover hover:text-text-primary mb-1"
+                    >
+                      <Plug className="h-4 w-4" />
+                      Integrações
                     </a>
                     <div className="my-1 h-px bg-bg-tertiary" />
                     <button

@@ -1,9 +1,17 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Building2, User, CreditCard, Bell, Shield, Palette } from 'lucide-react'
+import { Building2, User, CreditCard, Bell, Shield, Palette, Plug } from 'lucide-react'
+import Link from 'next/link'
 
-const settingsSections = [
+const settingsSections: {
+  id: string
+  title: string
+  description: string
+  icon: typeof Building2
+  color: string
+  href?: string
+}[] = [
   {
     id: 'organization',
     title: 'Organização',
@@ -46,6 +54,14 @@ const settingsSections = [
     icon: Palette,
     color: 'from-pink-500 to-rose-600',
   },
+  {
+    id: 'integrations',
+    title: 'Integrações',
+    description: 'Google Calendar e serviços externos',
+    icon: Plug,
+    color: 'from-teal-500 to-cyan-600',
+    href: '/settings/integrations',
+  },
 ]
 
 export default function SettingsPage() {
@@ -74,33 +90,45 @@ export default function SettingsPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {settingsSections.map((section, index) => {
           const Icon = section.icon
+          const content = (
+            <>
+              <div
+                className={`mb-4 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br ${section.color}`}
+              >
+                <Icon className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-white">{section.title}</h3>
+              <p className="mt-2 text-sm text-zinc-400 line-clamp-2">
+                {section.description}
+              </p>
+              <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white/5 to-white/0 opacity-0 transition-opacity group-hover:opacity-100" />
+            </>
+          )
 
           return (
-            <motion.button
+            <motion.div
               key={section.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="group relative overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-6 text-left backdrop-blur-xl transition-all hover:bg-white/10 hover-lift"
             >
-              {/* Icon */}
-              <div
-                className={`mb-4 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br ${section.color}`}
-              >
-                <Icon className="h-7 w-7 text-white" />
-              </div>
-
-              {/* Content */}
-              <h3 className="text-lg font-bold text-white">{section.title}</h3>
-              <p className="mt-2 text-sm text-zinc-400 line-clamp-2">
-                {section.description}
-              </p>
-
-              {/* Glow effect */}
-              <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white/5 to-white/0 opacity-0 transition-opacity group-hover:opacity-100" />
-            </motion.button>
+              {section.href ? (
+                <Link
+                  href={section.href as any}
+                  className="group relative block overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-6 text-left backdrop-blur-xl transition-all hover:bg-white/10 hover-lift"
+                >
+                  {content}
+                </Link>
+              ) : (
+                <button
+                  className="group relative w-full overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-6 text-left backdrop-blur-xl transition-all hover:bg-white/10 hover-lift"
+                >
+                  {content}
+                </button>
+              )}
+            </motion.div>
           )
         })}
       </div>
