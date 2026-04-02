@@ -167,14 +167,14 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
   ]
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl font-bold text-text-primary"
+            className="text-xl md:text-2xl lg:text-3xl font-bold text-text-primary"
           >
             Dashboard
           </motion.h1>
@@ -182,7 +182,7 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="mt-2 text-text-tertiary"
+            className="mt-1 md:mt-2 text-sm md:text-base text-text-tertiary"
           >
             Bem-vindo de volta! Aqui está o resumo dos seus projetos.
           </motion.p>
@@ -197,7 +197,7 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         {statsCards.map((stat, index) => (
           <motion.div
             key={stat.label}
@@ -207,12 +207,12 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
           >
             <Link
               href={stat.href as any}
-              className="group block relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card p-5 transition-all hover:shadow-3 hover:border-primary/30"
+              className="group block relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card p-3 md:p-5 transition-all hover:shadow-3 hover:border-primary/30"
             >
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-text-tertiary">{stat.label}</p>
-                  <p className="mt-1 text-2xl font-bold text-text-primary">{stat.value}</p>
+                  <p className="mt-1 text-lg md:text-2xl font-bold text-text-primary">{stat.value}</p>
                   <div className="mt-1 flex items-center gap-1">
                     {stat.trend === 'up' && <TrendingUp className="h-3 w-3 text-success" />}
                     {stat.trend === 'down' && <TrendingDown className="h-3 w-3 text-error" />}
@@ -235,7 +235,7 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="relative rounded-2xl border border-[rgb(var(--border))] bg-card p-6"
+        className="relative rounded-2xl border border-[rgb(var(--border))] bg-card p-4 md:p-6"
       >
         {isLoading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-black/50 backdrop-blur-[2px]">
@@ -243,13 +243,13 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
           </div>
         )}
 
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-gradient-to-br from-neutral-600 to-neutral-800 p-2">
               <BarChart3 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-text-primary">Fluxo de Caixa</h2>
+              <h2 className="text-base md:text-lg font-semibold text-text-primary">Fluxo de Caixa</h2>
               <p className="text-xs text-text-tertiary">Últimos {dateRange ? differenceInDays(dateRange.end, dateRange.start) + ' dias' : '6 meses'}</p>
             </div>
           </div>
@@ -277,13 +277,13 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
         <CashFlowChart data={stats.cashFlowData} variant={chartVariant} />
       </motion.div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
         {/* Projetos em Andamento */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.5 }}
-          className="lg:col-span-2 rounded-2xl border border-[rgb(var(--border))] bg-card p-6"
+          className="lg:col-span-2 rounded-2xl border border-[rgb(var(--border))] bg-card p-4 md:p-6"
         >
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -291,7 +291,7 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
                 <Film className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-text-primary">Projetos em Andamento</h2>
+                <h2 className="text-base md:text-lg font-semibold text-text-primary">Projetos em Andamento</h2>
                 <p className="text-xs text-text-tertiary">Ordenados por prazo de entrega</p>
               </div>
             </div>
@@ -317,7 +317,7 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
                   >
                     <Link
                       href={`/projects/${project.id}`}
-                      className="group flex items-center justify-between rounded-xl border border-[rgb(var(--border))] bg-secondary p-4 transition-all hover:bg-bg-hover"
+                      className="group flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-[rgb(var(--border))] bg-secondary p-3 md:p-4 transition-all hover:bg-bg-hover"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -333,7 +333,7 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
                         </p>
                       </div>
                       {deadlineStatus && (
-                        <div className={`ml-4 flex items-center gap-1.5 rounded-lg px-2.5 py-1 ${deadlineStatus.bg}`}>
+                        <div className={`sm:ml-4 self-start sm:self-auto flex items-center gap-1.5 rounded-lg px-2.5 py-1 ${deadlineStatus.bg}`}>
                           <Clock className={`h-3.5 w-3.5 ${deadlineStatus.color}`} />
                           <span className={`text-xs font-medium ${deadlineStatus.color}`}>
                             {deadlineStatus.label}
@@ -364,14 +364,14 @@ export function DashboardContent({ initialStats }: { initialStats?: DashboardSta
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.6 }}
-          className="rounded-2xl border border-[rgb(var(--border))] bg-card p-6"
+          className="rounded-2xl border border-[rgb(var(--border))] bg-card p-4 md:p-6"
         >
           <div className="mb-4 flex items-center gap-3">
             <div className="rounded-lg bg-gradient-to-br from-neutral-600 to-neutral-800 p-2">
               <Calendar className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-text-primary">Próximos Eventos</h2>
+              <h2 className="text-base md:text-lg font-semibold text-text-primary">Próximos Eventos</h2>
               <p className="text-xs text-text-tertiary">Agendamentos futuros</p>
             </div>
           </div>

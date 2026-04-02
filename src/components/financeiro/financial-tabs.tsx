@@ -44,21 +44,21 @@ export function FinancialTabs({ initialData, organizationId, defaultTab = 'overv
 
   return (
     <Tabs defaultValue={defaultTab} className="space-y-6">
-      <div className="flex items-center justify-between">
-        <TabsList>
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="payables">
-            Contas a Pagar
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <TabsList className="w-full md:w-auto">
+          <TabsTrigger value="overview" className="text-xs md:text-sm px-2 md:px-3">Visão Geral</TabsTrigger>
+          <TabsTrigger value="payables" className="text-xs md:text-sm px-2 md:px-3">
+            <span className="hidden md:inline">Contas a </span>Pagar
             {data.payables.length > 0 && (
-              <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+              <span className="ml-1 md:ml-2 rounded-full bg-red-100 px-1.5 md:px-2 py-0.5 text-xs font-medium text-red-800">
                 {data.payables.length}
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="receivables">
-            Contas a Receber
+          <TabsTrigger value="receivables" className="text-xs md:text-sm px-2 md:px-3">
+            <span className="hidden md:inline">Contas a </span>Receber
             {data.receivables.length > 0 && (
-              <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+              <span className="ml-1 md:ml-2 rounded-full bg-green-100 px-1.5 md:px-2 py-0.5 text-xs font-medium text-green-800">
                 {data.receivables.length}
               </span>
             )}
@@ -70,7 +70,8 @@ export function FinancialTabs({ initialData, organizationId, defaultTab = 'overv
           <InitialCapitalDialog organizationId={organizationId}>
             <Button variant="secondary" size="sm">
               <Wallet className="mr-2 h-4 w-4" />
-              Capital Inicial
+              <span className="hidden md:inline">Capital Inicial</span>
+              <span className="md:hidden">Capital</span>
             </Button>
           </InitialCapitalDialog>
         </div>

@@ -225,7 +225,8 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
         </div>
       </div>
 
-      <div className="rounded-md border">
+      {/* Desktop: Table view */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -380,6 +381,119 @@ export function PayablesTab({ data, onUpdate, organizationId }: PayablesTabProps
             })}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile: Card view */}
+      <div className="md:hidden space-y-3">
+        {payables.map((payable) => {
+          const isOverdue = payable.is_overdue || false
+          const isPending = ['PENDING', 'SCHEDULED', 'OVERDUE'].includes(payable.status)
+          const isCancelled = payable.status === 'CANCELLED'
+
+          return (
+            <div key={payable.id} className="rounded-lg border bg-card p-4 space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1 flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm truncate">{payable.description}</p>
+                    {payable.is_recurring && (
+                      <span title="Despesa Recorrente">
+                        <Repeat className="h-3 w-3 text-blue-500 shrink-0" />
+                      </span>
+                    )}
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {getCategoryLabel(payable.category)}
+                  </Badge>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      disabled={isLoading === payable.id}
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleEdit(payable)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Editar
+                    </DropdownMenuItem>
+                    {isPending && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => handleMarkAsPaid(payable.id)}
+                          className="text-green-600"
+                        >
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Marcar como Pago
+                        </DropdownMenuItem>
+                        {payable.status === 'PENDING' && (
+                          <DropdownMenuItem onClick={() => handleSchedule(payable.id)}>
+                            <Clock className="mr-2 h-4 w-4" />
+                            Agendar Pagamento
+                          </DropdownMenuItem>
+                        )}
+                      </>
+                    )}
+                    {!isCancelled && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleCancel(payable.id)}
+                          className="text-red-600"
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Cancelar
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {isCancelled && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(payable.id)}
+                          className="text-red-600"
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Apagar Permanentemente
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-bold text-red-600 dark:text-red-400">
+                  {formatCurrency(payable.amount)}
+                </span>
+                {getStatusBadge(payable.status, isOverdue)}
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  {payable.due_date ? (
+                    <span className={isOverdue ? 'text-red-600 font-medium' : ''}>
+                      Venc.: {(() => {
+                        const [y, m, d] = payable.due_date.split('-')
+                        return `${d}/${m}/${y}`
+                      })()}
+                    </span>
+                  ) : (
+                    'Sem vencimento'
+                  )}
+                </span>
+                {payable.freelancers?.name && (
+                  <span className="truncate ml-2">{payable.freelancers.name}</span>
+                )}
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       <EditExpenseDialog

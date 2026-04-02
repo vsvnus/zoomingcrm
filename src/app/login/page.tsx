@@ -78,18 +78,18 @@ export default function LoginPage() {
 
       {/* Login card */}
       <div className="relative w-full max-w-md">
-        <div className="rounded-2xl border border-border bg-card/50 p-8 backdrop-blur-xl">
+        <div className="rounded-2xl border border-border bg-card/50 p-6 md:p-8 backdrop-blur-xl">
           {/* Logo */}
-          <div className="mb-8 flex items-center justify-center gap-3">
+          <div className="mb-6 md:mb-8 flex items-center justify-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-bg-secondary to-bg-tertiary border border-border">
               <Play className="h-6 w-6 text-text-primary" fill="currentColor" />
             </div>
-            <h1 className="text-2xl font-bold text-text-primary">Clapper</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-text-primary">Clapper</h1>
           </div>
 
           {/* Title */}
           <div className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-text-primary">
+            <h2 className="text-xl md:text-2xl font-bold text-text-primary">
               {isForgotPassword ? 'Recuperar Senha' : isSignUp ? 'Criar Conta' : 'Bem-vindo de volta'}
             </h2>
             <p className="mt-2 text-sm text-text-tertiary">

@@ -202,7 +202,8 @@ export function ReceivablesTab({ data, onUpdate, organizationId }: ReceivablesTa
         <AddIncomeDialog organizationId={organizationId} />
       </div>
 
-      <div className="rounded-md border">
+      {/* Desktop: Table view */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -354,6 +355,103 @@ export function ReceivablesTab({ data, onUpdate, organizationId }: ReceivablesTa
             })}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile: Card view */}
+      <div className="md:hidden space-y-3">
+        {receivables.map((receivable) => {
+          const isOverdue = receivable.is_overdue || false
+          const isPending = receivable.status === 'PENDING' || receivable.status === 'SCHEDULED'
+          const isCancelled = receivable.status === 'CANCELLED'
+
+          return (
+            <div key={receivable.id} className="rounded-lg border bg-card p-4 space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1 flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{receivable.description}</p>
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs">
+                    {getCategoryLabel(receivable.category)}
+                  </Badge>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      disabled={isLoading === receivable.id}
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {isPending && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => handleMarkAsReceived(receivable.id)}
+                          className="text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-900/20"
+                        >
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Marcar como Recebido
+                        </DropdownMenuItem>
+                        {receivable.status === 'PENDING' && (
+                          <DropdownMenuItem onClick={() => handleSchedule(receivable.id)}>
+                            <Clock className="mr-2 h-4 w-4" />
+                            Agendar Recebimento
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    {!isCancelled && (
+                      <DropdownMenuItem
+                        onClick={() => handleCancel(receivable.id)}
+                        className="text-red-600 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-900/20"
+                      >
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Cancelar
+                      </DropdownMenuItem>
+                    )}
+                    {isCancelled && (
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(receivable.id)}
+                        className="text-red-600 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-900/20"
+                      >
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Apagar Permanentemente
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(receivable.amount)}
+                </span>
+                {getStatusBadge(receivable.status, isOverdue)}
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  {receivable.due_date ? (
+                    <span className={isOverdue ? 'text-red-500 font-medium' : ''}>
+                      Venc.: {(() => {
+                        const [y, m, d] = receivable.due_date.split('-')
+                        return `${d}/${m}/${y}`
+                      })()}
+                    </span>
+                  ) : (
+                    'Sem vencimento'
+                  )}
+                </span>
+                {receivable.clients?.name && (
+                  <span className="truncate ml-2">{receivable.clients.name}</span>
+                )}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

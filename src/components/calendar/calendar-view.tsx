@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Calendar, dateFnsLocalizer, Views, type View } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -19,6 +19,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useMobile } from '@/hooks/use-mobile'
 import type { CalendarEvent, CalendarEventType } from '@/actions/calendar'
 
 import 'react-big-calendar/lib/css/react-big-calendar.css'
@@ -73,9 +74,19 @@ const messages = {
 }
 
 export function CalendarView({ events, onCreateEvent, onEventClick, onRangeChange }: CalendarViewProps) {
+  const isMobile = useMobile()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<View>(Views.MONTH)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
+  const [hasMobileInitialized, setHasMobileInitialized] = useState(false)
+
+  // Switch to agenda view on mobile after hydration
+  useEffect(() => {
+    if (isMobile && !hasMobileInitialized) {
+      setView(Views.AGENDA)
+      setHasMobileInitialized(true)
+    }
+  }, [isMobile, hasMobileInitialized])
 
   const calendarEvents = useMemo(() => {
     // Helper: parse date string as LOCAL date (avoids UTC timezone shift)
@@ -154,8 +165,8 @@ export function CalendarView({ events, onCreateEvent, onEventClick, onRangeChang
   }, [])
 
   const CustomToolbar = () => (
-    <div className="mb-6 flex items-center justify-between">
-      <div className="flex items-center gap-4">
+    <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center justify-between md:justify-start gap-4">
         <div className="flex items-center gap-1">
           <button
             onClick={() => handleNavigate('PREV')}
@@ -170,18 +181,26 @@ export function CalendarView({ events, onCreateEvent, onEventClick, onRangeChang
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
-        <h2 className="text-xl font-semibold text-text-primary">
+        <h2 className="text-base md:text-xl font-semibold text-text-primary capitalize">
           {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
         </h2>
-        <button
-          onClick={() => handleNavigate('TODAY')}
-          className="rounded-lg border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-bg-hover hover:text-text-primary transition-colors"
-        >
-          Hoje
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleNavigate('TODAY')}
+            className="rounded-lg border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-bg-hover hover:text-text-primary transition-colors"
+          >
+            Hoje
+          </button>
+          <button
+            onClick={onCreateEvent}
+            className="flex md:hidden items-center gap-2 rounded-lg bg-accent-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-600 transition-colors shadow-sm hover:shadow-md"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="hidden md:flex items-center gap-3">
         <div className="flex items-center gap-1 rounded-lg border border-border p-1 bg-bg-secondary/50">
           {[
             { key: Views.MONTH, label: 'Mês' },
@@ -207,7 +226,7 @@ export function CalendarView({ events, onCreateEvent, onEventClick, onRangeChang
           className="flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2 text-sm font-medium text-white hover:bg-accent-600 transition-colors shadow-sm hover:shadow-md"
         >
           <Plus className="h-4 w-4" />
-          Novo Evento
+          <span className="hidden md:inline">Novo Evento</span>
         </button>
       </div>
     </div>
@@ -225,7 +244,7 @@ export function CalendarView({ events, onCreateEvent, onEventClick, onRangeChang
           events={calendarEvents}
           startAccessor="start"
           endAccessor="end"
-          style={{ height: 'calc(100vh - 280px)' }}
+          style={{ height: isMobile ? 'calc(100vh - 220px)' : 'calc(100vh - 280px)' }}
           views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
           view={view}
           onView={setView}
@@ -247,7 +266,7 @@ export function CalendarView({ events, onCreateEvent, onEventClick, onRangeChang
       </div>
 
       {/* Legend */}
-      <div className="mt-4 flex items-center gap-6">
+      <div className="mt-4 flex flex-wrap items-center gap-3 md:gap-6">
         {Object.entries(eventTypeLabels).map(([type, label]) => {
           const Icon = eventTypeIcons[type as CalendarEventType]
           const colors: Record<string, string> = {
@@ -283,7 +302,7 @@ export function CalendarView({ events, onCreateEvent, onEventClick, onRangeChang
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-bg-secondary p-6 shadow-2xl backdrop-blur-xl"
+              className="fixed left-1/2 top-1/2 z-50 w-full max-w-[calc(100vw-2rem)] md:max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-bg-secondary p-6 shadow-2xl backdrop-blur-xl"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">

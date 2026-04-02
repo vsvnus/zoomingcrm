@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { Plus, Clock, Calendar, AlertCircle, Eye, GripVertical } from 'lucide-react'
 import { useState, useMemo, useEffect } from 'react'
+import { useMobile } from '@/hooks/use-mobile'
 import { updateProjectStatus } from '@/actions/projects'
 import { ProjectFormModal } from './project-form-modal'
 import Link from 'next/link'
@@ -44,6 +45,7 @@ interface ProjectsKanbanProps {
 }
 
 export function ProjectsKanban({ initialProjects }: ProjectsKanbanProps) {
+  const isMobile = useMobile()
   const [projects, setProjects] = useState(initialProjects)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -121,7 +123,7 @@ export function ProjectsKanban({ initialProjects }: ProjectsKanbanProps) {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl font-bold text-text-primary"
+            className="text-2xl md:text-3xl font-bold text-text-primary"
           >
             Projetos
           </motion.h1>
@@ -141,10 +143,10 @@ export function ProjectsKanban({ initialProjects }: ProjectsKanbanProps) {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 shadow-md"
+          className="flex items-center gap-2 rounded-xl bg-primary px-3 md:px-6 py-2.5 md:py-3 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 shadow-md"
         >
           <Plus className="h-4 w-4" />
-          Novo Projeto
+          <span className="hidden md:inline">Novo Projeto</span>
         </motion.button>
       </div>
 
@@ -160,7 +162,7 @@ export function ProjectsKanban({ initialProjects }: ProjectsKanbanProps) {
           return (
             <div
               key={status.id}
-              className="rounded-xl border border-[rgb(var(--border))] bg-card p-4 backdrop-blur-xl"
+              className="rounded-xl border border-[rgb(var(--border))] bg-card p-3 md:p-4 backdrop-blur-xl"
             >
               <div className="flex items-center gap-2">
                 <div className={`h-2 w-2 rounded-full ${status.color}`} />
@@ -172,35 +174,70 @@ export function ProjectsKanban({ initialProjects }: ProjectsKanbanProps) {
         })}
       </motion.div>
 
-      {/* Kanban Board (DnD) */}
+      {/* DnD Context wraps both desktop and mobile */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="overflow-x-auto pb-4 custom-scrollbar">
-          <div className="flex gap-4 min-w-max">
-            {STATUSES.map((status, index) => {
-              const statusProjects = getProjectsByStatus(status.id)
+        {/* Kanban Board — desktop only */}
+        <div className="hidden md:block">
+          <div className="overflow-x-auto pb-4 custom-scrollbar">
+            <div className="flex gap-4 min-w-max">
+              {STATUSES.map((status, index) => {
+                const statusProjects = getProjectsByStatus(status.id)
 
-              return (
-                <KanbanColumn
-                  key={status.id}
-                  status={status}
-                  projects={statusProjects}
-                  index={index}
-                />
-              )
-            })}
+                return (
+                  <KanbanColumn
+                    key={status.id}
+                    status={status}
+                    projects={statusProjects}
+                    index={index}
+                  />
+                )
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Overlay para o card sendo arrastado */}
+        {/* Mobile Project List with DnD — mobile only */}
+        <div className="md:hidden space-y-4">
+          {STATUSES.map((status) => {
+            const statusProjects = getProjectsByStatus(status.id)
+
+            return (
+              <MobileDropZone
+                key={status.id}
+                status={status}
+                projects={statusProjects}
+                isActivelyDragging={activeId !== null}
+              />
+            )
+          })}
+          {projects.length === 0 && (
+            <div className="flex flex-col items-center justify-center gap-3 py-12">
+              <div className="rounded-full bg-bg-secondary p-3 border border-border">
+                <AlertCircle className="h-6 w-6 text-text-tertiary" />
+              </div>
+              <p className="text-sm text-zinc-500">Nenhum projeto criado ainda</p>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="text-sm text-blue-400 hover:text-blue-300"
+              >
+                Criar primeiro projeto
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Overlay para o card sendo arrastado (desktop + mobile) */}
         {isMounted && createPortal(
           <DragOverlay>
             {activeProject ? (
-              <ProjectCard project={activeProject} isOverlay />
+              isMobile
+                ? <MobileProjectCardOverlay project={activeProject} />
+                : <ProjectCard project={activeProject} isOverlay />
             ) : null}
           </DragOverlay>,
           document.body
@@ -214,8 +251,10 @@ export function ProjectsKanban({ initialProjects }: ProjectsKanbanProps) {
         transition={{ delay: 0.4 }}
         className="space-y-4 pt-8 border-t border-[rgb(var(--border))]"
       >
-        <h2 className="text-xl font-semibold text-text-primary">Todos os Projetos</h2>
-        <div className="rounded-xl border border-[rgb(var(--border))] bg-card backdrop-blur-xl overflow-hidden">
+        <h2 className="text-lg md:text-xl font-semibold text-text-primary">Todos os Projetos</h2>
+
+        {/* Desktop table */}
+        <div className="hidden md:block rounded-xl border border-[rgb(var(--border))] bg-card backdrop-blur-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -273,6 +312,48 @@ export function ProjectsKanban({ initialProjects }: ProjectsKanbanProps) {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Mobile card list */}
+        <div className="md:hidden space-y-2">
+          {projects.length > 0 ? (
+            projects.map((project) => {
+              const statusConfig = STATUSES.find((s) => s.id === project.status)
+              return (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className="flex items-center justify-between rounded-xl border border-[rgb(var(--border))] bg-card p-3 transition-colors active:bg-bg-hover"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-text-primary text-sm truncate">{project.title}</p>
+                    <p className="text-xs text-text-tertiary mt-0.5">{project.clients?.name || '-'}</p>
+                  </div>
+                  <div className="flex items-center gap-2 ml-3 shrink-0">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-white ${statusConfig?.color || 'bg-zinc-500'}`}
+                    >
+                      {statusConfig?.label || project.status}
+                    </span>
+                    <Eye className="h-3.5 w-3.5 text-text-quaternary" />
+                  </div>
+                </Link>
+              )
+            })
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-3 py-12">
+              <div className="rounded-full bg-bg-secondary p-3 border border-border">
+                <AlertCircle className="h-6 w-6 text-text-tertiary" />
+              </div>
+              <p className="text-sm text-zinc-500">Nenhum projeto criado ainda</p>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="text-sm text-blue-400 hover:text-blue-300"
+              >
+                Criar primeiro projeto
+              </button>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -353,6 +434,189 @@ function DraggableCard({ project }: { project: ProjectWithClient }) {
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing">
       <ProjectCard project={project} />
+    </div>
+  )
+}
+
+function MobileDropZone({
+  status,
+  projects,
+  isActivelyDragging,
+}: {
+  status: typeof STATUSES[number]
+  projects: ProjectWithClient[]
+  isActivelyDragging: boolean
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: status.id,
+  })
+
+  return (
+    <div ref={setNodeRef}>
+      <div className="flex items-center gap-2 mb-2">
+        <div className={`h-2.5 w-2.5 rounded-full ${status.color}`} />
+        <h3 className="text-sm font-semibold text-text-primary">{status.label}</h3>
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-[10px] font-medium text-text-secondary">
+          {projects.length}
+        </span>
+      </div>
+
+      <div
+        className={`space-y-2 rounded-xl p-2 transition-all ${
+          isOver
+            ? 'bg-primary/10 ring-2 ring-primary/30'
+            : isActivelyDragging
+              ? 'bg-secondary/30 ring-1 ring-dashed ring-[rgb(var(--border))]'
+              : ''
+        }`}
+      >
+        {projects.length > 0 ? (
+          projects.map((project) => (
+            <DraggableMobileCard
+              key={project.id}
+              project={project}
+              statusConfig={status}
+            />
+          ))
+        ) : (
+          <div
+            className={`flex h-14 items-center justify-center text-xs rounded-lg border-2 border-dashed transition-colors ${
+              isOver
+                ? 'border-primary/40 text-primary bg-primary/5'
+                : isActivelyDragging
+                  ? 'border-[rgb(var(--border))] text-text-quaternary'
+                  : 'border-transparent text-transparent'
+            }`}
+          >
+            Solte aqui
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function DraggableMobileCard({
+  project,
+  statusConfig,
+}: {
+  project: ProjectWithClient & { tasks_total?: number; tasks_completed?: number }
+  statusConfig: typeof STATUSES[number]
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: project.id,
+  })
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 50,
+  } : undefined
+
+  const tasksTotal = (project as any).tasks_total || 0
+  const tasksCompleted = (project as any).tasks_completed || 0
+  const progressPct = tasksTotal > 0 ? Math.round((tasksCompleted / tasksTotal) * 100) : null
+
+  if (isDragging) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-3 opacity-40"
+      >
+        <p className="text-sm text-primary font-medium truncate">{project.title}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className="touch-none"
+    >
+      <div className="flex items-center gap-2 rounded-xl border border-[rgb(var(--border))] bg-card p-3 transition-colors active:bg-bg-hover">
+        <GripVertical className="h-4 w-4 text-text-quaternary shrink-0" />
+
+        <Link
+          href={`/projects/${project.id}`}
+          className="flex-1 min-w-0"
+          onClick={(e) => {
+            // Prevent navigation when dragging
+            if (transform) e.preventDefault()
+          }}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-text-primary text-sm leading-tight truncate">
+                {project.title}
+              </p>
+              {project.clients && (
+                <p className="text-xs text-text-tertiary mt-0.5">
+                  {project.clients.company || project.clients.name}
+                </p>
+              )}
+            </div>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-white shrink-0 ${statusConfig.color}`}
+            >
+              <div className="h-1 w-1 rounded-full bg-white" />
+              {statusConfig.label}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 mt-2">
+            {project.deadline_date && (
+              <div className="flex items-center gap-1 text-[11px] text-text-tertiary">
+                <Calendar className="h-3 w-3" />
+                <span>
+                  {new Date(project.deadline_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                </span>
+              </div>
+            )}
+            {progressPct !== null && (
+              <div className="flex items-center gap-1.5 flex-1">
+                <div className="flex-1 h-1 rounded-full bg-secondary overflow-hidden max-w-[80px]">
+                  <div
+                    className="h-full bg-gradient-to-r from-green-500 to-emerald-400"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-text-quaternary font-medium">{progressPct}%</span>
+              </div>
+            )}
+          </div>
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+function MobileProjectCardOverlay({ project }: { project: ProjectWithClient }) {
+  const statusConfig = STATUSES.find((s) => s.id === project.status)
+
+  return (
+    <div className="rounded-xl border-2 border-primary bg-card p-3 shadow-2xl ring-4 ring-primary/20 rotate-2 w-[calc(100vw-3rem)] max-w-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-text-primary text-sm leading-tight truncate">
+            {project.title}
+          </p>
+          {project.clients && (
+            <p className="text-xs text-text-tertiary mt-0.5">
+              {project.clients.company || project.clients.name}
+            </p>
+          )}
+        </div>
+        {statusConfig && (
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-white shrink-0 ${statusConfig.color}`}
+          >
+            {statusConfig.label}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

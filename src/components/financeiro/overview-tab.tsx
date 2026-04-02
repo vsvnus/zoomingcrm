@@ -48,16 +48,16 @@ export function OverviewTab({ data }: OverviewTabProps) {
   const isProjectionPositive = projection >= 0
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Saldo Atual - Destaque Especial */}
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
+      <div className="rounded-xl border bg-card p-4 md:p-6 shadow-sm">
         <div className="flex flex-col space-y-2">
           <span className="text-sm font-medium text-muted-foreground">
             Saldo Atual Disponível
           </span>
           <div className="flex items-center justify-between">
             <div
-              className={`text-4xl font-bold ${isBalancePositive ? 'text-purple-600' : 'text-red-600'}`}
+              className={`text-2xl md:text-4xl font-bold ${isBalancePositive ? 'text-purple-600' : 'text-red-600'}`}
             >
               {formatCurrency(data.current_balance)}
             </div>
@@ -71,7 +71,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Entradas */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -81,7 +81,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-lg md:text-2xl font-bold text-green-600">
               {formatCurrency(data.total_income)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -97,7 +97,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
             <TrendingDown className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-lg md:text-2xl font-bold text-red-600">
               {formatCurrency(data.total_expenses)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -116,7 +116,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
           </CardHeader>
           <CardContent>
             <div
-              className={`text-2xl font-bold ${isProfit ? 'text-green-600' : 'text-red-600'}`}
+              className={`text-lg md:text-2xl font-bold ${isProfit ? 'text-green-600' : 'text-red-600'}`}
             >
               {formatCurrency(data.net_profit)}
             </div>
@@ -133,7 +133,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
             <AlertCircle className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-lg md:text-2xl font-bold text-blue-600">
               {formatCurrency(data.pending_receivable)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -149,7 +149,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
             <AlertCircle className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-lg md:text-2xl font-bold text-orange-600">
               {formatCurrency(data.pending_payable)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -168,7 +168,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
           </CardHeader>
           <CardContent>
             <div
-              className={`text-2xl font-bold ${isProjectionPositive ? 'text-emerald-600' : 'text-rose-600'}`}
+              className={`text-lg md:text-2xl font-bold ${isProjectionPositive ? 'text-emerald-600' : 'text-rose-600'}`}
             >
               {formatCurrency(projection)}
             </div>
@@ -180,7 +180,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
       </div>
 
       {/* Segunda linha: Faturamento Mensal, Custo Mensal, Lucro Real */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-3">
         {/* Faturamento Mensal */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -188,7 +188,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
             <TrendingUp className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">
+            <div className="text-lg md:text-2xl font-bold text-emerald-600">
               {formatCurrency(data.monthly_revenue)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -204,7 +204,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
             <TrendingDown className="h-4 w-4 text-rose-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-rose-600">
+            <div className="text-lg md:text-2xl font-bold text-rose-600">
               {formatCurrency(data.monthly_cost)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -223,7 +223,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
           </CardHeader>
           <CardContent>
             <div
-              className={`text-2xl font-bold ${data.real_profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}
+              className={`text-lg md:text-2xl font-bold ${data.real_profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}
             >
               {formatCurrency(data.real_profit)}
             </div>

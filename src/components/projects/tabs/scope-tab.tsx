@@ -29,8 +29,8 @@ export function ScopeTab({
 }: ScopeTabProps) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm">
-      <div className="border-b border-white/10 p-6">
-        <div className="flex items-center justify-between">
+      <div className="border-b border-white/10 p-4 md:p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-text-primary">Escopo do Projeto</h3>
             <p className="mt-1 text-sm text-text-secondary">
@@ -39,21 +39,22 @@ export function ScopeTab({
           </div>
           <button
             onClick={onAddItem}
-            className="flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 text-sm font-medium text-bg-primary transition-all hover:bg-text-secondary"
+            className="flex items-center gap-2 rounded-lg bg-text-primary px-3 py-2 md:px-4 text-sm font-medium text-bg-primary transition-all hover:bg-text-secondary"
           >
             <Plus className="h-4 w-4" />
-            Adicionar Item
+            <span className="hidden md:inline">Adicionar Item</span>
+            <span className="md:hidden">Adicionar</span>
           </button>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         {project.items && project.items.length > 0 ? (
           <div className="space-y-3">
             {project.items.map((item) => (
               <div
                 key={item.id}
-                className={`flex items-start gap-4 rounded-lg border p-4 transition-all ${item.status === 'DONE'
+                className={`flex flex-col gap-3 md:flex-row md:items-start md:gap-4 rounded-lg border p-3 md:p-4 transition-all ${item.status === 'DONE'
                   ? 'border-green-500/20 bg-green-500/5'
                   : 'border-border bg-card'
                   }`}
@@ -99,7 +100,7 @@ export function ScopeTab({
                   </div>
                 </div>
 
-                <div className="ml-4 flex items-start gap-2">
+                <div className="flex items-start gap-2 md:ml-4">
                   <button
                     onClick={() => onEditItem(item)}
                     className="rounded-lg p-2 text-text-tertiary transition-all hover:bg-bg-hover hover:text-text-primary"

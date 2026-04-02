@@ -57,11 +57,11 @@ export function OverviewTab({
   setEditingTaskTitle,
 }: OverviewTabProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Project Info Cards */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
         {/* Informações Gerais */}
-        <div className="rounded-xl border border-border bg-card p-6 backdrop-blur-sm">
+        <div className="rounded-xl border border-border bg-card p-4 md:p-6 backdrop-blur-sm">
           <h3 className="mb-4 text-lg font-semibold text-text-primary">
             Informações Gerais
           </h3>
@@ -108,7 +108,7 @@ export function OverviewTab({
         </div>
 
         {/* Timeline */}
-        <div className="rounded-xl border border-border bg-card p-6 backdrop-blur-sm">
+        <div className="rounded-xl border border-border bg-card p-4 md:p-6 backdrop-blur-sm">
           <h3 className="mb-4 text-lg font-semibold text-text-primary">
             Cronograma
           </h3>
@@ -226,9 +226,9 @@ export function OverviewTab({
       </div>
 
       {/* Specs Técnicas */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
         {/* Especificações de Vídeo */}
-        <div className="rounded-xl border border-border bg-card p-6 backdrop-blur-sm">
+        <div className="rounded-xl border border-border bg-card p-4 md:p-6 backdrop-blur-sm">
           <h3 className="mb-4 text-lg font-semibold text-text-primary">
             Especificações Técnicas
           </h3>
@@ -266,7 +266,7 @@ export function OverviewTab({
         </div>
 
         {/* Links e Documentos */}
-        <div className="rounded-xl border border-border bg-card p-6 backdrop-blur-sm">
+        <div className="rounded-xl border border-border bg-card p-4 md:p-6 backdrop-blur-sm">
           <h3 className="mb-4 text-lg font-semibold text-text-primary">
             Documentos e Links
           </h3>
@@ -316,7 +316,7 @@ export function OverviewTab({
 
       {/* Description */}
       {project.description && (
-        <div className="rounded-xl border border-border bg-card p-6 backdrop-blur-sm">
+        <div className="rounded-xl border border-border bg-card p-4 md:p-6 backdrop-blur-sm">
           <h3 className="mb-4 text-lg font-semibold text-text-primary">
             Descrição do Projeto
           </h3>
@@ -327,7 +327,7 @@ export function OverviewTab({
       )}
 
       {/* To-Do List */}
-      <div className="rounded-xl border border-border bg-card p-6 backdrop-blur-sm">
+      <div className="rounded-xl border border-border bg-card p-4 md:p-6 backdrop-blur-sm">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-text-primary">
             Checklist do Projeto
