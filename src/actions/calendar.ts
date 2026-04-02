@@ -4,6 +4,8 @@ import { createClient, getUserOrganization } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns'
 import { validateInput, calendarEventSchema } from '@/lib/validations'
+import { createGoogleEvent, updateGoogleEvent, deleteGoogleEvent } from '@/lib/google-calendar/events'
+import { getUserConnection } from '@/lib/google-calendar/client'
 
 export type CalendarEventType = 'shooting' | 'delivery' | 'meeting' | 'other'
 
@@ -362,6 +364,34 @@ export async function createCalendarEvent(event: {
     throw new Error('Erro ao criar evento: ' + error.message)
   }
 
+  // Sync to Google Calendar (async, non-blocking)
+  if (user?.id && data?.id) {
+    try {
+      const googleEventId = await createGoogleEvent(user.id, {
+        title: event.title,
+        description: event.description,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        allDay: event.allDay,
+        location: event.location,
+        type: event.type,
+      })
+
+      if (googleEventId) {
+        await supabase
+          .from('calendar_events')
+          .update({
+            google_event_id: googleEventId,
+            google_synced_at: new Date().toISOString(),
+          })
+          .eq('id', data.id)
+      }
+    } catch (syncError) {
+      // Don't fail the event creation if Google sync fails
+      console.error('Google Calendar sync failed:', syncError)
+    }
+  }
+
   revalidatePath('/calendar')
   return data
 }
@@ -403,6 +433,32 @@ export async function updateCalendarEvent(
     throw new Error('Erro ao atualizar evento: ' + error.message)
   }
 
+  // Sync update to Google Calendar
+  if (data?.google_event_id) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.id) {
+        const updated = await updateGoogleEvent(user.id, data.google_event_id, {
+          title: data.title,
+          description: data.description,
+          startDate: data.start_date,
+          endDate: data.end_date,
+          allDay: data.all_day,
+          location: data.location,
+          type: data.type,
+        })
+        if (updated) {
+          await supabase
+            .from('calendar_events')
+            .update({ google_synced_at: new Date().toISOString() })
+            .eq('id', id)
+        }
+      }
+    } catch (syncError) {
+      console.error('Google Calendar sync update failed:', syncError)
+    }
+  }
+
   revalidatePath('/calendar')
   return data
 }
@@ -410,6 +466,14 @@ export async function updateCalendarEvent(
 export async function deleteCalendarEvent(id: string) {
   const supabase = await createClient()
   const organizationId = await getUserOrganization()
+
+  // Fetch event first to get google_event_id before deleting
+  const { data: event } = await supabase
+    .from('calendar_events')
+    .select('google_event_id')
+    .eq('id', id)
+    .eq('organization_id', organizationId)
+    .single()
 
   const { error } = await supabase
     .from('calendar_events')
@@ -422,5 +486,30 @@ export async function deleteCalendarEvent(id: string) {
     throw new Error('Erro ao deletar evento: ' + error.message)
   }
 
+  // Sync delete to Google Calendar
+  if (event?.google_event_id) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.id) {
+        await deleteGoogleEvent(user.id, event.google_event_id)
+      }
+    } catch (syncError) {
+      console.error('Google Calendar sync delete failed:', syncError)
+    }
+  }
+
   revalidatePath('/calendar')
+}
+
+export async function getGoogleCalendarStatus() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { connected: false }
+
+  const connection = await getUserConnection(user.id)
+  return {
+    connected: !!connection,
+    connectedAt: connection?.connected_at || null,
+  }
 }
