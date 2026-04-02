@@ -513,3 +513,90 @@ export async function getGoogleCalendarStatus() {
     connectedAt: connection?.connected_at || null,
   }
 }
+
+export async function syncAllEventsToGoogle(): Promise<{ synced: number; errors: number }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error('Não autenticado')
+
+  const connection = await getUserConnection(user.id)
+  if (!connection) throw new Error('Google Calendar não conectado')
+
+  const organizationId = await getUserOrganization()
+
+  // Buscar todos os eventos manuais que ainda não foram sincronizados
+  const { data: events, error } = await supabase
+    .from('calendar_events')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .is('google_event_id', null)
+
+  if (error) throw new Error('Erro ao buscar eventos: ' + error.message)
+
+  let synced = 0
+  let errors = 0
+
+  for (const event of events || []) {
+    try {
+      const googleEventId = await createGoogleEvent(user.id, {
+        title: event.title,
+        description: event.description,
+        startDate: event.start_date,
+        endDate: event.end_date,
+        allDay: event.all_day,
+        location: event.location,
+        type: event.type,
+      })
+
+      if (googleEventId) {
+        await supabase
+          .from('calendar_events')
+          .update({
+            google_event_id: googleEventId,
+            google_synced_at: new Date().toISOString(),
+          })
+          .eq('id', event.id)
+        synced++
+      } else {
+        errors++
+      }
+    } catch {
+      errors++
+    }
+  }
+
+  // Também sincronizar eventos de projetos (shooting dates, deadlines, etc.)
+  const allCalendarEvents = await getCalendarEvents(
+    new Date('2020-01-01'),
+    new Date('2030-12-31')
+  )
+
+  // Filtrar apenas eventos que não são manuais (projetos, propostas, etc.)
+  const projectEvents = allCalendarEvents.filter(e => !e.id.startsWith('manual-'))
+
+  for (const event of projectEvents) {
+    try {
+      const googleEventId = await createGoogleEvent(user.id, {
+        title: event.title,
+        description: event.description,
+        startDate: event.start,
+        endDate: event.end,
+        allDay: event.allDay,
+        location: event.location,
+        type: event.type,
+      })
+
+      if (googleEventId) {
+        synced++
+      } else {
+        errors++
+      }
+    } catch {
+      errors++
+    }
+  }
+
+  revalidatePath('/calendar')
+  return { synced, errors }
+}
