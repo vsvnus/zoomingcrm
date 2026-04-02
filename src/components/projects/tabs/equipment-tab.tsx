@@ -16,8 +16,8 @@ export function EquipmentTab({
 }: EquipmentTabProps) {
   return (
     <div className="rounded-xl border border-border bg-card backdrop-blur-sm">
-      <div className="border-b border-border p-6">
-        <div className="flex items-center justify-between">
+      <div className="border-b border-border p-4 md:p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-text-primary">
               Equipamentos Reservados
@@ -28,24 +28,25 @@ export function EquipmentTab({
           </div>
           <button
             onClick={onAddEquipment}
-            className="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-purple-700"
+            className="flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-2 md:px-4 text-sm font-medium text-white transition-all hover:bg-purple-700"
           >
             <Plus className="h-4 w-4" />
-            Adicionar Equipamento
+            <span className="hidden md:inline">Adicionar Equipamento</span>
+            <span className="md:hidden">Adicionar</span>
           </button>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         {equipmentBookings && equipmentBookings.length > 0 ? (
           <div className="space-y-3">
             {equipmentBookings.map((booking: any) => (
               <div
                 key={booking.id}
-                className="flex items-center justify-between rounded-lg border border-border bg-card p-4"
+                className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between rounded-lg border border-border bg-card p-3 md:p-4"
               >
-                <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-secondary">
                     <Package className="h-5 w-5 text-text-primary" />
                   </div>
                   <div>
@@ -57,7 +58,7 @@ export function EquipmentTab({
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-left md:text-right pl-13 md:pl-0">
                   <p className="text-sm text-text-primary">
                     {new Date(booking.start_date).toLocaleDateString(
                       'pt-BR'

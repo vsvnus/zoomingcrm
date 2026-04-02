@@ -240,7 +240,7 @@ export function ProjectDetailTabs({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <div>
         <Link
@@ -251,12 +251,12 @@ export function ProjectDetailTabs({
           Voltar para projetos
         </Link>
 
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="flex-1 min-w-0">
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-2 text-3xl font-bold text-text-primary"
+              className="mb-2 text-xl md:text-3xl font-bold text-text-primary"
             >
               {project.title}
             </motion.h1>
@@ -281,17 +281,17 @@ export function ProjectDetailTabs({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setIsEditModalOpen(true)}
-              className="flex items-center gap-2 rounded-lg border border-border bg-secondary px-4 py-2 text-sm font-medium text-text-primary transition-all hover:bg-bg-hover"
+              className="flex items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 md:px-4 text-sm font-medium text-text-primary transition-all hover:bg-bg-hover"
             >
               <Edit className="h-4 w-4" />
-              Editar
+              <span className="hidden md:inline">Editar</span>
             </button>
             <button
               onClick={handleDeleteProject}
-              className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-all hover:bg-red-500/20"
+              className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 md:px-4 text-sm font-medium text-red-400 transition-all hover:bg-red-500/20"
               title="Excluir Projeto"
             >
               <Trash2 className="h-4 w-4" />
@@ -305,7 +305,7 @@ export function ProjectDetailTabs({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="flex gap-2 rounded-xl border border-border bg-card p-2 backdrop-blur-sm"
+        className="flex gap-2 overflow-x-auto rounded-xl border border-border bg-card p-2 backdrop-blur-sm [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {tabs.map((tab) => {
           const Icon = tab.icon
@@ -319,7 +319,7 @@ export function ProjectDetailTabs({
                   tab.id as 'overview' | 'scope' | 'script' | 'team' | 'equipment' | 'financial'
                 )
               }
-              className={`relative flex flex-1 items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-medium transition-all ${isActive
+              className={`relative flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 md:px-6 md:py-3 text-sm font-medium transition-all ${isActive
                 ? 'text-primary'
                 : 'text-text-tertiary hover:text-text-primary hover:bg-secondary'
                 }`}
@@ -331,8 +331,8 @@ export function ProjectDetailTabs({
                   transition={{ type: 'spring', duration: 0.5 }}
                 />
               )}
-              <Icon className="relative h-4 w-4" />
-              <span className="relative">{tab.label}</span>
+              <Icon className="relative h-4 w-4 flex-shrink-0" />
+              <span className="relative hidden md:inline">{tab.label}</span>
             </button>
           )
         })}
@@ -378,8 +378,8 @@ export function ProjectDetailTabs({
         )}
 
         {activeTab === 'script' && (
-          <div className="space-y-6">
-            <div className="rounded-xl border border-border bg-card p-8 text-center space-y-4">
+          <div className="space-y-4 md:space-y-6">
+            <div className="rounded-xl border border-border bg-card p-4 md:p-8 text-center space-y-4">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-500/10 border border-accent-500/20">
                 <Film className="h-8 w-8 text-accent-500" />
               </div>

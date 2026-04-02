@@ -152,13 +152,13 @@ export function ClientDetailTabs({
           Voltar para clientes
         </Link>
 
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div className="flex items-center gap-4">
             {/* Avatar */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-neutral-500 to-neutral-700 text-3xl font-bold text-white"
+              className="flex h-12 w-12 md:h-20 md:w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-neutral-500 to-neutral-700 text-base md:text-2xl font-bold text-white"
             >
               {getInitials(client.name)}
             </motion.div>
@@ -167,7 +167,7 @@ export function ClientDetailTabs({
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-3xl font-bold text-text-primary"
+                className="text-xl md:text-3xl font-bold text-text-primary"
               >
                 {client.name}
               </motion.h1>
@@ -175,7 +175,7 @@ export function ClientDetailTabs({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="mt-1 flex items-center gap-4"
+                className="mt-1 flex flex-col gap-2 md:flex-row md:items-center md:gap-4"
               >
                 {client.company && (
                   <span className="flex items-center gap-1 text-sm text-text-tertiary">
@@ -202,7 +202,7 @@ export function ClientDetailTabs({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             onClick={() => setIsEditModalOpen(true)}
-            className="flex items-center gap-2 rounded-xl border border-[rgb(var(--border))] bg-secondary px-4 py-2 text-sm font-medium text-text-primary transition-all hover:bg-bg-hover"
+            className="flex items-center gap-2 rounded-xl border border-[rgb(var(--border))] bg-secondary px-3 py-2 md:px-4 text-sm font-medium text-text-primary transition-all hover:bg-bg-hover self-start"
           >
             <Edit className="h-4 w-4" />
             Editar
@@ -275,7 +275,7 @@ export function ClientDetailTabs({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="flex gap-2 rounded-xl border border-[rgb(var(--border))] bg-card p-2"
+        className="flex flex-nowrap gap-2 overflow-x-auto rounded-xl border border-[rgb(var(--border))] bg-card p-2"
       >
         {tabs.map((tab) => {
           const Icon = tab.icon
@@ -285,7 +285,7 @@ export function ClientDetailTabs({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`relative flex flex-1 items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-medium transition-all ${isActive
+              className={`relative flex flex-1 items-center justify-center gap-2 rounded-lg px-3 md:px-6 py-3 text-sm font-medium transition-all whitespace-nowrap ${isActive
                   ? 'text-text-primary'
                   : 'text-text-tertiary hover:text-text-primary hover:bg-bg-hover'
                 }`}
@@ -318,9 +318,9 @@ export function ClientDetailTabs({
       >
         {/* Overview Tab */}
         {activeTab === 'overview' && (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
             {/* Dados do Cliente */}
-            <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-6">
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-4 md:p-6">
               <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-text-primary">
                 <User className="h-5 w-5" />
                 Dados do Cliente
@@ -365,7 +365,7 @@ export function ClientDetailTabs({
             </div>
 
             {/* Ultimos Projetos */}
-            <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-6">
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-4 md:p-6">
               <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-text-primary">
                 <Briefcase className="h-5 w-5" />
                 Ultimos Projetos
@@ -397,7 +397,7 @@ export function ClientDetailTabs({
             </div>
 
             {/* Ultimas Propostas */}
-            <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-6 lg:col-span-2">
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-4 md:p-6 lg:col-span-2">
               <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-text-primary">
                 <FileText className="h-5 w-5" />
                 Ultimas Propostas
@@ -444,7 +444,7 @@ export function ClientDetailTabs({
 
         {/* Projects Tab */}
         {activeTab === 'projects' && (
-          <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-6">
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-4 md:p-6">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-text-primary">Todos os Projetos</h3>
               <Link
@@ -513,7 +513,7 @@ export function ClientDetailTabs({
 
         {/* Proposals Tab */}
         {activeTab === 'proposals' && (
-          <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-6">
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-4 md:p-6">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-text-primary">Todas as Propostas</h3>
               <Link
@@ -573,10 +573,10 @@ export function ClientDetailTabs({
 
         {/* Financial Tab */}
         {activeTab === 'financial' && (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Resumo */}
             <div className="grid gap-4 lg:grid-cols-3">
-              <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-6">
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-4 md:p-6">
                 <p className="text-sm text-text-tertiary">Receita Total</p>
                 <p className="mt-1 text-2xl font-bold text-green-500">
                   {formatCurrency(totalRevenue)}
@@ -586,7 +586,7 @@ export function ClientDetailTabs({
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-6">
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-4 md:p-6">
                 <p className="text-sm text-text-tertiary">Despesas</p>
                 <p className="mt-1 text-2xl font-bold text-red-500">
                   {formatCurrency(totalExpenses)}
@@ -596,7 +596,7 @@ export function ClientDetailTabs({
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-6">
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-4 md:p-6">
                 <p className="text-sm text-text-tertiary">Saldo</p>
                 <p className={`mt-1 text-2xl font-bold ${totalRevenue - totalExpenses >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                   {formatCurrency(totalRevenue - totalExpenses)}
@@ -608,7 +608,7 @@ export function ClientDetailTabs({
             </div>
 
             {/* Transacoes */}
-            <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-6">
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-card p-4 md:p-6">
               <h3 className="mb-4 text-lg font-semibold text-text-primary">
                 Historico de Transacoes
               </h3>

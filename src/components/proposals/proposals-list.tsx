@@ -137,7 +137,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="group relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card p-6 transition-all hover:shadow-3 hover-lift"
+        className="group relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card p-4 md:p-6 transition-all hover:shadow-3 hover-lift"
       >
         {/* Status Badge */}
         <div className="absolute right-4 top-4">
@@ -230,14 +230,14 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl font-bold text-text-primary"
+            className="text-xl md:text-2xl lg:text-3xl font-bold text-text-primary"
           >
             Propostas
           </motion.h1>
@@ -245,14 +245,14 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="mt-2 text-text-tertiary"
+            className="mt-1 md:mt-2 text-sm md:text-base text-text-tertiary"
           >
             {proposals.length} propostas cadastradas
           </motion.p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex bg-secondary rounded-lg p-1 border border-[rgb(var(--border))]">
+          <div className="hidden sm:flex bg-secondary rounded-lg p-1 border border-[rgb(var(--border))]">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-text-tertiary hover:text-text-primary'}`}
@@ -275,10 +275,11 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:opacity-90"
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 md:px-6 md:py-3 text-sm font-medium text-primary-foreground transition-all hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
-            Nova Proposta
+            <span className="hidden md:inline">Nova Proposta</span>
+            <span className="md:hidden">Nova</span>
           </motion.button>
         </div>
       </div>
@@ -292,7 +293,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
       {/* Proposals List */}
       {proposals.length > 0 ? (
         viewMode === 'grid' ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {proposals.map((proposal) => (
               <ProposalCard key={proposal.id} proposal={proposal} />
             ))}
@@ -312,7 +313,7 @@ export function ProposalsList({ initialProposals }: ProposalsListProps) {
                   <div className="h-[1px] flex-1 bg-[rgb(var(--border))]" />
                   <span className="text-sm text-text-tertiary">{clientProposals.length} propostas</span>
                 </div>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {clientProposals.map((proposal) => (
                     <ProposalCard key={proposal.id} proposal={proposal} />
                   ))}

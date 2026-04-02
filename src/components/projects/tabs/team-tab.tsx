@@ -25,8 +25,8 @@ export function TeamTab({
 }: TeamTabProps) {
   return (
     <div className="rounded-xl border border-border bg-card backdrop-blur-sm">
-      <div className="border-b border-border p-6">
-        <div className="flex items-center justify-between">
+      <div className="border-b border-border p-4 md:p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-text-primary">
               Equipe do Projeto
@@ -37,24 +37,25 @@ export function TeamTab({
           </div>
           <button
             onClick={onAddTeamMember}
-            className="flex items-center gap-2 rounded-lg bg-text-primary px-4 py-2 text-sm font-medium text-bg-primary transition-all hover:bg-text-secondary"
+            className="flex items-center gap-2 rounded-lg bg-text-primary px-3 py-2 md:px-4 text-sm font-medium text-bg-primary transition-all hover:bg-text-secondary"
           >
             <Plus className="h-4 w-4" />
-            Adicionar Membro
+            <span className="hidden md:inline">Adicionar Membro</span>
+            <span className="md:hidden">Adicionar</span>
           </button>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         {project.project_members && project.project_members.length > 0 ? (
           <div className="space-y-3">
             {project.project_members.map((member) => (
               <div
                 key={member.id}
-                className="flex items-center justify-between rounded-lg border border-border bg-card p-4"
+                className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between rounded-lg border border-border bg-card p-3 md:p-4"
               >
-                <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-text-primary">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-text-primary">
                     {member.freelancers.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -64,7 +65,7 @@ export function TeamTab({
                     <p className="text-sm text-text-secondary">{member.role}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 md:gap-4 flex-wrap">
                   {member.agreed_fee && (
                     <p className="text-sm font-medium text-text-primary">
                       {formatCurrency(member.agreed_fee)}
@@ -88,7 +89,7 @@ export function TeamTab({
                   </span>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 ml-auto md:ml-0">
                     {member.status === 'INVITED' && (
                       <button
                         onClick={() => onConfirmMember(member.id)}

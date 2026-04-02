@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { motion } from 'framer-motion'
-import { Calendar, Check, ExternalLink, Loader2, Unplug, ArrowLeft } from 'lucide-react'
+import { Calendar, Check, ExternalLink, Loader2, Unplug, ArrowLeft, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { getGoogleCalendarStatus } from '@/actions/calendar'
+import { getGoogleCalendarStatus, syncAllEventsToGoogle } from '@/actions/calendar'
 
 export default function IntegrationsPage() {
   const searchParams = useSearchParams()
@@ -13,6 +13,8 @@ export default function IntegrationsPage() {
   const [connectedAt, setConnectedAt] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDisconnecting, startDisconnect] = useTransition()
+  const [isSyncing, startSync] = useTransition()
+  const [syncResult, setSyncResult] = useState<{ synced: number; errors: number } | null>(null)
 
   const success = searchParams.get('success')
   const error = searchParams.get('error')
@@ -42,6 +44,18 @@ export default function IntegrationsPage() {
         }
       } catch {
         // ignore
+      }
+    })
+  }
+
+  const handleSyncAll = () => {
+    setSyncResult(null)
+    startSync(async () => {
+      try {
+        const result = await syncAllEventsToGoogle()
+        setSyncResult(result)
+      } catch {
+        setSyncResult({ synced: 0, errors: -1 })
       }
     })
   }
@@ -166,18 +180,32 @@ export default function IntegrationsPage() {
               Verificando conexão...
             </div>
           ) : isConnected ? (
-            <button
-              onClick={handleDisconnect}
-              disabled={isDisconnecting}
-              className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
-            >
-              {isDisconnecting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Unplug className="h-4 w-4" />
-              )}
-              Desconectar
-            </button>
+            <>
+              <button
+                onClick={handleSyncAll}
+                disabled={isSyncing}
+                className="flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-accent-600 transition-colors disabled:opacity-50 shadow-sm"
+              >
+                {isSyncing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                {isSyncing ? 'Sincronizando...' : 'Sincronizar todos os eventos'}
+              </button>
+              <button
+                onClick={handleDisconnect}
+                disabled={isDisconnecting}
+                className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+              >
+                {isDisconnecting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Unplug className="h-4 w-4" />
+                )}
+                Desconectar
+              </button>
+            </>
           ) : (
             <a
               href="/api/google-calendar/connect"
@@ -186,6 +214,19 @@ export default function IntegrationsPage() {
               <ExternalLink className="h-4 w-4" />
               Conectar Google Calendar
             </a>
+          )}
+
+          {syncResult && (
+            <div className={`rounded-lg px-4 py-3 text-sm ${
+              syncResult.errors === -1
+                ? 'border border-red-500/20 bg-red-500/10 text-red-400'
+                : 'border border-green-500/20 bg-green-500/10 text-green-400'
+            }`}>
+              {syncResult.errors === -1
+                ? 'Erro ao sincronizar eventos. Tente novamente.'
+                : `${syncResult.synced} evento(s) sincronizado(s)${syncResult.errors > 0 ? `, ${syncResult.errors} erro(s)` : ''}.`
+              }
+            </div>
           )}
         </div>
 

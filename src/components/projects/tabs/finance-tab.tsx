@@ -73,9 +73,9 @@ export function FinanceTab({
   const profit = projectValue - totalCosts
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
         {/* Valor do Projeto */}
         <div className="rounded-xl border border-border bg-card p-4 backdrop-blur-sm">
           <div className="flex items-center gap-2 text-text-tertiary">
@@ -84,7 +84,7 @@ export function FinanceTab({
           </div>
 
 
-          <p className="mt-2 text-2xl font-bold text-text-primary">
+          <p className="mt-2 text-lg md:text-2xl font-bold text-text-primary">
             {formatCurrency(projectValue)}
           </p>
         </div>
@@ -96,7 +96,7 @@ export function FinanceTab({
             <Receipt className="h-4 w-4" />
             <span className="text-sm">Total de Custos</span>
           </div>
-          <p className="mt-2 text-2xl font-bold text-red-400">
+          <p className="mt-2 text-lg md:text-2xl font-bold text-red-400">
             {formatCurrency(totalCosts)}
           </p>
         </div>
@@ -151,8 +151,8 @@ export function FinanceTab({
 
       {/* Custos da Equipe */}
       <div className="rounded-xl border border-border bg-card backdrop-blur-sm">
-        <div className="border-b border-border p-6">
-          <div className="flex items-center justify-between">
+        <div className="border-b border-border p-4 md:p-6">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-text-primary">
                 Custos da Equipe
@@ -161,25 +161,25 @@ export function FinanceTab({
                 Valores acordados com freelancers
               </p>
             </div>
-            <div className="text-right">
+            <div className="text-left md:text-right">
               <p className="text-sm text-text-tertiary">Subtotal</p>
-              <p className="text-xl font-bold text-text-primary">
+              <p className="text-lg md:text-xl font-bold text-text-primary">
                 {formatCurrency(teamCosts)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           {project.project_members && project.project_members.length > 0 ? (
             <div className="space-y-3">
               {project.project_members.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between rounded-lg border border-border bg-card p-4"
+                  className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between rounded-lg border border-border bg-card p-3 md:p-4"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 text-blue-500">
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-blue-500">
                       <Users className="h-5 w-5" />
                     </div>
                     <div>
@@ -189,7 +189,7 @@ export function FinanceTab({
                       <p className="text-sm text-text-secondary">{member.role}</p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left md:text-right pl-13 md:pl-0">
                     <p className="font-medium text-text-primary">
                       {member.agreed_fee
                         ? formatCurrency(member.agreed_fee)
@@ -222,8 +222,8 @@ export function FinanceTab({
 
       {/* Despesas Manuais */}
       <div className="rounded-xl border border-border bg-card backdrop-blur-sm">
-        <div className="border-b border-border p-6">
-          <div className="flex items-center justify-between">
+        <div className="border-b border-border p-4 md:p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-text-primary">
                 Outras Despesas
@@ -232,35 +232,36 @@ export function FinanceTab({
                 Equipamentos, logística e outros custos
               </p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
+            <div className="flex items-center gap-3 md:gap-4">
+              <div className="text-left md:text-right">
                 <p className="text-sm text-text-tertiary">Subtotal</p>
-                <p className="text-xl font-bold text-text-primary">
+                <p className="text-lg md:text-xl font-bold text-text-primary">
                   {formatCurrency(manualExpensesTotal)}
                 </p>
               </div>
               <button
                 onClick={onAddExpense}
-                className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-green-700"
+                className="flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 md:px-4 text-sm font-medium text-white transition-all hover:bg-green-700"
               >
                 <Plus className="h-4 w-4" />
-                Nova Despesa
+                <span className="hidden md:inline">Nova Despesa</span>
+                <span className="md:hidden">Nova</span>
               </button>
             </div>
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           {expenses && expenses.length > 0 ? (
             <div className="space-y-3">
               {expenses.map((expense: any) => (
                 <div
                   key={expense.id}
-                  className="flex items-center justify-between rounded-lg border border-border bg-card p-4"
+                  className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between rounded-lg border border-border bg-card p-3 md:p-4"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 md:gap-4">
                     <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-full ${expense.category === 'CREW_TALENT'
+                      className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${expense.category === 'CREW_TALENT'
                         ? 'bg-purple-500/10 text-purple-500'
                         : expense.category === 'EQUIPMENT'
                           ? 'bg-blue-500/10 text-blue-500'
@@ -302,8 +303,8 @@ export function FinanceTab({
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
+                  <div className="flex items-center gap-3 md:gap-4 pl-13 md:pl-0">
+                    <div className="text-left md:text-right">
                       <p className="font-medium text-text-primary">
                         {formatCurrency(
                           expense.actual_cost || expense.estimated_cost || 0
@@ -353,7 +354,7 @@ export function FinanceTab({
       </div>
 
       {/* Resumo Geral */}
-      <div className="rounded-xl border border-border bg-gradient-to-br from-card to-secondary p-6 backdrop-blur-sm">
+      <div className="rounded-xl border border-border bg-gradient-to-br from-card to-secondary p-4 md:p-6 backdrop-blur-sm">
         <h3 className="mb-4 text-lg font-semibold text-text-primary">
           Resumo do Job Costing
         </h3>

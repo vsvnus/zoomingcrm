@@ -95,7 +95,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className="glass-panel fixed left-0 top-0 z-40 h-screen w-[280px]"
+      className="glass-panel fixed left-0 top-0 z-40 h-screen w-[280px] hidden md:block"
     >
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-[rgb(var(--glass-border))] px-6">

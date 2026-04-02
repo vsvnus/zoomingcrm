@@ -120,12 +120,12 @@ export function ClientsGrid({ initialClients }: ClientsGridProps) {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl font-bold text-text-primary"
+            className="text-2xl md:text-3xl font-bold text-text-primary"
           >
             Clientes
           </motion.h1>
@@ -159,7 +159,7 @@ export function ClientsGrid({ initialClients }: ClientsGridProps) {
         transition={{ delay: 0.2 }}
         className="flex gap-4"
       >
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 w-full max-w-full md:max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
           <input
             type="text"
@@ -183,12 +183,12 @@ export function ClientsGrid({ initialClients }: ClientsGridProps) {
               onClick={() => router.push(`/clients/${client.id}`)}
               className="group relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-card transition-all hover:shadow-3 hover:border-primary/20 cursor-pointer"
             >
-              <div className="relative flex items-center gap-6 p-6">
+              <div className="relative flex items-center gap-3 md:gap-6 p-4 md:p-6">
                 {/* Avatar */}
                 <div
-                  className={`flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getAvatarColor(
+                  className={`flex h-12 w-12 md:h-20 md:w-20 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getAvatarColor(
                     client.name
-                  )} text-2xl font-bold text-white shadow-lg transition-transform group-hover:scale-105`}
+                  )} text-base md:text-2xl font-bold text-white shadow-lg transition-transform group-hover:scale-105`}
                 >
                   {getInitials(client.name)}
                 </div>
@@ -217,7 +217,7 @@ export function ClientsGrid({ initialClients }: ClientsGridProps) {
                   </div>
 
                   {/* Contact Details */}
-                  <div className="flex flex-wrap items-center gap-6">
+                  <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:gap-6">
                     <div className="flex items-center gap-2 text-sm text-text-tertiary">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-secondary">
                         <Mail className="h-4 w-4 text-text-tertiary" />
