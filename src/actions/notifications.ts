@@ -14,6 +14,23 @@ export type Notification = {
 }
 
 /**
+ * Buscar o admin de uma organização (para envio de notificações)
+ */
+export async function getOrganizationAdmin(organizationId: string): Promise<string | null> {
+    const supabase = await createClient()
+
+    const { data } = await supabase
+        .from('users')
+        .select('id')
+        .eq('organization_id', organizationId)
+        .eq('role', 'ADMIN')
+        .limit(1)
+        .single()
+
+    return data?.id || null
+}
+
+/**
  * Buscar notificações do usuário logado
  */
 export async function getNotifications(limit = 10) {
