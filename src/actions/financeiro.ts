@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { addMonths, format } from 'date-fns'
 import { validateInput, transactionSchema } from '@/lib/validations'
 import type { Transaction } from '@/types/financial'
+import { createNotificationInternal, getOrganizationAdmin } from '@/actions/notifications'
 
 // ============================================
 // ACTIONS
@@ -143,11 +144,29 @@ export async function addTransaction(transaction: Transaction) {
     throw new Error('Erro ao adicionar transação: ' + error.message)
   }
 
+  // Notificação: transação de alto valor (>= R$ 5.000)
+  try {
+    const LARGE_TRANSACTION_THRESHOLD = 5000
+    if (Number(data.amount) >= LARGE_TRANSACTION_THRESHOLD) {
+      const adminId = await getOrganizationAdmin(transaction.organization_id)
+      if (adminId && adminId !== user.id) {
+        const amount = Number(data.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        const typeLabel = data.type === 'INCOME' ? 'Receita' : 'Despesa'
+        await createNotificationInternal(adminId, {
+          title: `Transação de alto valor registrada`,
+          message: `${data.description} - ${amount} (${typeLabel}).`,
+          type: 'WARNING',
+          action_link: '/financeiro'
+        })
+      }
+    }
+  } catch (notifError) {
+    console.error('Error creating large transaction notification:', notifError)
+  }
+
   revalidatePath('/financeiro')
   return data
 }
-
-// ... (rest of the file until getCurrentBalance) ...
 
 /**
  * Busca o saldo atual calculado
@@ -295,39 +314,61 @@ export async function markAsPaid(id: string, paymentDate?: string, paymentMethod
     throw new Error('Erro ao marcar como pago: ' + error.message)
   }
 
+  // Notificação: pagamento confirmado
+  const adminId = await getOrganizationAdmin(organizationId).catch(() => null)
+  try {
+    if (adminId) {
+      const typeLabel = data.type === 'INCOME' ? 'Recebimento' : 'Pagamento'
+      const amount = Number(data.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      await createNotificationInternal(adminId, {
+        title: `${typeLabel} confirmado`,
+        message: `${data.description} - ${amount} marcado como pago.`,
+        type: 'SUCCESS',
+        action_link: '/financeiro'
+      })
+    }
+  } catch (notifError) {
+    console.error('Error creating payment notification:', notifError)
+  }
+
   // ===========================================
   // LÓGICA DE RECORRÊNCIA AUTOMÁTICA
   // ===========================================
   try {
     const transaction = data
     if (transaction?.is_recurring && transaction?.recurrence_period === 'MONTHLY') {
-      // Calcular próxima data (1 mês depois da data de vencimento original ou da data de pagamento?)
-      // Geralmente é baseado no due_date original para manter o dia do vencimento.
       const currentDueDate = transaction.due_date ? new Date(transaction.due_date) : new Date()
-      // Se não tiver due_date, usa hoje. 
-      // IMPORTANTE: addMonths do date-fns lida com virada de ano.
       const nextDueDate = addMonths(currentDueDate, 1)
 
-      // Criar a próxima transação
       await supabase.from('financial_transactions').insert({
         organization_id: organizationId,
         type: transaction.type,
         category: transaction.category,
-        description: transaction.description, // Pode adicionar "(Mês X)" se quiser, mas simples é melhor
+        description: transaction.description,
         amount: transaction.amount,
         status: 'PENDING',
         due_date: format(nextDueDate, 'yyyy-MM-dd'),
         is_recurring: true,
         recurrence_period: transaction.recurrence_period,
-        parent_transaction_id: transaction.parent_transaction_id || transaction.id, // Encadeia ou aponta pro original? Apontar pro pai original é bom pra agrupamento. Mas se o pai for o atual, usa o ID atual.
-        project_id: transaction.project_id, // Mantém vínculo
+        parent_transaction_id: transaction.parent_transaction_id || transaction.id,
+        project_id: transaction.project_id,
         created_by: transaction.created_by,
         notes: transaction.notes
       })
+
+      // Notificação: recorrência criada
+      if (adminId) {
+        const nextDateFormatted = format(nextDueDate, 'dd/MM/yyyy')
+        await createNotificationInternal(adminId, {
+          title: 'Transação recorrente criada',
+          message: `Nova parcela de "${transaction.description}" criada para ${nextDateFormatted}.`,
+          type: 'INFO',
+          action_link: '/financeiro'
+        })
+      }
     }
   } catch (recError) {
     console.error('Erro ao processar recorrência:', recError)
-    // Não lança erro pro usuário, pois o pagamento já foi confirmado. Apenas loga.
   }
 
   revalidatePath('/financeiro')
@@ -694,5 +735,105 @@ export async function getSidebarBadges() {
       projects: 0,
       financial: 0,
     }
+  }
+}
+
+// ============================================
+// ALERTAS FINANCEIROS AUTOMÁTICOS
+// ============================================
+
+/**
+ * Verifica transações vencidas e próximas do vencimento,
+ * criando notificações com deduplicação (1 alerta por transação por dia).
+ * Deve ser chamada fire-and-forget no carregamento do dashboard.
+ */
+export async function checkFinancialAlerts() {
+  try {
+    const supabase = await createClient()
+    const organizationId = await getUserOrganization()
+
+    const adminId = await getOrganizationAdmin(organizationId)
+    if (!adminId) return
+
+    const today = new Date()
+    const todayStr = today.toISOString().split('T')[0]
+
+    const threeDaysFromNow = new Date(today)
+    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3)
+    const threeDaysStr = threeDaysFromNow.toISOString().split('T')[0]
+
+    // Buscar transações vencidas e próximas do vencimento em paralelo
+    const [overdueResult, upcomingResult] = await Promise.all([
+      supabase
+        .from('financial_transactions')
+        .select('id, description, amount, due_date, type')
+        .eq('organization_id', organizationId)
+        .not('status', 'in', '("PAID","CANCELLED")')
+        .lt('due_date', todayStr),
+      supabase
+        .from('financial_transactions')
+        .select('id, description, amount, due_date, type')
+        .eq('organization_id', organizationId)
+        .not('status', 'in', '("PAID","CANCELLED")')
+        .gte('due_date', todayStr)
+        .lte('due_date', threeDaysStr)
+    ])
+
+    const overdueTransactions = overdueResult.data || []
+    const upcomingTransactions = upcomingResult.data || []
+
+    if (overdueTransactions.length === 0 && upcomingTransactions.length === 0) return
+
+    // Deduplicação: buscar notificações de alerta já criadas hoje
+    const { data: existingNotifications } = await supabase
+      .from('notifications')
+      .select('action_link')
+      .eq('recipient_id', adminId)
+      .like('action_link', '/financeiro/alert/%')
+      .gte('created_at', todayStr)
+
+    const existingLinks = new Set(
+      (existingNotifications || []).map((n: { action_link: string | null }) => n.action_link)
+    )
+
+    // Criar alertas de transações vencidas
+    for (const t of overdueTransactions) {
+      const alertLink = `/financeiro/alert/${t.id}/${todayStr}`
+      if (existingLinks.has(alertLink)) continue
+
+      const amount = Number(t.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      const typeLabel = t.type === 'EXPENSE' ? 'Conta a pagar' : 'Conta a receber'
+      const dueDate = new Date(t.due_date + 'T12:00:00').toLocaleDateString('pt-BR')
+
+      await createNotificationInternal(adminId, {
+        title: `${typeLabel} vencida`,
+        message: `"${t.description}" - ${amount} venceu em ${dueDate}.`,
+        type: 'ERROR',
+        action_link: alertLink
+      })
+    }
+
+    // Criar alertas de transações próximas do vencimento
+    for (const t of upcomingTransactions) {
+      const alertLink = `/financeiro/alert/${t.id}/${todayStr}`
+      if (existingLinks.has(alertLink)) continue
+
+      const amount = Number(t.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      const dueDate = new Date(t.due_date + 'T12:00:00')
+      const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      const dueLabel = diffDays === 0 ? 'vence hoje' :
+                       diffDays === 1 ? 'vence amanhã' :
+                       `vence em ${diffDays} dias`
+      const typeLabel = t.type === 'EXPENSE' ? 'Conta a pagar' : 'Conta a receber'
+
+      await createNotificationInternal(adminId, {
+        title: `${typeLabel} ${dueLabel}`,
+        message: `"${t.description}" - ${amount} (${dueDate.toLocaleDateString('pt-BR')}).`,
+        type: 'WARNING',
+        action_link: alertLink
+      })
+    }
+  } catch (error) {
+    console.error('Error checking financial alerts:', error)
   }
 }

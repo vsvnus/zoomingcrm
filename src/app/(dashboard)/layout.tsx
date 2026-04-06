@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardClient } from '@/components/layout/dashboard-client'
+import { checkFinancialAlerts } from '@/actions/financeiro'
 
 /**
  * Dashboard layout -- async Server Component with auth guard.
@@ -23,6 +24,11 @@ export default async function DashboardLayout({
   if (!user) {
     redirect('/login')
   }
+
+  // Verificar alertas financeiros (fire-and-forget, não bloqueia render)
+  checkFinancialAlerts().catch(err =>
+    console.error('Financial alerts check failed:', err)
+  )
 
   return (
     <div className="relative min-h-screen bg-bg-primary">

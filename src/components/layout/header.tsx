@@ -44,28 +44,37 @@ export function Header() {
 
     // Carregar notificações iniciais
     fetchNotifications()
+  }, [])
 
-    // 🔔 Realtime Subscription
-    const channel = supabase
-      .channel('notifications-header')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: userData ? `recipient_id=eq.${userData.role}` : undefined // Simple filter trick, actually RLS handles security
-        },
-        (payload) => {
-          // Refresh on new notification
-          fetchNotifications()
-          // Optional: Play sound or show Toast
-        }
-      )
-      .subscribe()
+  // 🔔 Realtime Subscription (separado para usar user.id correto)
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null
+
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      channel = supabase
+        .channel('notifications-header')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `recipient_id=eq.${user.id}`
+          },
+          () => {
+            fetchNotifications()
+          }
+        )
+        .subscribe()
+    }
+
+    setupRealtime()
 
     return () => {
-      supabase.removeChannel(channel)
+      if (channel) supabase.removeChannel(channel)
     }
   }, [])
 
@@ -89,7 +98,11 @@ export function Header() {
       setUnreadCount(prev => Math.max(0, prev - 1))
     }
     if (n.action_link) {
-      router.push(n.action_link as any)
+      // Normalizar links de alerta financeiro para a página principal
+      const link = n.action_link.startsWith('/financeiro/alert/')
+        ? '/financeiro'
+        : n.action_link
+      router.push(link as any)
       setIsNotificationsOpen(false)
     }
   }

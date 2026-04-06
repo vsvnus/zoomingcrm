@@ -22,7 +22,7 @@
 
 import { createClient, getUserOrganization } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { createNotificationInternal } from '@/actions/notifications'
+import { createNotificationInternal, getOrganizationAdmin } from '@/actions/notifications'
 import { validateInput, createProposalSchema, updateProposalSchema, proposalItemSchema, proposalOptionalSchema, proposalVideoSchema } from '@/lib/validations'
 
 // =============================================
@@ -826,24 +826,21 @@ export async function acceptProposalPublic(token: string) {
     projectId: data.project_id
   }
 
-  // Notificar Dono da Organização (Assumindo admin)
-  const { data: orgUsers } = await supabase
-    .from('users')
-    .select('id')
-    .eq('organizationId', proposal.organization_id)
-    .eq('role', 'ADMIN')
-    .limit(1)
+  // Notificar Dono da Organização (Admin)
+  try {
+    const adminId = await getOrganizationAdmin(proposal.organization_id)
+    if (adminId) {
+      const clientName = (proposal.clients as any)?.name || 'Cliente'
 
-  if (orgUsers && orgUsers.length > 0) {
-    const recipientId = orgUsers[0].id
-    const clientName = (proposal.clients as any)?.name || 'Cliente'
-
-    await createNotificationInternal(recipientId, {
-      title: '🎉 Proposta Aceita!',
-      message: `O cliente ${clientName} aceitou a proposta "${proposal.title}".`,
-      type: 'SUCCESS',
-      action_link: `/proposals/${proposal.id}/edit`
-    })
+      await createNotificationInternal(adminId, {
+        title: '🎉 Proposta Aceita!',
+        message: `O cliente ${clientName} aceitou a proposta "${proposal.title}".`,
+        type: 'SUCCESS',
+        action_link: `/proposals/${proposal.id}/edit`
+      })
+    }
+  } catch (notifError) {
+    console.error('Error creating proposal notification:', notifError)
   }
 
   revalidatePath('/proposals')
