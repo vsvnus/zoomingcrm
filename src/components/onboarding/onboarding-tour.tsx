@@ -426,7 +426,7 @@ export function OnboardingTour({ userName }: { userName: string }) {
                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 className="pointer-events-none absolute inset-0 flex items-end justify-center p-4 md:items-end md:justify-end md:p-6"
               >
-                <div className="pointer-events-auto w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.15] bg-bg-tertiary shadow-2xl shadow-black/40">
+                <div className="pointer-events-auto w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.12] bg-[#1e1e22] shadow-2xl shadow-black/50">
                   {/* Skip button */}
                   <button
                     onClick={handleSkip}
@@ -477,19 +477,12 @@ export function OnboardingTour({ userName }: { userName: string }) {
                       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                       className="px-5 pb-4 pt-3"
                     >
-                      {/* Icon + Title */}
-                      <div className="mb-3 flex items-start gap-3">
-                        <div
-                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${step.color} shadow-lg`}
-                        >
-                          <Icon className="h-5 w-5 text-white" />
-                        </div>
-                        <div className="min-w-0">
-                          <h2 className="text-lg font-bold leading-tight text-text-primary">
-                            {step.title}
-                          </h2>
-                          <p className="text-xs font-medium text-text-tertiary">{step.subtitle}</p>
-                        </div>
+                      {/* Title */}
+                      <div className="mb-3">
+                        <h2 className="text-lg font-bold leading-tight text-text-primary">
+                          {step.title}
+                        </h2>
+                        <p className="text-xs font-medium text-text-tertiary">{step.subtitle}</p>
                       </div>
 
                       {/* Description */}
