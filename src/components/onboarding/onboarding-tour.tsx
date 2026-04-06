@@ -426,7 +426,7 @@ export function OnboardingTour({ userName }: { userName: string }) {
                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 className="pointer-events-none absolute inset-0 flex items-end justify-center p-4 md:items-end md:justify-end md:p-6"
               >
-                <div className="pointer-events-auto w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.15] bg-bg-primary shadow-2xl shadow-black/40">
+                <div className="pointer-events-auto w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.15] bg-bg-tertiary shadow-2xl shadow-black/40">
                   {/* Skip button */}
                   <button
                     onClick={handleSkip}
