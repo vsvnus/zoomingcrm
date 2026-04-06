@@ -73,8 +73,11 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
   let monthlyRevenue = 0
   let monthlyCost = 0
   let openingBalance = 0
-  // Resumo mensal: sempre do dia 1 do mês até o último dia selecionado
-  const monthStart = startOfDay(startOfMonth(to))
+  // Resumo mensal: SEMPRE baseado no mês atual, independente do filtro de datas
+  const now = new Date()
+  const currentMonthStart = startOfDay(startOfMonth(now))
+  const currentMonthEnd = endOfDay(endOfMonth(now))
+  const monthStart = currentMonthStart
 
   // Helper: parse date string as LOCAL date to avoid UTC timezone shift
   // "2025-01-15" deve ser 15/Jan local, não 14/Jan (que ocorre com new Date("2025-01-15") em UTC-3)
@@ -100,9 +103,9 @@ async function getFinancialData(organizationId: string, from: Date, to: Date) {
         }
       }
 
-      // Faturamento Mensal / Custo Mensal: TODAS as transações (exceto CANCELLED, já filtrado na query)
-      // com due_date dentro de [from, to], independente de status (assume tudo será pago/recebido)
-      if (tDate >= from && tDate <= to) {
+      // Faturamento Mensal / Custo Mensal: SEMPRE do mês atual (fixo), independente do filtro de datas
+      // Isso garante que esses 3 cards mostrem sempre os valores do mês corrente
+      if (tDate >= currentMonthStart && tDate <= currentMonthEnd) {
         if (t.type === 'INCOME') {
           monthlyRevenue += amount
         } else if (t.type === 'EXPENSE') {
