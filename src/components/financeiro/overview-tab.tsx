@@ -192,7 +192,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
               {formatCurrency(data.monthly_revenue)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Previsão total de receitas no período
+              Previsão total de receitas do mês atual
             </p>
           </CardContent>
         </Card>
@@ -208,7 +208,7 @@ export function OverviewTab({ data }: OverviewTabProps) {
               {formatCurrency(data.monthly_cost)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Previsão total de despesas no período
+              Previsão total de despesas do mês atual
             </p>
           </CardContent>
         </Card>
