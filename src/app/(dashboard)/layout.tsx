@@ -25,6 +25,16 @@ export default async function DashboardLayout({
     redirect('/login')
   }
 
+  // Buscar dados do usuário para onboarding
+  const { data: userData } = await supabase
+    .from('users')
+    .select('name, onboarded')
+    .eq('id', user.id)
+    .single()
+
+  const showOnboarding = userData?.onboarded === false
+  const userName = userData?.name || user.email?.split('@')[0] || 'Usuário'
+
   // Verificar alertas financeiros (fire-and-forget, não bloqueia render)
   checkFinancialAlerts().catch(err =>
     console.error('Financial alerts check failed:', err)
@@ -37,7 +47,9 @@ export default async function DashboardLayout({
 
       <Sidebar />
 
-      <DashboardClient>{children}</DashboardClient>
+      <DashboardClient showOnboarding={showOnboarding} userName={userName}>
+        {children}
+      </DashboardClient>
     </div>
   )
 }
