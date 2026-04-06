@@ -294,8 +294,8 @@ export function OnboardingTour({ userName }: { userName: string }) {
           transition={{ duration: 0.4 }}
           className="fixed inset-0 z-[9999]"
         >
-          {/* Backdrop — semi-transparent so user sees the real page behind */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+          {/* Backdrop — leve para o usuário ver a página por trás */}
+          <div className="absolute inset-0 bg-black/30" />
 
           {/* ═══ WELCOME PHASE ═══ */}
           <AnimatePresence mode="wait">
@@ -426,7 +426,7 @@ export function OnboardingTour({ userName }: { userName: string }) {
                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 className="pointer-events-none absolute inset-0 flex items-end justify-center p-4 md:items-end md:justify-end md:p-6"
               >
-                <div className="pointer-events-auto w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-bg-primary/95 shadow-2xl backdrop-blur-xl">
+                <div className="pointer-events-auto w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.15] bg-bg-primary shadow-2xl shadow-black/40">
                   {/* Skip button */}
                   <button
                     onClick={handleSkip}
