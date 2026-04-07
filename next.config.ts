@@ -1,9 +1,11 @@
 import type { NextConfig } from 'next'
 
+const isDev = process.env.NODE_ENV === 'development'
+
 const nextConfig: NextConfig = {
   output: 'standalone',
   typedRoutes: true,
-  headers: async () => [
+  headers: async () => isDev ? [] : [
     {
       source: '/(.*)',
       headers: [
@@ -16,8 +18,6 @@ const nextConfig: NextConfig = {
           key: 'Content-Security-Policy',
           value: [
             "default-src 'self'",
-            // TODO: Implementar nonce-based CSP via middleware do Next.js para
-            // remover 'unsafe-inline' e habilitar 'strict-dynamic' com segurança.
             "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in",

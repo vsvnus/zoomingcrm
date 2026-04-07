@@ -10,6 +10,42 @@ import { checkRateLimit, getRequestIdentifier, rateLimitResponse } from '@/lib/s
 
 export const maxDuration = 60;
 
+/**
+ * Comprime histórico de mensagens para economizar tokens.
+ * - Mantém as últimas 8 mensagens intactas (contexto recente)
+ * - Mensagens mais antigas são resumidas em um único bloco
+ */
+function compressMessageHistory(
+    messages: ChatCompletionMessageParam[],
+    keepRecent = 8
+): ChatCompletionMessageParam[] {
+    if (messages.length <= keepRecent) return messages;
+
+    const oldMessages = messages.slice(0, messages.length - keepRecent);
+    const recentMessages = messages.slice(messages.length - keepRecent);
+
+    // Resumir mensagens antigas em formato compacto
+    const summaryParts: string[] = [];
+    for (const msg of oldMessages) {
+        const content = typeof msg.content === 'string' ? msg.content : '';
+        if (!content) continue;
+        // Truncar cada mensagem antiga a 150 chars
+        const truncated = content.length > 150
+            ? content.substring(0, 150) + '...'
+            : content;
+        summaryParts.push(`[${msg.role}]: ${truncated}`);
+    }
+
+    if (summaryParts.length === 0) return recentMessages;
+
+    const summaryMessage: ChatCompletionMessageParam = {
+        role: 'user',
+        content: `[RESUMO DA CONVERSA ANTERIOR - ${oldMessages.length} mensagens]\n${summaryParts.join('\n')}\n[FIM DO RESUMO]`,
+    };
+
+    return [summaryMessage, ...recentMessages];
+}
+
 function getOpenAI() {
     return new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
@@ -86,12 +122,16 @@ export async function POST(req: Request) {
 
         // 4. Call OpenAI
         const openai = getOpenAI();
+        // Comprimir histórico para economizar tokens em conversas longas
+        const optimizedMessages = compressMessageHistory(messages);
+
         const response = await openai.chat.completions.create({
             model: 'gpt-4o',
             stream: true,
+            max_tokens: 2048,
             messages: [
                 { role: 'system', content: systemMessage },
-                ...messages,
+                ...optimizedMessages,
             ],
             functions: getStudioToolsDefinitions(),
             function_call: 'auto',
@@ -121,9 +161,10 @@ export async function POST(req: Request) {
                 return openai.chat.completions.create({
                     model: 'gpt-4o',
                     stream: true,
+                    max_tokens: 2048,
                     messages: [
                         { role: 'system', content: systemMessage },
-                        ...messages,
+                        ...optimizedMessages,
                         ...(newMessages as ChatCompletionMessageParam[]),
                     ],
                     functions: getStudioToolsDefinitions(),
