@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, getUserOrganization } from '@/lib/supabase/server'
+import { checkRateLimit, getRequestIdentifier, rateLimitResponse } from '@/lib/security/rate-limit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,6 +13,11 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Rate limit: 30 req/min por usuário
+    const rlKey = getRequestIdentifier(request, user.id)
+    const rl = checkRateLimit(rlKey, { limit: 30, windowSeconds: 60 })
+    if (!rl.success) return rateLimitResponse(rl.retryAfter)
 
     // --- Org isolation ---
     let organizationId: string

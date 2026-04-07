@@ -1,23 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import crypto from 'crypto'
+import { checkRateLimit, getRequestIP, rateLimitResponse } from '@/lib/security/rate-limit'
+import { logAudit } from '@/lib/security/audit-log'
+
+const REPLAY_WINDOW_MS = 5 * 60 * 1000 // 5 minutos
 
 function generateId(): string {
   return crypto.randomUUID().replace(/-/g, '').slice(0, 25)
 }
 
+function verifyWebhookSignature(
+  rawBody: string,
+  receivedToken: string | null
+): boolean {
+  const secret = process.env.ASAAS_WEBHOOK_SECRET
+  if (secret) {
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(rawBody)
+      .digest('hex')
+    const receivedSignature =
+      receivedToken || ''
+    return crypto.timingSafeEqual(
+      Buffer.from(expectedSignature),
+      Buffer.from(receivedSignature.padEnd(expectedSignature.length))
+    )
+  }
+  // Fallback: validação por token simples (legado)
+  return receivedToken === process.env.ASAAS_WEBHOOK_TOKEN
+}
+
 export async function POST(req: NextRequest) {
-  // Verificar token de autenticação do webhook
+  // Rate limit: 30 req/min por IP
+  const ip = getRequestIP(req)
+  const rl = checkRateLimit(`ip:${ip}:webhook-asaas`, { limit: 30, windowSeconds: 60 })
+  if (!rl.success) return rateLimitResponse(rl.retryAfter)
+
+  // Ler body como texto para validação de assinatura
+  const rawBody = await req.text()
+
+  // Verificar autenticação: HMAC signature (preferencial) ou token (legado)
   const token = req.headers.get('asaas-access-token')
-  if (token !== process.env.ASAAS_WEBHOOK_TOKEN) {
+  if (!verifyWebhookSignature(rawBody, token)) {
+    console.warn('[webhook/asaas] Assinatura/token inválido - possível spoofing')
+    logAudit({
+      action: 'WEBHOOK_RECEIVED',
+      ipAddress: ip,
+      metadata: { provider: 'asaas', status: 'UNAUTHORIZED' },
+      severity: 'CRITICAL',
+    })
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   let payload: Record<string, unknown>
   try {
-    payload = await req.json()
+    payload = JSON.parse(rawBody)
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  // Proteção contra replay: rejeitar payloads antigos
+  const payloadDate = (payload.dateCreated as string) || null
+  if (payloadDate) {
+    const eventTime = new Date(payloadDate).getTime()
+    if (Date.now() - eventTime > REPLAY_WINDOW_MS) {
+      console.warn('[webhook/asaas] Evento antigo rejeitado (replay protection)')
+      return NextResponse.json({ error: 'Event too old' }, { status: 422 })
+    }
   }
 
   const event = payload.event as string
@@ -100,6 +150,15 @@ export async function POST(req: NextRequest) {
 
       // Processar evento
       await processEvent(supabase, event, organization.id, payment)
+
+      logAudit({
+        action: 'SUBSCRIPTION_CHANGE',
+        organizationId: organization.id,
+        ipAddress: ip,
+        resourceType: 'subscription',
+        metadata: { event, paymentId: asaasPaymentId, subscriptionId: asaasSubscriptionId },
+        severity: event.includes('DELETED') || event.includes('EXPIRED') ? 'WARN' : 'INFO',
+      })
     }
 
     // Marcar como processado

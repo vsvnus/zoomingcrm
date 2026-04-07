@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { checkRateLimit, getRequestIP, rateLimitResponse } from '@/lib/security/rate-limit'
 
 export async function GET(req: NextRequest) {
+  // Rate limit: 5 req/min por IP
+  const ip = getRequestIP(req)
+  const rl = checkRateLimit(`ip:${ip}:cron-trials`, { limit: 5, windowSeconds: 60 })
+  if (!rl.success) return rateLimitResponse(rl.retryAfter)
+
   // Verificar secret para proteger o endpoint
   const authHeader = req.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

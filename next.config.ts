@@ -16,14 +16,20 @@ const nextConfig: NextConfig = {
           key: 'Content-Security-Policy',
           value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com",
+            // TODO: Remover 'unsafe-inline' do script-src implementando nonce-based CSP
+            // via middleware do Next.js (next-safe headers ou custom middleware com nonce).
+            // 'strict-dynamic' permite que scripts inline confiáveis carreguem outros scripts
+            // (ex: qrcodejs via cdnjs.cloudflare.com na impressão de etiquetas).
+            "script-src 'self' 'unsafe-inline' 'strict-dynamic' https://cdnjs.cloudflare.com",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in",
             "font-src 'self'",
             "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://api.openai.com",
             "frame-src 'self' https://player.vimeo.com https://www.youtube.com",
+            "frame-ancestors 'none'",
             "object-src 'none'",
             "base-uri 'self'",
+            "upgrade-insecure-requests",
           ].join('; '),
         },
       ],
