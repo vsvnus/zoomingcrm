@@ -4,7 +4,9 @@ import { OpenAIStream, StreamingTextResponse } from 'ai';
 import { createClient, getUserOrganization } from '@/lib/supabase/server';
 import { getToolsDefinitions, executeTool } from '@/lib/ai/tools';
 import { SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { isWriteTool, logToolCall } from '@/lib/ai/tool-safety';
 import { z } from 'zod';
+import { checkRateLimit, getRequestIdentifier, rateLimitResponse } from '@/lib/security/rate-limit';
 
 export const maxDuration = 60;
 
@@ -33,6 +35,11 @@ export async function POST(req: Request) {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return new Response('Unauthorized', { status: 401 });
+
+        // Rate limit: 10 req/min por usuário
+        const rlKey = getRequestIdentifier(req, user.id);
+        const rl = checkRateLimit(rlKey, { limit: 10, windowSeconds: 60 });
+        if (!rl.success) return rateLimitResponse(rl.retryAfter);
 
         let organizationId = '';
         try {
@@ -91,6 +98,11 @@ export async function POST(req: Request) {
                 { name, arguments: args },
                 createFunctionCallMessages
             ) => {
+                // Log de seguranca para tools de escrita
+                if (isWriteTool(name)) {
+                    logToolCall({ tool: name, args, userId: user.id, orgId: organizationId });
+                }
+
                 const result = await executeTool(name, args, supabase, organizationId);
 
                 const newMessages = createFunctionCallMessages(result);

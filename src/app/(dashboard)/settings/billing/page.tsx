@@ -1,16 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft,
   Check,
+  CheckCircle2,
   Crown,
   Sparkles,
   CreditCard,
   Clock,
   AlertTriangle,
   Zap,
+  PartyPopper,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -56,13 +58,23 @@ interface SubscriptionData {
 }
 
 export default function BillingPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[400px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-accent-500 border-t-transparent" /></div>}>
+      <BillingContent />
+    </Suspense>
+  )
+}
+
+function BillingContent() {
   const searchParams = useSearchParams()
   const blockedFeature = searchParams.get('blocked')
+  const isSuccess = searchParams.get('success') === 'true'
 
   const [data, setData] = useState<SubscriptionData | null>(null)
   const [loading, setLoading] = useState(true)
   const [canceling, setCanceling] = useState(false)
   const [changingPlan, setChangingPlan] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(isSuccess)
 
   useEffect(() => {
     getSubscriptionData()
@@ -70,6 +82,14 @@ export default function BillingPage() {
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
+
+  // Auto-dismiss success after 8 seconds
+  useEffect(() => {
+    if (showSuccess) {
+      const timer = setTimeout(() => setShowSuccess(false), 8000)
+      return () => clearTimeout(timer)
+    }
+  }, [showSuccess])
 
   const effectivePlan: PlanKey = data
     ? getEffectivePlan({
@@ -85,13 +105,21 @@ export default function BillingPage() {
     ? Math.max(0, Math.ceil((new Date(data.trialEndsAt).getTime() - Date.now()) / 86400000))
     : 0
 
+  const refreshData = async () => {
+    const refreshed = await getSubscriptionData()
+    setData(refreshed)
+  }
+
   const handleCancel = async () => {
     if (!confirm('Tem certeza que deseja cancelar sua assinatura? Voce mantera o acesso ate o fim do periodo atual.')) return
     setCanceling(true)
     try {
-      await cancelSubscriptionAction()
-      const refreshed = await getSubscriptionData()
-      setData(refreshed)
+      const result = await cancelSubscriptionAction()
+      if (!result.success) {
+        alert(result.error || 'Erro ao cancelar assinatura.')
+        return
+      }
+      await refreshData()
     } catch (error) {
       console.error(error)
       alert('Erro ao cancelar assinatura. Tente novamente.')
@@ -103,9 +131,13 @@ export default function BillingPage() {
   const handleChangePlan = async (plan: 'PRO' | 'MAX') => {
     setChangingPlan(true)
     try {
-      await changePlan(plan)
-      const refreshed = await getSubscriptionData()
-      setData(refreshed)
+      const result = await changePlan(plan)
+      if (!result.success) {
+        alert(result.error || 'Erro ao alterar plano.')
+        return
+      }
+      await refreshData()
+      setShowSuccess(true)
     } catch (error: any) {
       console.error(error)
       alert(error.message || 'Erro ao alterar plano.')
@@ -150,6 +182,44 @@ export default function BillingPage() {
           </motion.p>
         </div>
       </div>
+
+      {/* Success Celebration */}
+      {showSuccess && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-6 backdrop-blur-xl"
+        >
+          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl" />
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20">
+              <PartyPopper className="h-6 w-6 text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-white">Assinatura ativada com sucesso!</h3>
+              <p className="mt-1 text-sm text-zinc-400">
+                Parabens! Agora voce tem acesso completo ao{' '}
+                <span className="font-semibold text-emerald-400">
+                  {data?.subscriptionPlan === 'MAX' ? 'Clapper Max' : 'Clapper Pro'}
+                </span>
+                . Todas as funcionalidades estao desbloqueadas.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                <span className="text-xs text-emerald-300">Sua primeira cobranca sera processada em breve</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowSuccess(false)}
+              className="shrink-0 rounded-lg p-1 text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-300"
+            >
+              <span className="sr-only">Fechar</span>
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Blocked Feature Alert */}
       {blockedFeature && (

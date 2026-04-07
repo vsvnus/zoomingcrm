@@ -1,6 +1,7 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
+import { validateToolArgs, isWriteTool } from './tool-safety';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -97,6 +98,7 @@ export const getToolsDefinitions = () => [
     {
         name: 'update_proposal_status',
         description: 'Atualiza o status de uma proposta comercial (ex: aceitar, rejeitar).',
+        requiresConfirmation: true,
         parameters: {
             type: 'object',
             properties: {
@@ -110,6 +112,7 @@ export const getToolsDefinitions = () => [
     {
         name: 'schedule_calendar_event',
         description: 'Agenda uma reunião ou evento no calendário.',
+        requiresConfirmation: true,
         parameters: {
             type: 'object',
             properties: {
@@ -137,6 +140,7 @@ export const getToolsDefinitions = () => [
     {
         name: 'memorize_fact',
         description: 'Salva uma informação importante na memória de longo prazo (RAG).',
+        requiresConfirmation: true,
         parameters: {
             type: 'object',
             properties: {
@@ -156,6 +160,11 @@ export const executeTool = async (
     organizationId: string
 ) => {
     try {
+        // Validar argumentos com Zod para tools de escrita
+        if (isWriteTool(toolName)) {
+            args = validateToolArgs(toolName, args);
+        }
+
         switch (toolName) {
             case 'search_projects':
                 return await searchProjects(args, supabase, organizationId);

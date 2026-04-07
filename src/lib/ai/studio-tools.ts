@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { validateToolArgs, isWriteTool } from './tool-safety';
 
 // ============================================
 // STUDIO TOOLS: Definições (OpenAI Function Calling)
@@ -8,6 +9,7 @@ export const getStudioToolsDefinitions = () => [
     {
         name: 'studio_create_script',
         description: 'Cria um novo roteiro com metadados. Sempre chame esta ferramenta ANTES de studio_create_scenes_batch.',
+        requiresConfirmation: true,
         parameters: {
             type: 'object',
             properties: {
@@ -37,6 +39,7 @@ export const getStudioToolsDefinitions = () => [
     {
         name: 'studio_create_scenes_batch',
         description: 'Cria múltiplas cenas de uma vez para um roteiro. Use para gerar o roteiro completo em uma única chamada.',
+        requiresConfirmation: true,
         parameters: {
             type: 'object',
             properties: {
@@ -85,6 +88,7 @@ export const getStudioToolsDefinitions = () => [
     {
         name: 'studio_update_script',
         description: 'Atualiza os metadados de um roteiro existente (título, descrição, formato, plataforma, tom, etc.).',
+        requiresConfirmation: true,
         parameters: {
             type: 'object',
             properties: {
@@ -102,6 +106,7 @@ export const getStudioToolsDefinitions = () => [
     {
         name: 'studio_update_scene',
         description: 'Atualiza uma cena específica de um roteiro (diálogo, descrição, câmera, etc.).',
+        requiresConfirmation: true,
         parameters: {
             type: 'object',
             properties: {
@@ -139,6 +144,7 @@ export const getStudioToolsDefinitions = () => [
     {
         name: 'studio_delete_scenes',
         description: 'Remove cenas de um roteiro. As cenas restantes são reordenadas automaticamente.',
+        requiresConfirmation: true,
         parameters: {
             type: 'object',
             properties: {
@@ -166,6 +172,11 @@ export const executeStudioTool = async (
     userId: string
 ) => {
     try {
+        // Validar argumentos com Zod para tools de escrita
+        if (isWriteTool(toolName)) {
+            args = validateToolArgs(toolName, args);
+        }
+
         switch (toolName) {
             case 'studio_create_script':
                 return await createScript(args, supabase, organizationId, userId);
@@ -234,6 +245,20 @@ async function createScript(
     organizationId: string,
     userId: string
 ) {
+    // Validate project_id if provided
+    let validProjectId: string | null = null;
+    if (args.project_id) {
+        const { data: project } = await supabase
+            .from('projects')
+            .select('id')
+            .eq('id', args.project_id)
+            .eq('organization_id', organizationId)
+            .single();
+        if (project) {
+            validProjectId = project.id;
+        }
+    }
+
     const { data, error } = await supabase
         .from('scripts')
         .insert({
@@ -244,7 +269,7 @@ async function createScript(
             target_platform: args.target_platform || null,
             target_audience: args.target_audience || null,
             tone: args.tone || null,
-            project_id: args.project_id || null,
+            project_id: validProjectId,
             status: 'DRAFT',
             version: 1,
             created_by: userId,

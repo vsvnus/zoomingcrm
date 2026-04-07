@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createInitialCapitalTransaction } from './financeiro'
 import { validateInput, signInSchema, signUpSchema, completeSetupSchema } from '@/lib/validations'
+import { logAudit } from '@/lib/security/audit-log'
 
 export async function signIn(email: string, password: string) {
   const validated = validateInput(signInSchema, { email, password })
@@ -16,8 +17,20 @@ export async function signIn(email: string, password: string) {
   })
 
   if (error) {
+    logAudit({
+      action: 'AUTH_FAILED',
+      metadata: { email: validated.email, reason: error.message },
+      severity: 'WARN',
+    })
     throw new Error(error.message)
   }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  logAudit({
+    action: 'AUTH_LOGIN',
+    userId: user?.id ?? null,
+    metadata: { email: validated.email },
+  })
 
   revalidatePath('/', 'layout')
   return { success: true }
@@ -73,6 +86,12 @@ export async function signUp(
   if (!authData.user) {
     throw new Error('Erro ao criar conta. Tente novamente.')
   }
+
+  logAudit({
+    action: 'AUTH_SIGNUP',
+    userId: authData.user.id,
+    metadata: { email, name: validated.name, company: validated.companyName },
+  })
 
   // 3. Criar organização e usuário na tabela users
   const orgSlug = `org_${authData.user.id.slice(0, 12)}`
