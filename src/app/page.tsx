@@ -443,9 +443,7 @@ function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-bg-primary/80 backdrop-blur-xl border-b border-border">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2 text-text-primary font-bold text-xl tracking-tight">
-          <div className="w-8 h-8 bg-text-primary rounded-lg flex items-center justify-center">
-            <Play className="w-4 h-4 text-bg-primary fill-bg-primary" />
-          </div>
+          <img src="/logo-icon.svg" alt="Clapper" className="w-8 h-8" />
           Clapper
         </div>
         <nav className="hidden md:flex gap-8 text-sm font-medium text-text-tertiary">
@@ -470,9 +468,7 @@ function Footer() {
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2 text-text-primary font-bold text-xl tracking-tight">
-            <div className="w-6 h-6 bg-secondary rounded flex items-center justify-center border border-border">
-              <Play className="w-3 h-3 text-text-primary fill-text-primary" />
-            </div>
+            <img src="/logo-icon.svg" alt="Clapper" className="w-6 h-6" />
             Clapper
           </div>
           <div className="text-text-tertiary text-sm max-w-xs">
