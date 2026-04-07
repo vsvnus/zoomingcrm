@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="1" dy="1.5" stdDeviation="2" flood-color="#00000022"/>
+    </filter>
+    <filter id="shadow-top" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0.5" dy="1" stdDeviation="1.5" flood-color="#00000020"/>
+    </filter>
+  </defs>
+  <!-- Body (bottom card) -->
+  <rect x="8" y="28" width="48" height="28" rx="4" fill="#FFF0F0" stroke="#F0E0E0" stroke-width="0.5" filter="url(#shadow)"/>
+  <!-- Clapper stick (top bar, angled) -->
+  <g transform="rotate(-16, 10, 26)">
+    <rect x="8" y="20" width="48" height="10" rx="3" fill="#FFF0F0" stroke="#F0E0E0" stroke-width="0.5" filter="url(#shadow-top)"/>
+  </g>
+</svg>
