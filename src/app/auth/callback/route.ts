@@ -2,7 +2,14 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams, origin: rawOrigin } = new URL(request.url)
+  // Em Docker/reverse proxy, request.url pode ter o host interno (0.0.0.0).
+  // Usar x-forwarded headers ou NEXT_PUBLIC_APP_URL como fallback.
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const forwardedProto = request.headers.get('x-forwarded-proto') || 'https'
+  const origin = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : (process.env.NEXT_PUBLIC_APP_URL || rawOrigin)
   const code = searchParams.get('code')
   const rawNext = searchParams.get('next') ?? '/dashboard'
   const ALLOWED_PATH_RE = /^\/(?!\/)[\w\-\/\.\?\&\=\%\#]*$/
