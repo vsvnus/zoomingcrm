@@ -1,6 +1,6 @@
 'use client'
 
-import { Play, Mail, Lock, ArrowRight, ArrowLeft, Phone, DollarSign, Eye, EyeOff, CheckCircle } from 'lucide-react'
+import { Mail, Lock, ArrowRight, ArrowLeft, Phone, DollarSign, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn, signUp, resetPassword } from '@/actions/auth'
@@ -107,9 +107,7 @@ export default function LoginPage() {
         <div className="rounded-2xl border border-border bg-card/50 p-6 md:p-8 backdrop-blur-xl">
           {/* Logo */}
           <div className="mb-6 md:mb-8 flex items-center justify-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-bg-secondary to-bg-tertiary border border-border">
-              <Play className="h-6 w-6 text-text-primary" fill="currentColor" />
-            </div>
+            <img src="/logo-icon.svg" alt="Clapper" className="h-12 w-12" />
             <h1 className="text-xl md:text-2xl font-bold text-text-primary">Clapper</h1>
           </div>
 

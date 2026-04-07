@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardClient } from '@/components/layout/dashboard-client'
 import { checkFinancialAlerts } from '@/actions/financeiro'
+import { getOrganizationSubscription } from '@/lib/subscription/server'
 
 /**
  * Dashboard layout -- async Server Component with auth guard.
@@ -35,6 +36,19 @@ export default async function DashboardLayout({
   const showOnboarding = userData?.onboarded === false
   const userName = userData?.name || user.email?.split('@')[0] || 'Usuário'
 
+  // Buscar dados de subscription
+  let subscriptionData = { subscriptionStatus: null as string | null, trialEndsAt: null as string | null, effectivePlan: 'EXPIRED' as string }
+  try {
+    const sub = await getOrganizationSubscription()
+    subscriptionData = {
+      subscriptionStatus: sub.subscriptionStatus,
+      trialEndsAt: sub.trialEndsAt,
+      effectivePlan: sub.effectivePlan,
+    }
+  } catch {
+    // Silently handle — fallback to expired
+  }
+
   // Verificar alertas financeiros (fire-and-forget, não bloqueia render)
   checkFinancialAlerts().catch(err =>
     console.error('Financial alerts check failed:', err)
@@ -47,7 +61,13 @@ export default async function DashboardLayout({
 
       <Sidebar />
 
-      <DashboardClient showOnboarding={showOnboarding} userName={userName}>
+      <DashboardClient
+        showOnboarding={showOnboarding}
+        userName={userName}
+        subscriptionStatus={subscriptionData.subscriptionStatus}
+        trialEndsAt={subscriptionData.trialEndsAt}
+        effectivePlan={subscriptionData.effectivePlan}
+      >
         {children}
       </DashboardClient>
     </div>

@@ -21,6 +21,7 @@ import {
 import Link from 'next/link'
 import { useRef, useEffect } from 'react'
 import { CrmSimulator } from '@/components/landing/CrmSimulator'
+import { PricingSection } from '@/components/landing/pricing-section'
 
 export default function Home() {
   const containerRef = useRef(null)
@@ -382,6 +383,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Pricing */}
+      <PricingSection />
+
       {/* Final CTA */}
       <section className="py-32 px-6 relative overflow-hidden bg-bg-primary">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.1),transparent_50%)]" />
@@ -408,7 +412,7 @@ export default function Home() {
               </Link>
             </div>
             <p className="mt-8 text-sm text-text-quaternary font-medium">
-              Sem cartão de crédito necessário • 14 dias de teste grátis
+              Sem cartão de crédito necessário • 7 dias de teste grátis
             </p>
           </motion.div>
         </div>
