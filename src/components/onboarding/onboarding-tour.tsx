@@ -308,7 +308,7 @@ export function OnboardingTour({ userName }: { userName: string }) {
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 className="absolute inset-0 flex items-center justify-center px-4"
               >
-                <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-white/10 bg-bg-primary shadow-2xl">
+                <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-white/20 bg-[#2c2c30] shadow-2xl">
                   {/* Header */}
                   <div className="relative overflow-hidden bg-gradient-to-br from-primary/20 via-accent-500/10 to-transparent px-8 pb-2 pt-10">
                     <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
@@ -426,7 +426,7 @@ export function OnboardingTour({ userName }: { userName: string }) {
                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 className="pointer-events-none absolute inset-0 flex items-end justify-center p-4 md:items-end md:justify-end md:p-6"
               >
-                <div className="pointer-events-auto w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.12] bg-[#1e1e22] shadow-2xl shadow-black/50">
+                <div className="pointer-events-auto w-full max-w-md overflow-hidden rounded-2xl border border-white/20 bg-[#2c2c30] shadow-2xl shadow-black/50">
                   {/* Skip button */}
                   <button
                     onClick={handleSkip}
@@ -567,7 +567,7 @@ export function OnboardingTour({ userName }: { userName: string }) {
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 className="absolute inset-0 flex items-center justify-center px-4"
               >
-                <div className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-bg-primary shadow-2xl">
+                <div className="w-full max-w-md overflow-hidden rounded-2xl border border-white/20 bg-[#2c2c30] shadow-2xl">
                   <div className="flex flex-col items-center px-8 py-10 text-center">
                     {/* Checkmark */}
                     <motion.div
