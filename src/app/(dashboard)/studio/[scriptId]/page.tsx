@@ -5,10 +5,13 @@ import { notFound } from 'next/navigation'
 
 export default async function StudioEditorPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ scriptId: string }>
+  searchParams: Promise<{ ai?: string }>
 }) {
   const { scriptId } = await params
+  const { ai } = await searchParams
   const script = await getScript(scriptId)
 
   if (!script) {
@@ -23,6 +26,7 @@ export default async function StudioEditorPage({
       projectId={script.project_id || ''}
       projectTitle={project?.title || 'Sem Projeto'}
       studioMode
+      initialAIOpen={ai === 'open'}
     />
   )
 }

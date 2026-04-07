@@ -14,7 +14,13 @@ export async function GET(request: Request) {
 
     if (!error) {
       // Para usuários OAuth (Google), garantir que org/user existam
-      await ensureUserRecords(supabase)
+      const isNewUser = await ensureUserRecords(supabase)
+
+      // Novos usuários Google precisam completar o cadastro
+      if (isNewUser) {
+        return NextResponse.redirect(`${origin}/setup`)
+      }
+
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
@@ -26,10 +32,11 @@ export async function GET(request: Request) {
 /**
  * Garante que usuários OAuth tenham registros na tabela users e organizations.
  * Chamado após exchangeCodeForSession para novos usuários Google.
+ * Retorna true se é um novo usuário (precisa completar setup).
  */
-async function ensureUserRecords(supabase: Awaited<ReturnType<typeof createClient>>) {
+async function ensureUserRecords(supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return
+  if (!user) return false
 
   const serviceClient = await createServiceClient()
 
@@ -40,7 +47,7 @@ async function ensureUserRecords(supabase: Awaited<ReturnType<typeof createClien
     .eq('id', user.id)
     .single()
 
-  if (existingUser) return // Já existe, nada a fazer
+  if (existingUser) return false // Já existe, nada a fazer
 
   // Verificar se existe por email (conta anterior)
   const { data: existingByEmail } = await serviceClient
@@ -55,13 +62,18 @@ async function ensureUserRecords(supabase: Awaited<ReturnType<typeof createClien
       .from('users')
       .update({ id: user.id })
       .eq('email', user.email)
-    return
+    return false
   }
 
   // Novo usuário OAuth - criar organização e registro
   const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário'
   const orgSlug = `org_${user.id.slice(0, 12)}`
   const companyName = `Produtora de ${userName}`
+
+  // Calcular trial de 7 dias
+  const now = new Date()
+  const trialEndsAt = new Date(now)
+  trialEndsAt.setDate(trialEndsAt.getDate() + 7)
 
   const { error: orgError } = await serviceClient
     .from('organizations')
@@ -71,11 +83,15 @@ async function ensureUserRecords(supabase: Awaited<ReturnType<typeof createClien
       name: companyName,
       email: user.email,
       initial_capital: 0,
+      subscription_plan: 'TRIAL',
+      subscription_status: 'TRIALING',
+      trial_started_at: now.toISOString(),
+      trial_ends_at: trialEndsAt.toISOString(),
     }])
 
   if (orgError) {
     console.error('[oauth] Erro ao criar organização:', orgError)
-    return
+    return false
   }
 
   const { error: userError } = await serviceClient
@@ -93,5 +109,13 @@ async function ensureUserRecords(supabase: Awaited<ReturnType<typeof createClien
     console.error('[oauth] Erro ao criar usuário:', userError)
     // Limpar organização criada
     await serviceClient.from('organizations').delete().eq('id', orgSlug)
+    return false
   }
+
+  // Marcar como novo usuário que precisa completar setup
+  await serviceClient.auth.admin.updateUserById(user.id, {
+    app_metadata: { needs_setup: true },
+  })
+
+  return true
 }

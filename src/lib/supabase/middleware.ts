@@ -1,5 +1,11 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import {
+  getEffectivePlan,
+  canAccessFeature,
+  getFeatureForRoute,
+  isSubscriptionExemptRoute,
+} from '@/lib/subscription/access'
 
 /**
  * Public routes that do NOT require authentication.
@@ -7,7 +13,10 @@ import { NextResponse, type NextRequest } from 'next/server'
  * - /p/          -> public proposals shared with clients
  * - static assets are already excluded by the matcher in middleware.ts
  */
-const PUBLIC_PREFIXES = ['/login', '/p/', '/auth/callback', '/reset-password', '/privacy', '/terms']
+const PUBLIC_PREFIXES = ['/login', '/p/', '/auth/callback', '/reset-password', '/privacy', '/terms', '/api/webhooks/', '/api/cron/']
+
+/** Rotas que requerem auth mas não são dashboard (não fazem subscription gating nem redirect de setup) */
+const SETUP_ROUTES = ['/setup']
 
 function isPublicRoute(pathname: string): boolean {
   if (pathname === '/') return true
@@ -69,6 +78,72 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       return NextResponse.redirect(url)
+    }
+  }
+
+  // --- Setup flow: usuários Google que precisam completar cadastro ---
+  const isSetupRoute = SETUP_ROUTES.some((prefix) => pathname.startsWith(prefix))
+
+  if (user) {
+    const needsSetup = user.app_metadata?.needs_setup === true
+
+    // Usuário precisa completar setup mas está tentando acessar outra rota protegida
+    if (needsSetup && !isSetupRoute && !isPublicRoute(pathname)) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/setup'
+      return NextResponse.redirect(url)
+    }
+
+    // Usuário já completou setup mas está acessando /setup → redirecionar para dashboard
+    if (!needsSetup && isSetupRoute) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // Setup routes não passam por subscription gating
+  if (isSetupRoute) {
+    return supabaseResponse
+  }
+
+  // --- Subscription gating: verificar acesso por plano ---
+  if (user && !isPublicRoute(pathname) && !isSubscriptionExemptRoute(pathname)) {
+    const feature = getFeatureForRoute(pathname)
+
+    if (feature) {
+      // Buscar dados de subscription da organização do usuário
+      const { data: userData } = await supabase
+        .from('users')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single()
+
+      if (userData?.organization_id) {
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('subscription_plan, subscription_status, trial_ends_at, subscription_ends_at, canceled_at')
+          .eq('id', userData.organization_id)
+          .single()
+
+        if (org) {
+          const effectivePlan = getEffectivePlan({
+            subscriptionPlan: org.subscription_plan,
+            subscriptionStatus: org.subscription_status,
+            trialEndsAt: org.trial_ends_at,
+            subscriptionEndsAt: org.subscription_ends_at,
+            canceledAt: org.canceled_at,
+          })
+
+          if (!canAccessFeature(effectivePlan, feature)) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/settings/billing'
+            url.searchParams.set('blocked', feature)
+            url.searchParams.set('from', pathname)
+            return NextResponse.redirect(url)
+          }
+        }
+      }
     }
   }
 

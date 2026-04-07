@@ -1,10 +1,10 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createInitialCapitalTransaction } from './financeiro'
-import { validateInput, signInSchema, signUpSchema } from '@/lib/validations'
+import { validateInput, signInSchema, signUpSchema, completeSetupSchema } from '@/lib/validations'
 
 export async function signIn(email: string, password: string) {
   const validated = validateInput(signInSchema, { email, password })
@@ -78,6 +78,11 @@ export async function signUp(
   const orgSlug = `org_${authData.user.id.slice(0, 12)}`
 
   try {
+    // Calcular trial de 7 dias
+    const now = new Date()
+    const trialEndsAt = new Date(now)
+    trialEndsAt.setDate(trialEndsAt.getDate() + 7)
+
     // Criar organização usando service role
     const { error: orgError } = await serviceClient
       .from('organizations')
@@ -89,6 +94,10 @@ export async function signUp(
           email: email,
           initial_capital: capitalInicial || 0,
           initial_capital_set_at: capitalInicial ? new Date().toISOString() : null,
+          subscription_plan: 'TRIAL',
+          subscription_status: 'TRIALING',
+          trial_started_at: now.toISOString(),
+          trial_ends_at: trialEndsAt.toISOString(),
         },
       ])
 
@@ -196,6 +205,92 @@ export async function getUser() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   return user
+}
+
+/**
+ * Completa o cadastro de usuários Google OAuth.
+ * Atualiza nome da empresa, whatsapp, capital inicial e limpa needs_setup.
+ */
+export async function completeSetup(
+  companyName: string,
+  whatsapp?: string,
+  capitalInicial?: number
+) {
+  const validated = validateInput(completeSetupSchema, { companyName, whatsapp, capitalInicial })
+  const supabase = await createClient()
+  const serviceClient = await createServiceClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('Usuário não autenticado')
+  }
+
+  // Buscar organização do usuário
+  const { data: userData } = await serviceClient
+    .from('users')
+    .select('organization_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!userData?.organization_id) {
+    throw new Error('Organização não encontrada')
+  }
+
+  const organizationId = userData.organization_id
+
+  // Atualizar organização com dados reais
+  const updateData: Record<string, unknown> = {
+    name: validated.companyName,
+  }
+
+  if (validated.capitalInicial && validated.capitalInicial > 0) {
+    updateData.initial_capital = validated.capitalInicial
+    updateData.initial_capital_set_at = new Date().toISOString()
+  }
+
+  const { error: orgError } = await serviceClient
+    .from('organizations')
+    .update(updateData)
+    .eq('id', organizationId)
+
+  if (orgError) {
+    console.error('[setup] Erro ao atualizar organização:', orgError)
+    throw new Error('Erro ao salvar dados da empresa. Tente novamente.')
+  }
+
+  // Salvar whatsapp nos metadados do auth
+  if (validated.whatsapp) {
+    await serviceClient.auth.admin.updateUserById(user.id, {
+      user_metadata: {
+        ...user.user_metadata,
+        whatsapp: validated.whatsapp,
+      },
+    })
+  }
+
+  // Criar transação de capital inicial se informado
+  if (validated.capitalInicial && validated.capitalInicial > 0) {
+    try {
+      const result = await createInitialCapitalTransaction(
+        organizationId,
+        validated.capitalInicial,
+        user.id
+      )
+      if (!result.success) {
+        console.error('[setup] Erro ao criar capital inicial:', result.message)
+      }
+    } catch (error) {
+      console.error('[setup] Erro inesperado ao criar capital inicial:', error)
+    }
+  }
+
+  // Limpar flag needs_setup
+  await serviceClient.auth.admin.updateUserById(user.id, {
+    app_metadata: { needs_setup: false },
+  })
+
+  revalidatePath('/', 'layout')
+  return { success: true }
 }
 
 export async function getCurrentUserData() {

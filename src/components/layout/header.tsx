@@ -144,6 +144,7 @@ export function Header() {
 
         {/* Mobile Logo */}
         <div className="flex items-center gap-2 md:hidden">
+          <img src="/logo-icon.svg" alt="Clapper" className="h-7 w-7" />
           <span className="text-lg font-bold tracking-tight text-text-primary">Clapper</span>
         </div>
 

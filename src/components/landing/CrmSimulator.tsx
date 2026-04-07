@@ -9,7 +9,7 @@ import {
     Users,
     Package,
     DollarSign,
-    Play,
+
     Search,
     Bell,
     MoreHorizontal,
@@ -51,9 +51,7 @@ export function CrmSimulator() {
                 <div className="hidden md:flex w-64 flex-col border-r border-zinc-800/50 bg-zinc-900/40 backdrop-blur-sm z-20">
                     {/* Logo */}
                     <div className="flex items-center gap-3 px-6 h-16 border-b border-white/5">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-black shadow-lg shadow-emerald-500/20">
-                            <Play className="w-4 h-4 fill-current" />
-                        </div>
+                        <img src="/logo-icon.svg" alt="Clapper" className="w-8 h-8" />
                         <span className="font-bold text-sm text-white tracking-wide">Clapper</span>
                     </div>
 
@@ -115,9 +113,7 @@ export function CrmSimulator() {
                     <div className="h-16 border-b border-zinc-800/50 flex items-center justify-between px-4 md:px-6 bg-zinc-900/20 backdrop-blur-md sticky top-0 z-30 shrink-0">
                         {/* Mobile Logo Title */}
                         <div className="md:hidden flex items-center gap-2">
-                            <div className="w-6 h-6 rounded bg-emerald-500 flex items-center justify-center text-black">
-                                <Play className="w-3 h-3 fill-current" />
-                            </div>
+                            <img src="/logo-icon.svg" alt="Clapper" className="w-6 h-6" />
                             <span className="font-bold text-sm text-white">Clapper</span>
                         </div>
 

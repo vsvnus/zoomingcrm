@@ -8,18 +8,20 @@ import {
   Package,
   UserCircle,
   Settings,
-  Play,
   DollarSign,
   Calendar,
   Building2,
   Clapperboard,
   Calculator,
+  Lock,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 import { getSidebarBadges } from '@/actions/financeiro'
+import { useSubscriptionStore } from '@/stores/subscription-store'
+import { canAccessFeature, getFeatureForRoute } from '@/lib/subscription/access'
 
 type MenuItem = {
   icon: typeof LayoutDashboard
@@ -31,6 +33,7 @@ type MenuItem = {
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { effectivePlan, openUpgradeModal } = useSubscriptionStore()
   const [badges, setBadges] = useState({
     proposals: 0,
     projects: 0,
@@ -99,9 +102,7 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-[rgb(var(--glass-border))] px-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-          <Play className="h-4 w-4 text-primary-foreground" fill="currentColor" />
-        </div>
+        <img src="/logo-icon.svg" alt="Clapper" className="h-9 w-9" />
         <div className="flex flex-col">
           <span className="text-lg font-bold tracking-tight text-text-primary leading-tight">
             Clapper
@@ -123,6 +124,22 @@ export function Sidebar() {
               {section.items.map((item) => {
                 const isActive = pathname === item.href
                 const Icon = item.icon
+                const feature = getFeatureForRoute(item.href)
+                const isLocked = feature ? !canAccessFeature(effectivePlan, feature) : false
+
+                if (isLocked) {
+                  return (
+                    <button
+                      key={item.href}
+                      onClick={() => feature && openUpgradeModal(feature)}
+                      className="group relative flex w-full items-center gap-3 rounded-md px-3 h-11 transition-colors duration-150 text-text-tertiary hover:bg-bg-hover/50"
+                    >
+                      <Icon className="h-5 w-5 shrink-0 opacity-40" strokeWidth={2} />
+                      <span className="flex-1 text-left text-sm font-medium opacity-50">{item.label}</span>
+                      <Lock className="h-3.5 w-3.5 text-text-tertiary" />
+                    </button>
+                  )
+                }
 
                 return (
                   <Link

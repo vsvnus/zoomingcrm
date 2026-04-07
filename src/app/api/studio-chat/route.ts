@@ -2,8 +2,8 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 import { createClient, getUserOrganization } from '@/lib/supabase/server';
-import { getToolsDefinitions, executeTool } from '@/lib/ai/tools';
-import { SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { getStudioToolsDefinitions, executeStudioTool } from '@/lib/ai/studio-tools';
+import { buildStudioSystemMessage } from '@/lib/ai/studio-prompts';
 import { z } from 'zod';
 
 export const maxDuration = 60;
@@ -14,7 +14,6 @@ function getOpenAI() {
     });
 }
 
-// --- Input validation schema ---
 const messageSchema = z.object({
     role: z.enum(['user', 'assistant']),
     content: z.string().max(10000, 'Mensagem excede o limite de 10.000 caracteres').optional().nullable(),
@@ -23,8 +22,13 @@ const messageSchema = z.object({
 const chatRequestSchema = z.object({
     messages: z
         .array(messageSchema)
-        .min(1, 'Pelo menos uma mensagem e necessaria')
-        .max(50, 'Limite de 50 mensagens por requisicao'),
+        .min(1, 'Pelo menos uma mensagem é necessária')
+        .max(50, 'Limite de 50 mensagens por requisição'),
+    context: z.object({
+        scriptId: z.string().optional(),
+        scriptTitle: z.string().optional(),
+        scenesCount: z.number().optional(),
+    }).optional(),
 });
 
 export async function POST(req: Request) {
@@ -47,7 +51,7 @@ export async function POST(req: Request) {
             body = await req.json();
         } catch {
             return new Response(
-                JSON.stringify({ error: 'Corpo da requisicao invalido' }),
+                JSON.stringify({ error: 'Corpo da requisição inválido' }),
                 { status: 400, headers: { 'Content-Type': 'application/json' } },
             );
         }
@@ -56,42 +60,49 @@ export async function POST(req: Request) {
         if (!validation.success) {
             return new Response(
                 JSON.stringify({
-                    error: 'Dados de entrada invalidos',
+                    error: 'Dados de entrada inválidos',
                     details: validation.error.issues.map((i) => i.message),
                 }),
                 { status: 422, headers: { 'Content-Type': 'application/json' } },
             );
         }
 
-        // Cast validated messages to OpenAI's discriminated union type.
-        // The Zod schema already constrains role to valid values; the cast
-        // bridges the structural gap between Zod's inferred type and OpenAI's
-        // branded ChatCompletionMessageParam union.
         const messages = validation.data.messages as ChatCompletionMessageParam[];
+        const context = validation.data.context;
 
-        // 3. Primeira Chamada para OpenAI
+        // 3. Build system message with context
+        const systemMessage = buildStudioSystemMessage({
+            scriptId: context?.scriptId,
+            scriptTitle: context?.scriptTitle,
+            scenesCount: context?.scenesCount,
+        });
+
+        // 4. Call OpenAI
         const openai = getOpenAI();
         const response = await openai.chat.completions.create({
             model: 'gpt-4o',
             stream: true,
             messages: [
-                {
-                    role: 'system',
-                    content: `${SYSTEM_PROMPT}\n\nDATA ATUAL: ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. Use esta data como referência absoluta para "hoje".`
-                },
-                ...messages
+                { role: 'system', content: systemMessage },
+                ...messages,
             ],
-            functions: getToolsDefinitions(),
+            functions: getStudioToolsDefinitions(),
             function_call: 'auto',
         });
 
-        // 4. Streaming com Suporte a Functions (Tool Calling Manual)
+        // 5. Streaming with Function Calling support
         const stream = OpenAIStream(response as any, {
             experimental_onFunctionCall: async (
                 { name, arguments: args },
                 createFunctionCallMessages
             ) => {
-                const result = await executeTool(name, args, supabase, organizationId);
+                const result = await executeStudioTool(
+                    name,
+                    args,
+                    supabase,
+                    organizationId,
+                    user.id
+                );
 
                 const newMessages = createFunctionCallMessages(result);
 
@@ -99,14 +110,11 @@ export async function POST(req: Request) {
                     model: 'gpt-4o',
                     stream: true,
                     messages: [
-                        {
-                            role: 'system',
-                            content: `${SYSTEM_PROMPT}\n\nDATA ATUAL: ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. Use esta data como referência absoluta para "hoje".`
-                        },
+                        { role: 'system', content: systemMessage },
                         ...messages,
-                        ...(newMessages as ChatCompletionMessageParam[])
+                        ...(newMessages as ChatCompletionMessageParam[]),
                     ],
-                    functions: getToolsDefinitions(),
+                    functions: getStudioToolsDefinitions(),
                 }) as any;
             },
         });
@@ -114,10 +122,9 @@ export async function POST(req: Request) {
         return new StreamingTextResponse(stream);
 
     } catch (error: any) {
-        // Sanitize: never leak internal error details to the client
-        console.error('AI Error:', error);
+        console.error('Studio AI Error:', error);
         return new Response(
-            JSON.stringify({ error: 'Erro interno no assistente. Tente novamente.' }),
+            JSON.stringify({ error: 'Erro interno no assistente do Studio. Tente novamente.' }),
             {
                 status: 500,
                 headers: { 'Content-Type': 'application/json' },

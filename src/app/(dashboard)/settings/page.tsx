@@ -32,6 +32,7 @@ const settingsSections: {
     description: 'Planos, pagamentos e faturas',
     icon: CreditCard,
     color: 'from-green-500 to-emerald-600',
+    href: '/settings/billing',
   },
   {
     id: 'notifications',

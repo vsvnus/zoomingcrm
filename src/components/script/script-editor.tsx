@@ -29,6 +29,7 @@ import {
   Wrench,
   Table2,
   Image as ImageIcon,
+  Sparkles,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -73,6 +74,7 @@ import {
 } from '@/actions/scripts'
 import { StoryboardUpload } from '@/components/script/storyboard-upload'
 import { ScriptExportPdf } from '@/components/script/script-export-pdf'
+import { StudioAIPanel } from '@/components/studio/studio-ai-panel'
 
 // ============================================
 // UTILITY
@@ -673,9 +675,10 @@ interface ScriptEditorProps {
   projectId: string
   projectTitle: string
   studioMode?: boolean
+  initialAIOpen?: boolean
 }
 
-export function ScriptEditor({ script, projectId, projectTitle, studioMode }: ScriptEditorProps) {
+export function ScriptEditor({ script, projectId, projectTitle, studioMode, initialAIOpen }: ScriptEditorProps) {
   const router = useRouter()
   const [scenes, setScenes] = useState<Scene[]>(script.scenes || [])
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(
@@ -684,6 +687,7 @@ export function ScriptEditor({ script, projectId, projectTitle, studioMode }: Sc
   const [viewMode, setViewMode] = useState<ScriptViewMode>('roteiro')
   const [isSaving, setIsSaving] = useState(false)
   const [scriptTitle, setScriptTitle] = useState(script.title)
+  const [isAIPanelOpen, setIsAIPanelOpen] = useState(initialAIOpen ?? false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const selectedScene = scenes.find((s) => s.id === selectedSceneId) || null
@@ -912,6 +916,19 @@ export function ScriptEditor({ script, projectId, projectTitle, studioMode }: Sc
             script={{ ...script, scenes }}
             projectTitle={projectTitle}
           />
+
+          {/* AI Toggle */}
+          <button
+            onClick={() => setIsAIPanelOpen(!isAIPanelOpen)}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+              isAIPanelOpen
+                ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30'
+                : 'bg-bg-primary text-text-tertiary hover:text-text-secondary border border-border hover:border-violet-500/30'
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Studio AI
+          </button>
 
           {/* Save indicator */}
           {isSaving && (
@@ -1239,6 +1256,20 @@ export function ScriptEditor({ script, projectId, projectTitle, studioMode }: Sc
             )}
           </AnimatePresence>
         </div>
+
+        {/* AI Panel */}
+        <AnimatePresence>
+          {isAIPanelOpen && (
+            <StudioAIPanel
+              scriptId={script.id}
+              scriptTitle={scriptTitle}
+              scenesCount={scenes.length}
+              isOpen={isAIPanelOpen}
+              onClose={() => setIsAIPanelOpen(false)}
+              onScenesUpdated={() => router.refresh()}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )
