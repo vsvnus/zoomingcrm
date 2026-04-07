@@ -4,7 +4,9 @@ import { OpenAIStream, StreamingTextResponse } from 'ai';
 import { createClient, getUserOrganization } from '@/lib/supabase/server';
 import { getStudioToolsDefinitions, executeStudioTool } from '@/lib/ai/studio-tools';
 import { buildStudioSystemMessage } from '@/lib/ai/studio-prompts';
+import { isWriteTool, logToolCall } from '@/lib/ai/tool-safety';
 import { z } from 'zod';
+import { checkRateLimit, getRequestIdentifier, rateLimitResponse } from '@/lib/security/rate-limit';
 
 export const maxDuration = 60;
 
@@ -37,6 +39,11 @@ export async function POST(req: Request) {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return new Response('Unauthorized', { status: 401 });
+
+        // Rate limit: 10 req/min por usuário
+        const rlKey = getRequestIdentifier(req, user.id);
+        const rl = checkRateLimit(rlKey, { limit: 10, windowSeconds: 60 });
+        if (!rl.success) return rateLimitResponse(rl.retryAfter);
 
         let organizationId = '';
         try {
@@ -96,6 +103,11 @@ export async function POST(req: Request) {
                 { name, arguments: args },
                 createFunctionCallMessages
             ) => {
+                // Log de seguranca para tools de escrita
+                if (isWriteTool(name)) {
+                    logToolCall({ tool: name, args, userId: user.id, orgId: organizationId });
+                }
+
                 const result = await executeStudioTool(
                     name,
                     args,
@@ -122,7 +134,12 @@ export async function POST(req: Request) {
         return new StreamingTextResponse(stream);
 
     } catch (error: any) {
-        console.error('Studio AI Error:', error);
+        console.error('Studio AI Error:', {
+            message: error?.message,
+            code: error?.code,
+            status: error?.status,
+            stack: error?.stack?.split('\n').slice(0, 5).join('\n'),
+        });
         return new Response(
             JSON.stringify({ error: 'Erro interno no assistente do Studio. Tente novamente.' }),
             {
