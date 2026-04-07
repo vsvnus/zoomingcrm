@@ -25,6 +25,44 @@ import {
     Plus
 } from 'lucide-react'
 
+// --- Avatar Component (replaces external Unsplash images) ---
+
+function Avatar({ index = 0, size = 'md', className = '' }: { index?: number; size?: 'xs' | 'sm' | 'md'; className?: string }) {
+    const colors = [
+        { bg: '#3b82f6', fg: '#dbeafe', letter: 'V' },
+        { bg: '#8b5cf6', fg: '#ede9fe', letter: 'A' },
+        { bg: '#06b6d4', fg: '#cffafe', letter: 'J' },
+        { bg: '#f59e0b', fg: '#fef3c7', letter: 'M' },
+        { bg: '#10b981', fg: '#d1fae5', letter: 'L' },
+    ]
+    const { bg, fg, letter } = colors[index % colors.length]
+    const sizes = { xs: 'w-5 h-5 text-[8px]', sm: 'w-6 h-6 text-[9px]', md: 'w-8 h-8 text-xs' }
+
+    return (
+        <div
+            className={`${sizes[size]} rounded-full flex items-center justify-center font-bold shrink-0 ${className}`}
+            style={{ backgroundColor: bg, color: fg }}
+        >
+            {letter}
+        </div>
+    )
+}
+
+function EquipmentIcon({ category }: { category: string }) {
+    const iconMap: Record<string, string> = {
+        'Câmera': '📷',
+        'Lente': '🔭',
+        'Drone': '🚁',
+        'Iluminação': '💡',
+        'Computador': '💻',
+    }
+    return (
+        <div className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-lg shrink-0">
+            {iconMap[category] || '📦'}
+        </div>
+    )
+}
+
 // --- Types & Data ---
 
 type Tab = 'dashboard' | 'proposals' | 'projects' | 'financeiro' | 'inventory'
@@ -95,9 +133,7 @@ export function CrmSimulator() {
                     {/* User Footer */}
                     <div className="mt-auto p-4 border-t border-white/5">
                         <div className="flex items-center gap-3 group cursor-pointer">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-zinc-700 to-zinc-600 border border-zinc-500 ring-2 ring-transparent group-hover:ring-zinc-600 transition-all flex items-center justify-center overflow-hidden">
-                                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" alt="Admin" className="w-full h-full object-cover" />
-                            </div>
+                            <Avatar index={0} className="ring-2 ring-transparent group-hover:ring-zinc-600 transition-all" />
                             <div className="text-left">
                                 <div className="text-xs font-bold text-zinc-200 group-hover:text-white transition-colors">Vinicius P.</div>
                                 <div className="text-[10px] text-zinc-500">Admin</div>
@@ -209,9 +245,9 @@ function ProjectsView() {
                         <Plus className="w-3 h-3" /> Nova Tarefa
                     </button>
                     <div className="flex -space-x-2">
-                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" alt="User" className="w-8 h-8 rounded-full border-2 border-[#09090b] ring-2 ring-transparent hover:ring-zinc-700 transition-all cursor-pointer z-30" />
-                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" alt="User" className="w-8 h-8 rounded-full border-2 border-[#09090b] ring-2 ring-transparent hover:ring-zinc-700 transition-all cursor-pointer z-20" />
-                        <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop" alt="User" className="w-8 h-8 rounded-full border-2 border-[#09090b] ring-2 ring-transparent hover:ring-zinc-700 transition-all cursor-pointer z-10" />
+                        <Avatar index={0} className="border-2 border-[#09090b] hover:ring-2 hover:ring-zinc-700 transition-all cursor-pointer z-30" />
+                        <Avatar index={1} className="border-2 border-[#09090b] hover:ring-2 hover:ring-zinc-700 transition-all cursor-pointer z-20" />
+                        <Avatar index={2} className="border-2 border-[#09090b] hover:ring-2 hover:ring-zinc-700 transition-all cursor-pointer z-10" />
                         <div className="w-8 h-8 rounded-full border-2 border-[#09090b] bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-400 z-0">
                             +2
                         </div>
@@ -262,8 +298,8 @@ function ProjectsView() {
                                     <Clock className="w-3 h-3" /> Hoje 14:00
                                 </div>
                                 <div className="flex -space-x-2 opacity-80">
-                                    <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop" className="w-5 h-5 rounded-full border border-zinc-900" alt="Avatar" />
-                                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" className="w-5 h-5 rounded-full border border-zinc-900" alt="Avatar" />
+                                    <Avatar index={2} size="xs" className="border border-zinc-900" />
+                                    <Avatar index={1} size="xs" className="border border-zinc-900" />
                                 </div>
                             </div>
                         </div>
@@ -444,17 +480,15 @@ function InventoryView() {
 
                 <div className="grid gap-3">
                     {[
-                        { name: 'Sony A7S III', cat: 'Câmera', status: 'available', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=100&h=100&fit=crop' },
-                        { name: 'Lente 24-70mm GM', cat: 'Lente', status: 'rented', image: 'https://images.unsplash.com/photo-1617005082133-548c4dd27f35?w=100&h=100&fit=crop', project: 'Nike Run' },
-                        { name: 'Drone Mavic 3', cat: 'Drone', status: 'maintenance', image: 'https://images.unsplash.com/photo-1473960104312-bf233a02c68a?w=100&h=100&fit=crop' },
-                        { name: 'Aputure 300d', cat: 'Iluminação', status: 'available', image: 'https://images.unsplash.com/photo-1540339832862-474559135934?w=100&h=100&fit=crop' },
-                        { name: 'Macbook Pro M3', cat: 'Computador', status: 'available', image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca4?w=100&h=100&fit=crop' },
+                        { name: 'Sony A7S III', cat: 'Câmera', status: 'available' },
+                        { name: 'Lente 24-70mm GM', cat: 'Lente', status: 'rented', project: 'Nike Run' },
+                        { name: 'Drone Mavic 3', cat: 'Drone', status: 'maintenance' },
+                        { name: 'Aputure 300d', cat: 'Iluminação', status: 'available' },
+                        { name: 'Macbook Pro M3', cat: 'Computador', status: 'available' },
                     ].map((item, i) => (
                         <div key={i} className="flex items-center justify-between p-3 bg-zinc-900/30 border border-zinc-800 rounded-lg hover:border-zinc-700 transition-colors group">
                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-zinc-700">
-                                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                                </div>
+                                <EquipmentIcon category={item.cat} />
                                 <div>
                                     <div className="text-sm font-bold text-zinc-200">{item.name}</div>
                                     <div className="flex items-center gap-2">
@@ -516,13 +550,6 @@ function Card({ title, tag, color, completed, assignees = 2 }: any) {
         amber: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
     }
 
-    // Fake avatars
-    const avatars = [
-        'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop',
-        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop'
-    ]
-
     return (
         <div className={`bg-zinc-800/40 p-3 rounded-xl border border-zinc-700/50 hover:border-zinc-500 transition-all cursor-pointer group ${completed ? 'opacity-60 hover:opacity-100' : ''}`}>
             <div className="flex justify-between mb-2">
@@ -535,12 +562,7 @@ function Card({ title, tag, color, completed, assignees = 2 }: any) {
             <div className="flex justify-between items-center">
                 <div className="flex -space-x-2">
                     {[...Array(assignees)].map((_, i) => (
-                        <img
-                            key={i}
-                            src={avatars[i % avatars.length]}
-                            className="w-5 h-5 rounded-full border border-zinc-900 object-cover"
-                            alt="Avatar"
-                        />
+                        <Avatar key={i} index={i} size="xs" className="border border-zinc-900" />
                     ))}
                 </div>
                 {!completed && <div className="text-[10px] text-zinc-500 bg-zinc-900/50 px-1.5 py-0.5 rounded border border-zinc-800 opacity-0 group-hover:opacity-100 transition-opacity">

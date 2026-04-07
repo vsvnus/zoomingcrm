@@ -226,12 +226,15 @@ async function recalculateSceneTimes(supabase: SupabaseClient, scriptId: string)
         return;
     }
 
+    // Batch update: calcular todos os start_times e fazer updates em paralelo
     let currentTime = 0;
-    for (const scene of scenes) {
-        await supabase.from('scenes').update({ start_time: currentTime }).eq('id', scene.id);
+    const updates = scenes.map((scene) => {
+        const startTime = currentTime;
         currentTime += scene.duration || 0;
-    }
+        return supabase.from('scenes').update({ start_time: startTime }).eq('id', scene.id);
+    });
 
+    await Promise.all(updates);
     await supabase.from('scripts').update({ total_duration: currentTime }).eq('id', scriptId);
 }
 
@@ -426,6 +429,19 @@ async function updateScene(
     });
 }
 
+/**
+ * Remove campos null/undefined/vazios de um objeto para economizar tokens.
+ */
+function stripEmpty(obj: Record<string, any>): Record<string, any> {
+    const result: Record<string, any> = {};
+    for (const [key, value] of Object.entries(obj)) {
+        if (value !== null && value !== undefined && value !== '') {
+            result[key] = value;
+        }
+    }
+    return result;
+}
+
 async function getScript(
     args: any,
     supabase: SupabaseClient,
@@ -435,7 +451,7 @@ async function getScript(
 
     const { data: script, error } = await supabase
         .from('scripts')
-        .select('*')
+        .select('id, title, description, status, video_format, target_platform, target_audience, tone, total_duration, version')
         .eq('id', script_id)
         .eq('organization_id', organizationId)
         .single();
@@ -444,42 +460,13 @@ async function getScript(
 
     const { data: scenes } = await supabase
         .from('scenes')
-        .select('*')
+        .select('id, "order", title, duration, start_time, description, action, dialogue, voiceover, lettering, sound_design, notes, camera_angle, camera_movement, transition, location_note, equipment_notes')
         .eq('script_id', script_id)
         .order('order', { ascending: true });
 
     return JSON.stringify({
-        script: {
-            id: script.id,
-            title: script.title,
-            description: script.description,
-            status: script.status,
-            video_format: script.video_format,
-            target_platform: script.target_platform,
-            target_audience: script.target_audience,
-            tone: script.tone,
-            total_duration: script.total_duration,
-            version: script.version,
-        },
-        scenes: (scenes || []).map((s: any) => ({
-            id: s.id,
-            order: s.order,
-            title: s.title,
-            duration: s.duration,
-            start_time: s.start_time,
-            description: s.description,
-            action: s.action,
-            dialogue: s.dialogue,
-            voiceover: s.voiceover,
-            lettering: s.lettering,
-            sound_design: s.sound_design,
-            notes: s.notes,
-            camera_angle: s.camera_angle,
-            camera_movement: s.camera_movement,
-            transition: s.transition,
-            location_note: s.location_note,
-            equipment_notes: s.equipment_notes,
-        })),
+        script: stripEmpty(script),
+        scenes: (scenes || []).map((s: any) => stripEmpty(s)),
         total_scenes: scenes?.length || 0,
     });
 }
