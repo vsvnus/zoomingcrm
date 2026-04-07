@@ -16,11 +16,9 @@ const nextConfig: NextConfig = {
           key: 'Content-Security-Policy',
           value: [
             "default-src 'self'",
-            // TODO: Remover 'unsafe-inline' do script-src implementando nonce-based CSP
-            // via middleware do Next.js (next-safe headers ou custom middleware com nonce).
-            // 'strict-dynamic' permite que scripts inline confiáveis carreguem outros scripts
-            // (ex: qrcodejs via cdnjs.cloudflare.com na impressão de etiquetas).
-            "script-src 'self' 'unsafe-inline' 'strict-dynamic' https://cdnjs.cloudflare.com",
+            // TODO: Implementar nonce-based CSP via middleware do Next.js para
+            // remover 'unsafe-inline' e habilitar 'strict-dynamic' com segurança.
+            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in",
             "font-src 'self'",
