@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft,
@@ -16,14 +16,22 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { startSubscription } from '@/actions/subscription'
 import type { AsaasBillingType } from '@/lib/asaas'
 
-type PaymentMethod = 'CREDIT_CARD' | 'PIX' | 'BOLETO'
+type PaymentMethod = 'CREDIT_CARD' | 'UNDEFINED' | 'BOLETO'
 
 export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[400px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-accent-500 border-t-transparent" /></div>}>
+      <CheckoutContent />
+    </Suspense>
+  )
+}
+
+function CheckoutContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const plan = (searchParams.get('plan') as 'PRO' | 'MAX') || 'MAX'
 
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PIX')
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('UNDEFINED')
   const [cpfCnpj, setCpfCnpj] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -41,7 +49,12 @@ export default function CheckoutPage() {
     setError(null)
 
     try {
-      await startSubscription(plan, paymentMethod as AsaasBillingType, cpfCnpj)
+      const result = await startSubscription(plan, paymentMethod as AsaasBillingType, cpfCnpj)
+      if (!result.success) {
+        setError(result.error || 'Erro ao processar assinatura. Tente novamente.')
+        return
+      }
+      router.refresh()
       router.push('/settings/billing?success=true' as any)
     } catch (err: any) {
       setError(err.message || 'Erro ao processar assinatura. Tente novamente.')
@@ -140,8 +153,8 @@ export default function CheckoutPage() {
         <h3 className="mb-4 text-lg font-bold text-white">Forma de pagamento</h3>
         <div className="grid gap-3">
           {[
-            { id: 'PIX' as const, label: 'PIX', desc: 'Pagamento instantaneo', icon: QrCode },
-            { id: 'CREDIT_CARD' as const, label: 'Cartao de Credito', desc: 'Cobranca automatica', icon: CreditCard },
+            { id: 'UNDEFINED' as const, label: 'PIX', desc: 'Cobranca mensal via PIX', icon: QrCode },
+            { id: 'CREDIT_CARD' as const, label: 'Cartao de Credito', desc: 'Cobranca automatica mensal', icon: CreditCard },
             { id: 'BOLETO' as const, label: 'Boleto Bancario', desc: 'Vencimento em 3 dias uteis', icon: FileText },
           ].map((method) => {
             const Icon = method.icon
