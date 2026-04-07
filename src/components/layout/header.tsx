@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, User, LogOut, UserCircle, Check, Sparkles, Plug } from 'lucide-react'
+import { Bell, User, LogOut, UserCircle, Check, Sparkles, Plug, CreditCard } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { signOut, getCurrentUserData } from '@/actions/auth'
 import { getNotifications, getUnreadCount, markAllAsRead, markAsRead, type Notification } from '@/actions/notifications'
@@ -274,10 +274,17 @@ export function Header() {
                     </a>
                     <a
                       href="/settings/integrations"
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-text-secondary transition-all hover:bg-bg-hover hover:text-text-primary mb-1"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-text-secondary transition-all hover:bg-bg-hover hover:text-text-primary"
                     >
                       <Plug className="h-4 w-4" />
                       Integrações
+                    </a>
+                    <a
+                      href="/settings/billing"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-text-secondary transition-all hover:bg-bg-hover hover:text-text-primary mb-1"
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      Assinatura
                     </a>
                     <div className="my-1 h-px bg-bg-tertiary" />
                     <button
