@@ -245,6 +245,12 @@ export const signUpSchema = z.object({
   capitalInicial: positiveDecimalSchema.optional(),
 })
 
+export const completeSetupSchema = z.object({
+  companyName: z.string().min(1, 'Nome da empresa é obrigatório').max(200),
+  whatsapp: z.string().max(30).optional(),
+  capitalInicial: positiveDecimalSchema.optional(),
+})
+
 // ============================================
 // SCRIPTS
 // ============================================
