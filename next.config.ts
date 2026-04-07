@@ -5,6 +5,10 @@ const isDev = process.env.NODE_ENV === 'development'
 const nextConfig: NextConfig = {
   output: 'standalone',
   typedRoutes: true,
+  typescript: {
+    // TSC validado localmente; pular no build de prod para não estourar RAM no Hetzner (3.7GB)
+    ignoreBuildErrors: true,
+  },
   headers: async () => isDev ? [] : [
     {
       source: '/(.*)',
