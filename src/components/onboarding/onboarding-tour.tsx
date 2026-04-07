@@ -292,10 +292,12 @@ export function OnboardingTour({ userName }: { userName: string }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
-          className="fixed inset-0 z-[9999]"
+          className={`fixed inset-0 z-[9999] ${phase === 'tour' ? 'pointer-events-none' : ''}`}
         >
-          {/* Backdrop — leve para o usuário ver a página por trás */}
-          <div className="absolute inset-0 bg-black/30" />
+          {/* Backdrop — só nas fases welcome/complete (modais centralizados) */}
+          {phase !== 'tour' && (
+            <div className="absolute inset-0 bg-black/30" />
+          )}
 
           {/* ═══ WELCOME PHASE ═══ */}
           <AnimatePresence mode="wait">
