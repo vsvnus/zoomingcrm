@@ -47,7 +47,7 @@ export function getEffectivePlan(org: {
   if (status === 'CANCELED') {
     // Acesso mantido até o fim do período
     if (org.subscriptionEndsAt && new Date(org.subscriptionEndsAt) > new Date()) {
-      return (org.subscriptionPlan as 'PRO' | 'MAX') ?? 'EXPIRED'
+      return (org.subscriptionPlan as PlanKey) ?? 'EXPIRED'
     }
     return 'EXPIRED'
   }
@@ -61,11 +61,11 @@ export function getEffectivePlan(org: {
 
   if (status === 'PAST_DUE') {
     // Grace period — mantém acesso por enquanto
-    return (org.subscriptionPlan as 'PRO' | 'MAX') ?? 'EXPIRED'
+    return (org.subscriptionPlan as PlanKey) ?? 'EXPIRED'
   }
 
   if (status === 'ACTIVE') {
-    return (org.subscriptionPlan as 'PRO' | 'MAX') ?? 'EXPIRED'
+    return (org.subscriptionPlan as PlanKey) ?? 'EXPIRED'
   }
 
   return 'EXPIRED'

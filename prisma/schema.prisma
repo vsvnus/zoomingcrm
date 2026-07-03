@@ -19,6 +19,10 @@ enum SubscriptionPlan {
   TRIAL
   PRO
   MAX
+  STUDIO_STARTER
+  STUDIO_PLUS
+  STUDIO_PRO
+  STUDIO_MAX
 }
 
 enum SubscriptionStatus {
